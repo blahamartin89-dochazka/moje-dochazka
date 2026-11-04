@@ -72,6 +72,9 @@ header{padding-top:max(24px,env(safe-area-inset-top));padding-left:max(20px,env(
  /* na mobilu u jiných pohledů než kalendář skrýt úvod a souhrn, ať je obsah hned vidět */
  body[data-view]:not([data-view="calendar"]) .intro,body[data-view]:not([data-view="calendar"]) #stats{display:none!important}
 }
+/* v12 cesťák – horní lišta s tiskem */
+.order-actions{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px -4px 12px;padding:10px 12px;background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid #dfe7f4;border-radius:12px;box-shadow:0 2px 10px rgba(18,75,146,.08)}
+.order-actions span{font-weight:700;color:#124b92;font-size:14px}.order-actions .btn{min-height:44px;padding:10px 16px;white-space:nowrap}
 
 header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.brand .brandname{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#c0d9fa;margin-top:6px}
 .day.selected{border-color:#124b92}.dot{background:#124b92}.bar{background:#7fa6d6}.bar.selected{background:#124b92}.bar:hover{background:#24558a}.history-meter i{background:#124b92}.qbtn:hover,.qbtn:active{border-color:#124b92}.linkbtn{color:#124b92}
@@ -91,14 +94,14 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <section id="ordersView" class="hidden"><div class="panel" id="orders"></div></section>
 <section id="settingsView" class="hidden"><div id="settings"></div></section>
 <section class="panel chart-panel" id="chartPanel"><div class="chart-head"><div><h2>Výdělek po dnech</h2><p class="muted">Klepni na sloupec pro detail dne</p></div><select id="mode" aria-label="Co zobrazit"><option value="work">Výdělek bez diet a náhrad</option><option value="all">Celkem včetně diet a náhrad</option></select></div><div id="chartSummary" class="muted"></div><div class="chart-scroll"><div class="chart" id="chart"></div></div><p class="chart-note">Výška sloupce odpovídá částce. Dny bez záznamu jsou prázdné.</p></section>
-<p class="footnote">Data jsou uložena jen v tomto prohlížeči (localStorage). Částky jsou hrubé, bez odvodů: hodiny × sazby z Nastavení. Stravné podle zákoníku práce a vyhl. 573/2025 Sb. (5–12 h / nad 12–18 h / nad 18 h). Pravidelně si stahuj zálohu (Nastavení → Exportovat JSON).</p>
+<p class="footnote">Data se ukládají v zařízení a synchronizují s tvým účtem (bez přihlášení zůstávají jen v zařízení). Částky jsou čisté: hodiny × tvoje sazby z Nastavení. Stravné podle zákoníku práce a vyhl. 573/2025 Sb. (5–12 h / nad 12–18 h / nad 18 h).</p>
 </main>
 <nav class="bottom" aria-label="Hlavní navigace"><button type="button" data-view="calendar" aria-label="Kalendář"><span class="ico" aria-hidden="true">▦</span><span class="lbl">Kalendář</span></button><button type="button" data-view="charts" aria-label="Výdělky"><span class="ico" aria-hidden="true">▥</span><span class="lbl">Výdělky</span></button><button type="button" data-view="history" aria-label="Historie"><span class="ico" aria-hidden="true">◷</span><span class="lbl">Historie</span></button><button type="button" data-view="orders" aria-label="Cesťák"><span class="ico" aria-hidden="true">✈︎</span><span class="lbl">Cesťák</span></button><button type="button" data-view="settings" aria-label="Nastavení"><span class="ico" aria-hidden="true">⚙︎</span><span class="lbl">Nastavení</span></button></nav>
 <dialog id="dlg"></dialog>
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.11";
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.12";
 /* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
 const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
 const PHOTO_CLOUD=window.APP_PHOTO_CLOUD!==false; // bucket "stazky" existuje; vypnout lze v config.js: window.APP_PHOTO_CLOUD=false
@@ -250,6 +253,42 @@ window.addEventListener('resize',()=>{if(crop)cropDraw()});
 window.__stitek={photoCleanup,photoCutoff,photoCloudQueue,stCaption,autoQuad,warp,toCanvas,pPut,pGet,stShare,cropFinish,openCrop,get crop(){return crop},get formPhotos(){return formPhotos}};
 
 const _stRender=render;render=function(){_stRender.apply(this,arguments);hydrateThumbs()};
+
+/* ================= Cestovní příkaz → PDF (iOS PWA nemá window.print) ================= */
+function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[data-src="${src}"]`))return res();const s=document.createElement('script');s.src=src;s.dataset.src=src;s.onload=()=>res();s.onerror=()=>{s.remove();rej(new Error('Nelze načíst '+src))};document.head.appendChild(s)})}
+async function pdfLibs(){for(const s of['vendor/jspdf.umd.min.js','vendor/jspdf.plugin.autotable.min.js','vendor/pdf-font.js'])await loadScript(s);if(!window.jspdf||!window.PDF_FONTS)throw new Error('PDF knihovna chybí')}
+const asciiName=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
+function cestakFileName(){const p=P(),sur=String(p.name||'').trim().split(/\s+/).pop();return`cestak-${Y}-${pad(M+1)}${sur?'-'+asciiName(sur):''}.pdf`}
+const usePdf=()=>!!(navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)||typeof window.print!=='function');
+async function cestakPdf(){await pdfLibs();renderOrders();
+ const{jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
+ doc.addFileToVFS('DejaVuSans.ttf',PDF_FONTS.regular);doc.addFont('DejaVuSans.ttf','DejaVu','normal');doc.addFileToVFS('DejaVuSans-Bold.ttf',PDF_FONTS.bold);doc.addFont('DejaVuSans-Bold.ttf','DejaVu','bold');doc.setFont('DejaVu','normal');
+ const root=$('#orders'),txt=el=>el?el.innerText.replace(/\u00a0|\u202f/g,' ').trim():'',W=210,ML=12,CW=W-2*ML;let y=16;
+ const para=(t,size,style,gap)=>{if(!t)return;doc.setFont('DejaVu',style||'normal');doc.setFontSize(size);const ls=doc.splitTextToSize(t,CW);doc.text(ls,ML,y);y+=ls.length*size*.42+(gap||2)};
+ const po=root.querySelectorAll('.print-only');
+ para(txt(po[0]&&po[0].querySelector('h1')),15,'bold',2);para(txt(po[0]&&po[0].querySelector('p')),9,'normal',4);
+ para(txt(root.querySelector('h2')),12,'bold',2);para(txt(po[1]),9,'normal',3);
+ doc.autoTable({html:root.querySelector('table.t'),startY:y,margin:{left:ML,right:ML},theme:'grid',useCss:false,
+  styles:{font:'DejaVu',fontSize:6.8,cellPadding:1,lineColor:[200,208,220],lineWidth:.15,textColor:[20,30,45],overflow:'linebreak'},
+  headStyles:{fillColor:[18,75,146],textColor:255,fontStyle:'bold',fontSize:6.8},footStyles:{fillColor:[234,241,250],textColor:[20,30,45],fontStyle:'bold'},
+  columnStyles:{0:{cellWidth:17},6:{halign:'right'},7:{halign:'right'},8:{halign:'right'},9:{halign:'right'},10:{halign:'right'},11:{halign:'right'},12:{halign:'right',fontStyle:'bold'}},
+  didParseCell:d=>{if(d.column.index>=6&&d.section!=='body')d.cell.styles.halign='right'}});
+ y=doc.lastAutoTable.finalY+6;if(y>255){doc.addPage();y=16}
+ for(const r of root.querySelectorAll('.rows .row')){const sp=r.querySelectorAll('span,b'),tot=r.classList.contains('total');doc.setFont('DejaVu',tot?'bold':'normal');doc.setFontSize(tot?10.5:9.5);doc.text(txt(sp[0]),W-ML-85,y);doc.text(txt(sp[1]),W-ML,y,{align:'right'});y+=tot?7:5.5}
+ y=Math.max(y+14,0);if(y>280){doc.addPage();y=30}
+ doc.setFont('DejaVu','normal');doc.setFontSize(9.5);const sig=[...(po[2]?po[2].querySelectorAll('span'):[])].map(txt);sig.forEach((s,i)=>doc.text(s,[ML,W/2,W-ML][i],y,{align:['left','center','right'][i]}));
+ const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(7);doc.setTextColor(120);doc.text(`Moje docházka · ${MONTHS[M]} ${Y} · strana ${i}/${n}`,W/2,290,{align:'center'});doc.setTextColor(0)}
+ doc.setProperties({title:`Cestovní příkaz – ${MONTHS[M]} ${Y}`,author:P().name||'',creator:'Moje docházka'});
+ return new File([doc.output('blob')],cestakFileName(),{type:'application/pdf'})}
+async function cestakPrint(btn){
+ if(!usePdf())return window.print();
+ const old=btn&&btn.textContent;if(btn){btn.disabled=true;btn.textContent='⏳ Připravuji PDF…'}
+ try{const f=await cestakPdf();
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:f.name});return'shared'}catch(e){if(e&&e.name==='AbortError')return'aborted'}}
+  const u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);toast('PDF staženo: '+f.name);return'download'}
+ catch(e){console.warn(e);toast('PDF se nepodařilo vytvořit'+(navigator.onLine===false?' (offline – otevři aplikaci jednou online)':''));try{window.print()}catch(x){}return'error'}
+ finally{if(btn){btn.disabled=false;btn.textContent=old}}}
+window.__cestak={cestakPdf,cestakPrint,cestakFileName,usePdf};
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const LS_DATA='mojeDochazka.data.v3',LS_UI='mojeDochazka.ui',LS_BK='mojeDochazka.backup';
@@ -430,7 +469,7 @@ function renderOrders(){
  const rows=es.map(e=>{const c=calc(e),t=e.travel||{};tot.d+=c.diet;tot.f+=c.c.fare;tot.l+=c.c.lodging;tot.o+=c.c.other;tot.k+=c.c.km;tot.h+=num(e.tripHours);const s=c.diet+c.c.sum;tot.s+=s;
   return `<tr><td>${fmtDate(e.date)}</td><td>${esc(t.from)}<br>${esc(t.start)}</td><td>${esc(t.to)}<br>${esc(t.arrival)}</td><td>${esc(t.returnFrom)} ${esc(t.returnStart)}<br>→ ${esc(t.returnTo)} ${esc(t.returnArrival)}</td><td>${esc(t.purpose)}${e.note?'<br><span class="muted">'+esc(e.note)+'</span>':''}</td><td>${esc(t.transport)}${num(t.km)?'<br>'+fmtH(num(t.km))+' km':''}</td><td class="n">${fmtH(num(e.tripHours))}</td><td class="n">${c.diet}</td><td class="n">${c.c.fare}</td><td class="n">${c.c.lodging}</td><td class="n">${c.c.other}</td><td class="n">${c.c.km}</td><td class="n">${r2(s)}</td></tr>`}).join('');
  const bal=r2(tot.s-num(o.advance));
- $('#orders').innerHTML=`<div class="print-only"><h1>Cestovní příkaz – vyúčtování pracovních cest</h1><p>${esc(p.name)}${p.employeeNo?', os. č. '+esc(p.employeeNo):''} · ${esc(p.company)} · bydliště ${esc(p.homeAddress)} · pravidelné pracoviště ${esc(p.place)}</p></div>
+ $('#orders').innerHTML=`<div class="order-actions no-print"><span>PDF → Tisk, Soubory, WhatsApp</span><button class="btn" data-act="print" id="printTop">🖨 Tisk / PDF</button></div><div class="print-only"><h1>Cestovní příkaz – vyúčtování pracovních cest</h1><p>${esc(p.name)}${p.employeeNo?', os. č. '+esc(p.employeeNo):''} · ${esc(p.company)} · bydliště ${esc(p.homeAddress)} · pravidelné pracoviště ${esc(p.place)}</p></div>
  <h2>Cestovní příkaz · ${MONTHS[M]} ${Y}</h2><p class="muted no-print">Souhrn pracovních cest za měsíc (dny označené „bez cestovního příkazu“ se nezapočítávají).</p>
  <div class="grid no-print" style="margin:14px 0"><div class="f"><label>Číslo příkazu</label><input data-to="orderNo" value="${esc(o.orderNo)}"></div><div class="f"><label>Záloha (Kč)</label><input data-to="advance" inputmode="decimal" value="${esc(o.advance)}"></div><div class="f"><label>Spolucestující</label><input data-to="companions" value="${esc(o.companions)}"></div><div class="f"><label>Počet příloh / dokladů</label><input data-to="receipts" inputmode="numeric" value="${esc(o.receipts)}"></div></div>
  <p class="print-only">Číslo příkazu: <b>${esc(o.orderNo)||'—'}</b> · Spolucestující: ${esc(o.companions)||'—'} · Přílohy: ${esc(o.receipts)}</p>
@@ -694,7 +733,7 @@ document.addEventListener('click',ev=>{
   if(act==='import')return $('#fileIn').click();
   if(act==='csv')return exportCSV();
   if(act==='saveSettings')return saveSettings();
-  if(act==='print')return window.print();
+  if(act==='print')return cestakPrint(ev.target.closest('[data-act]'));
   if(act==='impMerge')return doImport(false);
   if(act==='impReplace')return doImport(true);
  }
