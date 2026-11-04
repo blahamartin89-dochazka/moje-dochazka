@@ -39,6 +39,21 @@ header{padding-top:max(24px,env(safe-area-inset-top));padding-left:max(20px,env(
 .msg.hol{background:#fff1df;border:1px solid #f0c48a;color:#8a4a1f;font-weight:600;font-size:13px}
 .stat.balstat{grid-column:1/-1;display:grid;grid-template-columns:2fr 1fr;gap:14px}.balrow{display:flex;gap:18px;flex-wrap:wrap}.balrow span{display:flex;flex-direction:column}.balrow b{font-size:22px;letter-spacing:-.5px;color:#124b92}.balrow i{font-style:normal;font-size:11px;color:#6c819e}
 @media(max-width:700px){.stat.balstat{grid-template-columns:1fr 1fr}.balrow b{font-size:19px}}
+/* v9 štítky */
+.day{position:relative}.day .clip{position:absolute;top:2px;right:3px;font-size:11px;line-height:1}
+.st-photos{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.st-th{position:relative}.st-th img{width:84px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #cfd8e3;background:#eef2f7;cursor:zoom-in;display:block}
+.st-x{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:#c62828;color:#fff;font-size:12px}
+.st-file{cursor:pointer}.st-box{margin-top:10px;padding-top:8px;border-top:1px dashed #cfd8e3}.st-cap{white-space:pre-wrap;font:inherit;font-size:13px;background:#f4f7fb;padding:6px 8px;border-radius:6px;margin:6px 0}
+#f_place{resize:vertical;min-height:38px;font:inherit}
+.crop-dlg,.photo-view{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#111;color:#fff}
+.crop-dlg[open]{display:flex;flex-direction:column}.crop-head{padding:calc(10px + env(safe-area-inset-top)) 14px 8px;display:flex;flex-direction:column;gap:2px}.crop-head .muted{color:#bbb}
+.crop-stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;padding:16px}
+.crop-stage canvas{display:block}.crop-stage svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);touch-action:none}
+.crop-poly{fill:rgba(0,97,164,.18);stroke:#4fc3f7;stroke-width:2}.crop-h{fill:rgba(79,195,247,.35);stroke:#fff;stroke-width:3;cursor:grab}
+.crop-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px calc(12px + env(safe-area-inset-bottom));background:#1b1b1b}
+.photo-view[open]{display:flex;align-items:center;justify-content:center}.photo-view img{max-width:100%;max-height:100%;object-fit:contain}
+.pv-x{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.2);color:#fff;font-size:20px;z-index:2}
+.crop-foot .btn{padding:8px 12px;min-height:40px}.crop-foot{flex-wrap:nowrap}
 
 header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.brand .brandname{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#c0d9fa;margin-top:6px}
 .day.selected{border-color:#124b92}.dot{background:#124b92}.bar{background:#7fa6d6}.bar.selected{background:#124b92}.bar:hover{background:#24558a}.history-meter i{background:#124b92}.qbtn:hover,.qbtn:active{border-color:#124b92}.linkbtn{color:#124b92}
@@ -65,7 +80,124 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.8";'use strict';
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.9";
+/* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
+const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
+const PHOTO_CLOUD=!!window.APP_PHOTO_CLOUD; // zapnout až bude v Supabase bucket "stazky" (viz SETUP)
+let _pdb=null;
+function pdb(){if(_pdb)return _pdb;_pdb=new Promise((res,rej)=>{if(!window.indexedDB)return rej(new Error('IndexedDB není k dispozici'));const r=indexedDB.open(PHOTO_DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(PHOTO_STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return _pdb}
+async function pPut(id,blob){const db=await pdb();return new Promise((res,rej)=>{const t=db.transaction(PHOTO_STORE,'readwrite');t.objectStore(PHOTO_STORE).put(blob,id);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
+async function pGet(id){try{const db=await pdb();const b=await new Promise((res,rej)=>{const r=db.transaction(PHOTO_STORE).objectStore(PHOTO_STORE).get(id);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error)});if(b)return b}catch(e){}
+ if(PHOTO_CLOUD&&hooks.photoDownload){try{const b=await hooks.photoDownload(id);if(b){pPut(id,b).catch(()=>{});return b}}catch(e){}}return null}
+async function pDel(id){try{const db=await pdb();db.transaction(PHOTO_STORE,'readwrite').objectStore(PHOTO_STORE).delete(id)}catch(e){}}
+const _urls={};async function pUrl(id){if(_urls[id])return _urls[id];const b=await pGet(id);return b?(_urls[id]=URL.createObjectURL(b)):''}
+async function hydrateThumbs(root){for(const im of (root||document).querySelectorAll('img[data-photo]')){if(im.dataset.loaded)continue;im.dataset.loaded=1;const u=await pUrl(im.dataset.photo);if(u)im.src=u;else im.alt='Fotka je v jiném zařízení'}}
+function photoCloudQueue(){if(!PHOTO_CLOUD||!hooks.photoUpload)return;for(const e of state.entries)for(const p of e.photos||[])if(!p.path)pGet(p.id).then(b=>b&&hooks.photoUpload(p.id,b)).then(path=>{if(path){p.path=path;saveData()}}).catch(()=>{})}
+
+/* ---------- popisek pro WhatsApp ---------- */
+function stCaption(e){const d=e.date?`${+e.date.slice(8)}.${+e.date.slice(5,7)}.${e.date.slice(0,4)}`:'';
+ return [d,e.place,e.customer,e.machine].map(x=>String(x||'').trim()).filter(Boolean).join('\n')}
+const isJobDay=e=>num(e.jobHours)>0||(e.photos&&e.photos.length>0);
+
+/* ---------- formulář dne ---------- */
+let formPhotos=[];
+function stitekFormHTML(e){formPhotos=(e.photos||[]).map(p=>Object.assign({},p));
+ const lastM=(()=>{try{return localStorage.getItem(LS_MACHINE)||''}catch(x){return''}})();
+ const machines=[...new Set(state.entries.map(x=>x.machine).filter(Boolean))].slice(-20),custs=[...new Set(state.entries.map(x=>x.customer).filter(Boolean))].slice(-40);
+ return `<fieldset id="stitekSet"><legend>Štítek (záznam o provozu stroje)</legend><datalist id="dl_mach">${machines.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_cust">${custs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+ <div class="grid"><div class="f"><label for="f_place">Místo</label><textarea id="f_place" data-st="place" rows="2" placeholder="např. Trutnov">${esc(e.place??(e.travel&&e.travel.to)??'')}</textarea></div><div class="f"><label for="f_customer">Zákazník</label><input id="f_customer" data-st="customer" list="dl_cust" autocapitalize="characters" placeholder="např. METROSTAV" value="${esc(e.customer||'')}"></div><div class="f wide"><label for="f_machine">Stroj (typ + SPZ)</label><input id="f_machine" data-st="machine" list="dl_mach" placeholder="např. AC40   U01 3139" value="${esc(e.machine??lastM)}"></div></div>
+ <div class="st-photos" id="stFormPhotos"></div>
+ <div class="btnrow"><label class="btn sec st-file">📷 Vyfotit / nahrát štítek<input type="file" accept="image/*" capture="environment" data-st-file="form" hidden></label><label class="btn sec st-file">🖼 Z galerie<input type="file" accept="image/*" multiple data-st-file="form" hidden></label></div>
+ <p class="muted">Fotky se ukládají v tomto zařízení${PHOTO_CLOUD?' a do tvého účtu':''}. Záloha JSON fotky neobsahuje (zůstává malá).</p></fieldset>`}
+function renderFormPhotos(){const b=$('#stFormPhotos');if(!b)return;b.innerHTML=formPhotos.map(p=>`<div class="st-th"><img data-photo="${esc(p.id)}" alt="štítek" data-st-act="view" data-id="${esc(p.id)}"><button type="button" class="st-x" data-st-act="formDel" data-id="${esc(p.id)}" aria-label="Odebrat">✕</button></div>`).join('');hydrateThumbs(b)}
+function stitekFormInit(){renderFormPhotos();stitekToggle()}
+function stitekToggle(){const s=$('#stitekSet');if(!s)return;const j=num(formVal('jobHours'));s.hidden=!(j>0||formPhotos.length)}
+function stitekBuild(e,src){for(const k of['place','customer','machine']){const el=$(`[data-st="${k}"]`);if(!el)continue;const v=el.value.trim();if(k in src||(v&&(num(e.jobHours)>0||formPhotos.length)))e[k]=v}
+ if(formPhotos.length||'photos'in src)e.photos=formPhotos.map(p=>Object.assign({},p));
+ if(!e.photos||!e.photos.length){if(!('photos'in src))delete e.photos}
+ return e}
+function stitekSaved(e){if(e.machine)try{localStorage.setItem(LS_MACHINE,e.machine)}catch(x){}photoCloudQueue()}
+
+/* ---------- detail dne ---------- */
+function stitekDetailHTML(e){if(!isJobDay(e))return'';const ps=e.photos||[];
+ return `<div class="st-box no-print"><div class="detail-label">ŠTÍTEK</div>${ps.length?`<div class="st-photos">${ps.map(p=>`<div class="st-th"><img data-photo="${esc(p.id)}" alt="štítek" data-st-act="view" data-id="${esc(p.id)}"></div>`).join('')}</div>`:'<p class="muted">Zatím bez fotky štítku.</p>'}
+ ${stCaption(e).includes('\n')?`<pre class="st-cap">${esc(stCaption(e))}</pre>`:''}
+ <div class="btnrow"><label class="btn sec small st-file">📷 Přidat štítek<input type="file" accept="image/*" capture="environment" data-st-file="${esc(e.id)}" hidden></label>${ps.length?`<button class="btn small" data-st-act="share" data-id="${esc(e.id)}">Poslat do WhatsAppu</button>`:''}<button class="btn sec small" data-st-act="copy" data-id="${esc(e.id)}">Kopírovat popisek</button></div></div>`}
+
+/* ---------- ořez ---------- */
+let crop=null;
+function loadImg(blob){return new Promise((res,rej)=>{const u=URL.createObjectURL(blob),im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('Obrázek nejde načíst'));im.src=u})}
+function toCanvas(src,maxSide,rot){const s=Math.min(1,maxSide/Math.max(src.width,src.height)),w=Math.round(src.width*s),h=Math.round(src.height*s),c=document.createElement('canvas');const r=((rot||0)%4+4)%4;c.width=r%2?h:w;c.height=r%2?w:h;const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(r*Math.PI/2);x.drawImage(src,-w/2,-h/2,w,h);return c}
+/* Návrh ořezu: světlý papír na tmavším pozadí (Otsu práh + řádky/sloupce s převahou světlých pixelů). */
+function autoQuad(cv){const S=160,sc=S/Math.max(cv.width,cv.height),w=Math.max(1,Math.round(cv.width*sc)),h=Math.max(1,Math.round(cv.height*sc));const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.drawImage(cv,0,0,w,h);const d=x.getImageData(0,0,w,h).data,L=new Float32Array(w*h),hist=new Array(256).fill(0);
+ for(let i=0;i<w*h;i++){const l=(d[i*4]*.299+d[i*4+1]*.587+d[i*4+2]*.114)|0;L[i]=l;hist[l]++}
+ let sum=0;for(let i=0;i<256;i++)sum+=i*hist[i];let sB=0,wB=0,best=0,th=128;for(let t=0;t<256;t++){wB+=hist[t];if(!wB)continue;const wF=w*h-wB;if(!wF)break;sB+=t*hist[t];const mB=sB/wB,mF=(sum-sB)/wF,v=wB*wF*(mB-mF)**2;if(v>best){best=v;th=t}}
+ const rows=[],cols=new Array(w).fill(0);for(let y=0;y<h;y++){let n=0;for(let xx=0;xx<w;xx++)if(L[y*w+xx]>th){n++;cols[xx]++}rows.push(n/w)}
+ const rng=(a,lim)=>{let s=a.findIndex(v=>v>lim),e=a.length-1-[...a].reverse().findIndex(v=>v>lim);return s<0?null:[s,e]};
+ const ry=rng(rows,.45),rx=rng(cols.map(v=>v/h),.45);
+ if(!ry||!rx||(ry[1]-ry[0])<h*.2||(rx[1]-rx[0])<w*.2)return[[.04,.04],[.96,.04],[.96,.96],[.04,.96]];
+ // pro každý roh najdi nejbližší světlý pixel k rohu obdélníku (zachytí mírně šikmý papír)
+ const box=[[rx[0],ry[0]],[rx[1],ry[0]],[rx[1],ry[1]],[rx[0],ry[1]]],cx=(rx[0]+rx[1])/2,cy=(ry[0]+ry[1])/2;
+ return box.map(([bx,by])=>{let bp=[bx,by],bd=-1;for(let y=Math.max(0,by-8);y<=Math.min(h-1,by+8);y++)for(let xx=Math.max(0,bx-8);xx<=Math.min(w-1,bx+8);xx++)if(L[y*w+xx]>th){const dd=Math.hypot(xx-cx,y-cy);if(dd>bd){bd=dd;bp=[xx,y]}}return[bp[0]/w,bp[1]/h]})}
+/* homografie: jednotkový čtverec → čtyřúhelník */
+function sq2quad(q){const[[x0,y0],[x1,y1],[x2,y2],[x3,y3]]=q,dx1=x1-x2,dx2=x3-x2,dy1=y1-y2,dy2=y3-y2,sx=x0-x1+x2-x3,sy=y0-y1+y2-y3;let g=0,hh=0;
+ if(Math.abs(sx)>1e-9||Math.abs(sy)>1e-9){const den=dx1*dy2-dx2*dy1;g=(sx*dy2-dx2*sy)/den;hh=(dx1*sy-sx*dy1)/den}
+ return[x1-x0+g*x1,x3-x0+hh*x3,x0,y1-y0+g*y1,y3-y0+hh*y3,y0,g,hh]}
+function warp(src,q,maxSide){const[a,b,c,d,e,f,g,h]=sq2quad(q),dist=(p,r)=>Math.hypot(p[0]-r[0],p[1]-r[1]);
+ let W=(dist(q[0],q[1])+dist(q[3],q[2]))/2,H=(dist(q[0],q[3])+dist(q[1],q[2]))/2;const s=Math.min(1,maxSide/Math.max(W,H))||1;W=Math.max(1,Math.round(W*s));H=Math.max(1,Math.round(H*s));
+ const sd=src.getContext('2d').getImageData(0,0,src.width,src.height),sp=sd.data,sw=src.width,sh=src.height,out=document.createElement('canvas');out.width=W;out.height=H;const ox=out.getContext('2d'),od=ox.createImageData(W,H),dp=od.data;
+ for(let y=0;y<H;y++){const v=(y+.5)/H;for(let x=0;x<W;x++){const u=(x+.5)/W,z=g*u+h*v+1,px=(a*u+b*v+c)/z,py=(d*u+e*v+f)/z;
+  let ix=px|0,iy=py|0;if(ix<0)ix=0;else if(ix>sw-2)ix=sw-2;if(iy<0)iy=0;else if(iy>sh-2)iy=sh-2;const fx=Math.min(1,Math.max(0,px-ix)),fy=Math.min(1,Math.max(0,py-iy)),i0=(iy*sw+ix)*4,i1=i0+4,i2=i0+sw*4,i3=i2+4,o=(y*W+x)*4;
+  for(let k=0;k<3;k++)dp[o+k]=(sp[i0+k]*(1-fx)+sp[i1+k]*fx)*(1-fy)+(sp[i2+k]*(1-fx)+sp[i3+k]*fx)*fy;dp[o+3]=255}}
+ ox.putImageData(od,0,0);return out}
+const toJpeg=cv=>new Promise(r=>cv.toBlob(b=>r(b),'image/jpeg',.8));
+async function openCrop(file,target){let im;try{im=await loadImg(file)}catch(e){return toast(e.message)}
+ crop={im,rot:0,target,q:null,cv:null};cropSetup();
+ let d=$('#cropDlg');if(!d){d=document.createElement('dialog');d.id='cropDlg';d.className='crop-dlg';document.body.appendChild(d)}
+ d.innerHTML=`<div class="crop-head"><b>Oříznout štítek</b><span class="muted">Posuň rohy na rohy papíru</span></div><div class="crop-stage" id="cropStage"><canvas id="cropCv"></canvas><svg id="cropSvg"></svg></div>
+ <div class="crop-foot"><button type="button" class="btn sec small" data-st-act="cropRot">⟳ Otočit</button><button type="button" class="btn sec small" data-st-act="cropAuto">Auto</button><button type="button" class="btn sec small" data-st-act="cropFull">Celé</button><span style="flex:1"></span><button type="button" class="btn sec" data-st-act="cropCancel">Zrušit</button><button type="button" class="btn" data-st-act="cropOk">Hotovo</button></div>`;
+ if(!d.open)d.showModal();cropDraw()}
+function cropSetup(){crop.cv=toCanvas(crop.im,2400,crop.rot);crop.q=autoQuad(crop.cv)}
+function cropDraw(){const st=$('#cropStage'),cv=$('#cropCv'),svg=$('#cropSvg');if(!st||!crop)return;const W=st.clientWidth||340,H=st.clientHeight||460,s=Math.min(W/crop.cv.width,H/crop.cv.height);const w=Math.round(crop.cv.width*s),h=Math.round(crop.cv.height*s);
+ cv.width=w;cv.height=h;cv.style.width=w+'px';cv.style.height=h+'px';cv.getContext('2d').drawImage(crop.cv,0,0,w,h);svg.setAttribute('width',w);svg.setAttribute('height',h);svg.style.width=w+'px';svg.style.height=h+'px';crop.disp={w,h};
+ const P=crop.q.map(([x,y])=>[x*w,y*h]);svg.innerHTML=`<polygon points="${P.map(p=>p.join(',')).join(' ')}" class="crop-poly"/>`+P.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="16" class="crop-h" data-i="${i}"/>`).join('')}
+let dragI=-1;
+document.addEventListener('pointerdown',ev=>{const c=ev.target.closest&&ev.target.closest('.crop-h');if(!c)return;dragI=+c.dataset.i;ev.preventDefault();try{c.setPointerCapture(ev.pointerId)}catch(e){}});
+document.addEventListener('pointermove',ev=>{if(dragI<0||!crop)return;const r=$('#cropSvg').getBoundingClientRect();crop.q[dragI]=[Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height))];cropDraw()});
+document.addEventListener('pointerup',()=>{dragI=-1});
+async function cropFinish(){const q=crop.q.map(([x,y])=>[x*crop.cv.width,y*crop.cv.height]),out=warp(crop.cv,q,1600),blob=await toJpeg(out);
+ const id='ph-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),meta={id,w:out.width,h:out.height,ts:new Date().toISOString()};
+ try{await pPut(id,blob)}catch(e){toast('Fotku nejde uložit: '+e.message);return}
+ const t=crop.target;crop=null;$('#cropDlg').close();
+ if(t==='form'){formPhotos.push(meta);renderFormPhotos();stitekToggle()}
+ else{const e=state.entries.find(x=>x.id===t);if(e){(e.photos=e.photos||[]).push(meta);saveData();stitekSaved(e);render()}}
+ return meta}
+
+/* ---------- sdílení ---------- */
+async function stFiles(e){const fs=[];for(const p of e.photos||[]){const b=await pGet(p.id);if(b)fs.push(new File([b],`stazka-${e.date}-${fs.length+1}.jpg`,{type:'image/jpeg'}))}return fs}
+async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch(e){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(x){}a.remove();return ok}}
+async function stShare(e){const cap=stCaption(e),fs=await stFiles(e);if(!fs.length)return toast('Fotka štítku není v tomto zařízení');
+ copyText(cap); // WhatsApp občas text ze sdílení zahodí – popisek je pak ve schránce
+ if(navigator.share&&navigator.canShare&&navigator.canShare({files:fs})){try{await navigator.share({files:fs,text:cap});return 'shared'}catch(x){if(x&&x.name==='AbortError')return 'aborted'}}
+ for(const f of fs){const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();a.remove()}
+ toast('Fotka stažena, popisek zkopírován – vlož ho ve WhatsAppu');return 'fallback'}
+function stView(id){let d=$('#photoView');if(!d){d=document.createElement('dialog');d.id='photoView';d.className='photo-view';document.body.appendChild(d)}
+ d.innerHTML=`<button type="button" class="pv-x" data-st-act="viewClose" aria-label="Zavřít">✕</button><img data-photo="${esc(id)}" alt="štítek">`;d.showModal();hydrateThumbs(d)}
+
+document.addEventListener('change',ev=>{const el=ev.target;if(!el.dataset||!el.dataset.stFile)return;const fs=[...el.files];el.value='';
+ (async()=>{for(const f of fs){await openCrop(f,el.dataset.stFile);await new Promise(r=>{const d=$('#cropDlg');const t=setInterval(()=>{if(!d.open){clearInterval(t);r()}},150)})}})()});
+document.addEventListener('input',ev=>{if(ev.target.id==='f_jobHours')stitekToggle()});
+document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('[data-st-act]');if(!a)return;const k=a.dataset.stAct,ent=()=>state.entries.find(x=>x.id===a.dataset.id);
+ if(k==='cropRot'){crop.rot++;cropSetup();cropDraw()}else if(k==='cropAuto'){crop.q=autoQuad(crop.cv);cropDraw()}else if(k==='cropFull'){crop.q=[[0,0],[1,0],[1,1],[0,1]];cropDraw()}
+ else if(k==='cropCancel'){crop=null;$('#cropDlg').close()}else if(k==='cropOk')cropFinish();
+ else if(k==='formDel'){formPhotos=formPhotos.filter(p=>p.id!==a.dataset.id);renderFormPhotos();stitekToggle()}
+ else if(k==='view')stView(a.dataset.id);else if(k==='viewClose')$('#photoView').close();
+ else if(k==='share'){const e=ent();if(e)stShare(e)}else if(k==='copy'){const e=ent();if(e)copyText(stCaption(e)).then(ok=>toast(ok?'Popisek zkopírován':'Kopírování se nepovedlo'))}});
+window.addEventListener('resize',()=>{if(crop)cropDraw()});
+window.__stitek={stCaption,autoQuad,warp,toCanvas,pPut,pGet,stShare,cropFinish,openCrop,get crop(){return crop},get formPhotos(){return formPhotos}};
+
+const _stRender=render;render=function(){_stRender.apply(this,arguments);hydrateThumbs()};
+'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const LS_DATA='mojeDochazka.data.v3',LS_UI='mojeDochazka.ui',LS_BK='mojeDochazka.backup';
 const KM_RATE=5.90; // Kč/km, vyhl. 573/2025 Sb., osobní auto (jen u vlastního vozidla AUV)
@@ -184,7 +316,7 @@ function render(){
  const bd=byDate();let html='';const off=(new Date(Y,M,1).getDay()+6)%7,days=dim();
  for(let i=0;i<off;i++)html+='<div></div>';
  for(let d=1;d<=days;d++){const k=iso(Y,M,d),es=bd[k]||[],hol=holidayName(k),v=es.reduce((t,e)=>t+value(e),0),h=es.reduce((t,e)=>t+num(e.totalHours),0),ty=es[0]?dayType(es[0]):'';
-  html+=`<button class="day ${isWeekend(k)?'weekend':''} ${(multi?multi.has(k):d===sel)?'selected':''} ${multi&&multi.has(k)?'multi':''} ${hol?'holiday':''}" data-day="${d}" title="${esc(hol)}" aria-label="${d}. ${MONTHS_GEN[M]}${hol?', '+esc(hol):''}, ${es.length?cash(v):'bez záznamu'}"><span class="num">${d}</span><span class="money ${ty==='Dovolená'?'leave':(ty==='Nemoc'||ty==='Lékař')?'sick':''}">${es.length?(ui.hide?'••••':Math.abs(v)>=10000?(v/1000).toLocaleString('cs-CZ',{maximumFractionDigits:1})+'k':cash(v).replace(' Kč','')):'—'}</span><span class="hours">${es.length?(h>0?fmtH(h)+' h':ty):''}${es.length>1?' ×'+es.length:''}</span></button>`}
+  html+=`<button class="day ${isWeekend(k)?'weekend':''} ${(multi?multi.has(k):d===sel)?'selected':''} ${multi&&multi.has(k)?'multi':''} ${hol?'holiday':''}" data-day="${d}" title="${esc(hol)}" aria-label="${d}. ${MONTHS_GEN[M]}${hol?', '+esc(hol):''}, ${es.length?cash(v):'bez záznamu'}"><span class="num">${d}</span>${es.some(e=>e.photos&&e.photos.length)?'<span class="clip" aria-label="štítek">📎</span>':''}<span class="money ${ty==='Dovolená'?'leave':(ty==='Nemoc'||ty==='Lékař')?'sick':''}">${es.length?(ui.hide?'••••':Math.abs(v)>=10000?(v/1000).toLocaleString('cs-CZ',{maximumFractionDigits:1})+'k':cash(v).replace(' Kč','')):'—'}</span><span class="hours">${es.length?(h>0?fmtH(h)+' h':ty):''}${es.length>1?' ×'+es.length:''}</span></button>`}
  $('#calendar').innerHTML=html;
  const det=details();$('#detail').innerHTML=det;$('#chartDetail').innerHTML=det;
  const vals=Array.from({length:days},(_,i)=>(bd[iso(Y,M,i+1)]||[]).reduce((t,e)=>t+value(e),0));const max=Math.max(1,...vals);
@@ -230,7 +362,7 @@ function details(){
   rows.push(`<div class="row total"><span>Celkem od firmy</span><b>${cash(c.all)}</b></div>`);
   const chips=[];if(c.hol&&num(e.totalHours))chips.push(`<span class="chip">Práce ve svátek ${fmtH(num(e.totalHours))} h</span>`);if(num(e.overtime))chips.push(`<span class="chip blue">přesčas ${fmtH(num(e.overtime))} h</span>`);if(num(e.tripHours))chips.push(`<span class="chip blue">cesta ${fmtH(num(e.tripHours))} h</span>`);if(num(e.commuteHours))chips.push(`<span class="chip blue">dojíždění ${fmtH(num(e.commuteHours))} h</span>`);if(num(e.doctorHours))chips.push(`<span class="chip warn">lékař ${fmtH(num(e.doctorHours))} h</span>`);if(num(e.sickHours))chips.push(`<span class="chip warn">nemoc ${fmtH(num(e.sickHours))} h</span>`);if(e.noTravelOrder)chips.push(`<span class="chip warn">bez cestovního příkazu</span>`);
   const route=t.from||t.to?`${esc(t.from)} ${esc(t.start)} → ${esc(t.to)} ${esc(t.arrival)}${t.returnStart||t.returnArrival?` · zpět ${esc(t.returnFrom)} ${esc(t.returnStart)} → ${esc(t.returnTo)} ${esc(t.returnArrival)}`:''}${t.transport?' · '+esc(t.transport):''}`:'';
-  h+=`<div class="entry-card"><span class="tag">${ty} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.doctorHours))} h${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)}`:''}${num(e.lunchHours)?` · pauza ${fmtH(num(e.lunchHours))} h`:''}</span><div style="margin-top:8px">${chips.join('')}</div><div class="detail-total">${cash(ty==='Práce'||ty==='Dovolená'?c.work:c.all)}</div><div class="muted">${ty==='Dovolená'?'Náhrada mzdy (průměrný výdělek)':'Výdělek včetně příplatků'}</div><div class="rows">${rows.join('')}</div>${e.note||route?`<div class="job">${esc(e.note)}${route?'<br>'+route:''}</div>`:''}<div class="btnrow no-print"><button class="btn sec small" data-act="edit" data-id="${esc(e.id)}">✎ Upravit</button><button class="btn danger small" data-act="del" data-id="${esc(e.id)}">Smazat</button></div></div>`}
+  h+=`<div class="entry-card"><span class="tag">${ty} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.doctorHours))} h${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)}`:''}${num(e.lunchHours)?` · pauza ${fmtH(num(e.lunchHours))} h`:''}</span><div style="margin-top:8px">${chips.join('')}</div><div class="detail-total">${cash(ty==='Práce'||ty==='Dovolená'?c.work:c.all)}</div><div class="muted">${ty==='Dovolená'?'Náhrada mzdy (průměrný výdělek)':'Výdělek včetně příplatků'}</div><div class="rows">${rows.join('')}</div>${e.note||route?`<div class="job">${esc(e.note)}${route?'<br>'+route:''}</div>`:''}${stitekDetailHTML(e)}<div class="btnrow no-print"><button class="btn sec small" data-act="edit" data-id="${esc(e.id)}">✎ Upravit</button><button class="btn danger small" data-act="del" data-id="${esc(e.id)}">Smazat</button></div></div>`}
  return h+`<div class="btnrow no-print"><button class="btn small" data-act="add" data-date="${k}">+ Další záznam v tento den</button></div>`;
 }
 function monthRange(){const ks=state.entries.map(e=>e.date?.slice(0,7)).filter(Boolean).concat(Object.keys(state.travelOrders||{})).sort();const t=new Date(),cur=`${t.getFullYear()}-${pad(t.getMonth()+1)}`;if(!ks.length)return[cur];let a=ks[0],b=ks[ks.length-1]>cur?ks[ks.length-1]:cur;const out=[];let[y,m]=a.split('-').map(Number);while(`${y}-${pad(m)}`<=b){out.push(`${y}-${pad(m)}`);m++;if(m>12){m=1;y++}}return out.slice(-24).reverse()}
@@ -281,7 +413,7 @@ function renderSettings(){
  <div class="panel"><h2>Sazby</h2><div class="grid" style="margin-top:12px">${RATE_F.map(([k,l])=>`<div class="f"><label>${l}</label><input data-rate="${k}" inputmode="decimal" placeholder="${k.startsWith('diet')?'':k==='holidayPct'?'%':'Kč/h'}" value="${['job','base','ot','weekend'].includes(k)&&!num(r[k])?'':esc(r[k])}"></div>`).join('')}</div><p class="muted">Dojíždění = sazba Alvian (Alvian / Depo), do přesčasu se nepočítá. Stravné 2026 (vyhl. 573/2025 Sb.) – minimum v soukromé firmě: 155 / 236 / 370 Kč.</p></div>
  <div class="panel"><h2>Profil</h2><div class="grid" style="margin-top:12px">${PROF_F.map(([k,l,t])=>`<div class="f ${t==='text'&&k!=='employeeNo'?'wide':''}"><label>${l}</label><input data-prof="${k}" data-type="${t}" ${t==='date'?'type="date"':t==='number'?'inputmode="decimal"':''} value="${esc(k==='vacationAnnualHours'?annualVac(p):p[k]??'')}"></div>`).join('')}</div></div>
  <div class="panel" style="grid-column:1/-1"><h2>Rychlé přidání</h2><div class="grid" style="margin-top:12px"><div class="f"><label>Depo od</label><input type="time" data-tpl="depo.start" value="${esc(tpl.depo.start)}"></div><div class="f"><label>Depo do</label><input type="time" data-tpl="depo.end" value="${esc(tpl.depo.end)}"></div><div class="f"><label>Depo pauza (h)</label><input inputmode="decimal" data-tpl="depo.lunch" value="${esc(tpl.depo.lunch)}"></div><div class="f"><label>Depo poznámka</label><input data-tpl="depo.note" value="${esc(tpl.depo.note)}"></div><div class="f"><label>Sazba Depo = základ (Kč/h)</label><input inputmode="decimal" data-tpl="rate" placeholder="Kč/h" value="${num(r.base)?esc(r.base):''}"></div><div class="f"><label>Dovolená h/den</label><input inputmode="decimal" data-tpl="vacHours" value="${esc(tpl.vacHours)}"></div><div class="f"><label>Nemoc h/den</label><input inputmode="decimal" data-tpl="sickHours" value="${esc(tpl.sickHours)}"></div></div><p class="muted">Depo = všechny hodiny jako základ, bez přesčasu, bez cestovního příkazu a stravného. Šablony se ukládají v tomto zařízení.</p></div>
- ${hooks.account?hooks.account():''}<div class="panel" style="grid-column:1/-1"><h2>Data a zálohy</h2><p class="muted">${hooks.cloudOn()?'Data jsou v tomto zařízení a synchronizují se s tvým účtem. Záloha JSON se přesto hodí.':'Vše je uloženo jen v tomto prohlížeči.'} ${bk.last?'Poslední záloha: '+fmtDate(bk.last.slice(0,10))+'.':'Zatím jsi nestahoval zálohu.'} Záznamů: ${state.entries.length}. Verze aplikace: ${window.APP_VERSION||'dev'}.</p><div class="btnrow"><button class="btn" data-act="saveSettings">Uložit nastavení</button><button class="btn sec" data-act="export">⬇ Exportovat JSON</button><button class="btn sec" data-act="import">⬆ Importovat JSON</button><button class="btn sec" data-act="csv">CSV – ${MONTHS[M]} ${Y}</button></div></div></div>`;
+ ${hooks.account?hooks.account():''}<div class="panel" style="grid-column:1/-1"><h2>Data a zálohy</h2><p class="muted">${hooks.cloudOn()?'Data jsou v tomto zařízení a synchronizují se s tvým účtem. Záloha JSON se přesto hodí.':'Vše je uloženo jen v tomto prohlížeči.'} ${bk.last?'Poslední záloha: '+fmtDate(bk.last.slice(0,10))+'.':'Zatím jsi nestahoval zálohu.'} Záznamů: ${state.entries.length}. Verze aplikace: ${window.APP_VERSION||'dev'}.</p><p class="muted" id="backupPhotoNote">📎 Záloha JSON obsahuje údaje ke štítkům (místo, zákazník, stroj), ale <b>ne samotné fotky</b> – ty zůstávají v zařízení${window.APP_PHOTO_CLOUD?' a v cloudu':''}.</p><div class="btnrow"><button class="btn" data-act="saveSettings">Uložit nastavení</button><button class="btn sec" data-act="export">⬇ Exportovat JSON</button><button class="btn sec" data-act="import">⬆ Importovat JSON</button><button class="btn sec" data-act="csv">CSV – ${MONTHS[M]} ${Y}</button></div></div></div>`;
 }
 function saveSettings(){
  state.rates=state.rates||{};state.profile=state.profile||{};
@@ -365,7 +497,7 @@ function openForm(entry,date,draft){
  <datalist id="dl_places">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_notes">${notes.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
  <fieldset><legend>Směna</legend><div class="grid">${fld('date','Datum',{type:'date'})}${fld('startTime','Začátek',{type:'time'})}${fld('endTime','Konec',{type:'time'})}${fld('lunchHours','Pauza / oběd (h)',{num:1})}${fld('note','Poznámka / zakázka',{wide:1,list:'dl_notes'})}</div></fieldset>
  <fieldset><legend>Hodiny</legend><div class="grid">${fld('totalHours','Celkem h',{auto:1})}${fld('siteStart','Na stavbě od',{type:'time'})}${fld('siteEnd','Na stavbě do',{type:'time'})}${fld('jobHours','Zákazník h',{num:1})}${fld('commuteHours','Dojíždění (h)',{num:1})}${fld('baseHours','Alvian / Depo h (vč. dojíždění)',{auto:1})}${fld('overtime','Přesčas h',{auto:1})}${fld('weekendHours','Víkend h',{auto:1})}${fld('vacationHours','Dovolená h',{num:1})}${fld('doctorHours','Lékař h',{num:1})}${fld('sickHours','Nemoc / sick day h',{num:1})}</div><p class="muted">Dojíždění = směna minus čas na stavbě; platí se sazbou Alvian a do přesčasu se nepočítá. Hodnoty můžeš přepsat ručně.</p></fieldset>
- <fieldset><legend>Pracovní cesta</legend><div style="margin-bottom:10px">${chk('noTravelOrder','Bez cestovního příkazu (žádné stravné)')}</div><div class="grid">${fld('t.from','Odkud',{list:'dl_places'})}${fld('t.start','Odjezd',{type:'time'})}${fld('t.to','Kam',{list:'dl_places'})}${fld('t.arrival','Příjezd',{type:'time'})}${fld('t.returnFrom','Zpět odkud',{list:'dl_places'})}${fld('t.returnStart','Odjezd zpět',{type:'time'})}${fld('t.returnTo','Zpět kam',{list:'dl_places'})}${fld('t.returnArrival','Příjezd zpět',{type:'time'})}${fld('tripHours','Doba cesty h',{auto:1})}${fld('t.purpose','Účel')}${fld('t.transport','Doprava',{sel:[['AUS','AUS – služební auto'],['AUV','AUV – vlastní auto'],['VLAK','Vlak'],['BUS','Autobus'],['MHD','MHD'],['JINE','Jiné']]})}${fld('t.km','Km (vlastní auto)',{num:1})}${fld('t.fare','Jízdné Kč',{num:1})}${fld('t.lodging','Ubytování Kč',{num:1})}${fld('t.other','Ostatní Kč',{num:1})}${fld('t.dietOverride','Stravné ručně Kč (prázdné = auto)',{num:1})}${fld('t.freeMeals','Jídla zdarma',{sel:[['0','žádné'],['1','1 jídlo'],['2','2 jídla'],['3','3 jídla']]})}</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">${chk('t.freeLodging','Ubytování zdarma')}${chk('t.reducedTicket','Zlevněná jízdenka')}</div></fieldset>
+ ${stitekFormHTML(e)}<fieldset><legend>Pracovní cesta</legend><div style="margin-bottom:10px">${chk('noTravelOrder','Bez cestovního příkazu (žádné stravné)')}</div><div class="grid">${fld('t.from','Odkud',{list:'dl_places'})}${fld('t.start','Odjezd',{type:'time'})}${fld('t.to','Kam',{list:'dl_places'})}${fld('t.arrival','Příjezd',{type:'time'})}${fld('t.returnFrom','Zpět odkud',{list:'dl_places'})}${fld('t.returnStart','Odjezd zpět',{type:'time'})}${fld('t.returnTo','Zpět kam',{list:'dl_places'})}${fld('t.returnArrival','Příjezd zpět',{type:'time'})}${fld('tripHours','Doba cesty h',{auto:1})}${fld('t.purpose','Účel')}${fld('t.transport','Doprava',{sel:[['AUS','AUS – služební auto'],['AUV','AUV – vlastní auto'],['VLAK','Vlak'],['BUS','Autobus'],['MHD','MHD'],['JINE','Jiné']]})}${fld('t.km','Km (vlastní auto)',{num:1})}${fld('t.fare','Jízdné Kč',{num:1})}${fld('t.lodging','Ubytování Kč',{num:1})}${fld('t.other','Ostatní Kč',{num:1})}${fld('t.dietOverride','Stravné ručně Kč (prázdné = auto)',{num:1})}${fld('t.freeMeals','Jídla zdarma',{sel:[['0','žádné'],['1','1 jídlo'],['2','2 jídla'],['3','3 jídla']]})}</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">${chk('t.freeLodging','Ubytování zdarma')}${chk('t.reducedTicket','Zlevněná jízdenka')}</div></fieldset>
  <div class="calc" id="fcalc"></div><div class="msgs" id="fmsgs"></div></div>
  <div class="dlg-foot">${entry?'<button type="button" class="btn danger" data-act="delForm" style="margin-right:auto">Smazat</button>':''}<button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="saveForm">Uložit</button></div></form>`;
  const set=(k,v)=>{const el=$('#f_'+k.replace('.','\\.'));if(!el)return;if(el.type==='checkbox')el.checked=!!v;else el.value=v??''};
@@ -374,10 +506,11 @@ function openForm(entry,date,draft){
  for(const k of TRAVEL_KEYS)set('t.'+k,k==='freeMeals'?String(mealsCount(t)):k==='transport'?(t[k]||'AUS'):t[k]);
  if(t.transport&&!['AUS','AUV','VLAK','BUS','MHD','JINE'].includes(t.transport)){const s=$('#f_t\\.transport');s.add(new Option(t.transport,t.transport,true,true))}
  if(entry||draft){const a=autoCalc(e);const cmp=(k,v)=>{if(Math.abs(num(e[k])-v)>0.001)manual.add(k)};cmp('totalHours',a.total);cmp('overtime',r2(Math.max(0,num(e.totalHours)-8-num(e.commuteHours))));cmp('weekendHours',isWeekend(e.date)?num(e.totalHours):0);cmp('tripHours',a.trip);cmp('baseHours',r2(Math.max(0,num(e.totalHours)-num(e.jobHours))))}
- refreshForm();$('#dlg').showModal();
+ stitekFormInit();refreshForm();$('#dlg').showModal();
 }
 function formVal(k){const el=$('#f_'+k.replace('.','\\.'));if(!el)return undefined;return el.type==='checkbox'?el.checked:el.value}
 function refreshForm(){
+ stitekToggle();
  const g=formVal,setAuto=(k,v)=>{const el=$('#f_'+k);el.classList.toggle('manual',manual.has(k));if(!manual.has(k))el.value=v};
  const tmp={date:g('date'),startTime:g('startTime'),endTime:g('endTime'),lunchHours:g('lunchHours'),commuteHours:g('commuteHours'),travel:{start:g('t.start'),returnArrival:g('t.returnArrival')}};
  const a=autoCalc(tmp);setAuto('totalHours',a.total);const total=num(g('totalHours'));
@@ -408,6 +541,7 @@ function buildEntry(preview){
   else t[k]=v??''}
  e.travel=t;
  const nto=!!g('noTravelOrder');if('noTravelOrder'in src||nto)e.noTravelOrder=nto;
+ stitekBuild(e,src);
  return e;
 }
 function validate(e){
@@ -441,7 +575,7 @@ function saveForm(){
  const e=buildEntry(false);
  if(!editing&&state.entries.some(x=>x.date===e.date)&&!confirm('V tento den už záznam existuje. Opravdu přidat další?'))return;
  if(editing){const i=state.entries.findIndex(x=>x.id===editing.id);state.entries[i]=e}else state.entries.push(e);
- saveData();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();$('#dlg').close();render();toast('Uloženo');
+ saveData();stitekSaved(e);const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();$('#dlg').close();render();toast('Uloženo');
 }
 function delEntry(id){const e=state.entries.find(x=>x.id===id);if(!e)return;if(!confirm(`Smazat záznam ${fmtDate(e.date)}${e.note?' – '+e.note:''}?`))return;state.entries=state.entries.filter(x=>x.id!==id);saveData();if($('#dlg').open)$('#dlg').close();render();toast('Smazáno')}
 
@@ -620,6 +754,9 @@ async function syncNow(){
 }
 hooks.saved=()=>{if(applying)return;track(false);if(user&&meta.dirty){setStatus(navigator.onLine===false?'offline':'sync');schedule(1500)}};
 hooks.cloudOn=()=>!!user;
+// Fotky štítků do privátního bucketu "stazky" (složka = auth.uid()). Aktivní jen s window.APP_PHOTO_CLOUD=true.
+hooks.photoUpload=async(id,blob)=>{if(!sb||!user)return null;const path=user.id+'/'+id+'.jpg';const{error}=await sb.storage.from('stazky').upload(path,blob,{contentType:'image/jpeg',upsert:true});if(error)throw error;return path};
+hooks.photoDownload=async id=>{if(!sb||!user)return null;const{data,error}=await sb.storage.from('stazky').download(user.id+'/'+id+'.jpg');if(error)return null;return data};
 
 /* ---------- přihlášení ---------- */
 const AUTH_ERR=[[/invalid login credentials/i,'Špatný e-mail nebo heslo.'],[/email not confirmed/i,'E-mail ještě není potvrzený – klikni na odkaz, který ti přišel.'],[/already registered|already been registered|user_already_exists/i,'Účet s tímto e-mailem už existuje – přihlas se.'],[/rate limit|too many|429/i,'Příliš mnoho pokusů nebo e-mailů – zkus to prosím za chvíli.'],[/password should be|weak_password|at least/i,'Heslo je moc slabé (aspoň 8 znaků).'],[/not authorized|email_address_not_authorized/i,'Tento e-mail teď nejde obsloužit (správce musí nastavit odesílání e-mailů). Použij přihlášení heslem.'],[/signups not allowed|signup is disabled/i,'Registrace jsou vypnuté.'],[/fetch|network|load failed/i,'Nejsi online – zkus to, až bude připojení.'],[/invalid email|unable to validate email/i,'Neplatný e-mail.']];
