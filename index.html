@@ -87,7 +87,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <div id="backupBanner" class="backup-banner hidden"></div>
 <div class="stats" id="stats"></div>
 <nav class="tabs"><button data-view="calendar">Kalendář</button><button data-view="charts">Denní výdělky</button><button data-view="history">Historie</button><button data-view="orders">Cestovní příkaz</button><button data-view="settings">Nastavení</button></nav>
-<div id="monthcontrol" class="monthbar"><h2 id="monthtitle"></h2><div class="arrows"><button id="today" class="plain" style="width:auto;font-size:12px" aria-label="Dnes">Dnes</button><button id="prev" aria-label="Předchozí měsíc">‹</button><button id="next" aria-label="Další měsíc">›</button></div></div>
+<div id="monthcontrol" class="monthbar"><h2 id="monthtitle"></h2><div class="arrows"><button id="dochPdf" class="plain no-print" style="width:auto;font-size:12px" aria-label="Docházka PDF – pracovní výkaz za měsíc">📄 Docházka PDF</button><button id="today" class="plain" style="width:auto;font-size:12px" aria-label="Dnes">Dnes</button><button id="prev" aria-label="Předchozí měsíc">‹</button><button id="next" aria-label="Další měsíc">›</button></div></div>
 <section id="calendarView"><div class="layout"><div class="panel"><div class="week"><span>PO</span><span>ÚT</span><span>ST</span><span>ČT</span><span>PÁ</span><span>SO</span><span>NE</span></div><div class="calendar" id="calendar"></div><div class="legend"><span><i class="dot"></i>Práce</span><span><i class="dot" style="background:#c3a453"></i>Dovolená</span><span><i class="dot" style="background:#9d83b5"></i>Sick day / nemoc</span><span style="color:#b36537">Oranžové datum = státní svátek</span></div></div><aside class="panel" id="detail"></aside></div></section>
 <section id="chartsView" class="hidden"><div class="panel" id="chartDetail"></div></section>
 <section id="historyView" class="hidden"><h2 class="viewtitle">Měsíc vedle měsíce</h2><div class="history-grid" id="history"></div></section>
@@ -101,7 +101,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.12";
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.13";
 /* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
 const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
 const PHOTO_CLOUD=window.APP_PHOTO_CLOUD!==false; // bucket "stazky" existuje; vypnout lze v config.js: window.APP_PHOTO_CLOUD=false
@@ -254,41 +254,154 @@ window.__stitek={photoCleanup,photoCutoff,photoCloudQueue,stCaption,autoQuad,war
 
 const _stRender=render;render=function(){_stRender.apply(this,arguments);hydrateThumbs()};
 
-/* ================= Cestovní příkaz → PDF (iOS PWA nemá window.print) ================= */
+/* ================= PDF formuláře: Pracovní výkaz (docházka) + Cestovní příkaz (podle papírových formulářů Alvian) ================= */
 function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[data-src="${src}"]`))return res();const s=document.createElement('script');s.src=src;s.dataset.src=src;s.onload=()=>res();s.onerror=()=>{s.remove();rej(new Error('Nelze načíst '+src))};document.head.appendChild(s)})}
-async function pdfLibs(){for(const s of['vendor/jspdf.umd.min.js','vendor/jspdf.plugin.autotable.min.js','vendor/pdf-font.js'])await loadScript(s);if(!window.jspdf||!window.PDF_FONTS)throw new Error('PDF knihovna chybí')}
+async function pdfLibs(){for(const s of['vendor/jspdf.umd.min.js','vendor/pdf-assets.js'])await loadScript(s);if(!window.jspdf||!window.PDF_ASSETS)throw new Error('PDF knihovna chybí')}
 const asciiName=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
-function cestakFileName(){const p=P(),sur=String(p.name||'').trim().split(/\s+/).pop();return`cestak-${Y}-${pad(M+1)}${sur?'-'+asciiName(sur):''}.pdf`}
-const usePdf=()=>!!(navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)||typeof window.print!=='function');
-async function cestakPdf(){await pdfLibs();renderOrders();
- const{jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
- doc.addFileToVFS('DejaVuSans.ttf',PDF_FONTS.regular);doc.addFont('DejaVuSans.ttf','DejaVu','normal');doc.addFileToVFS('DejaVuSans-Bold.ttf',PDF_FONTS.bold);doc.addFont('DejaVuSans-Bold.ttf','DejaVu','bold');doc.setFont('DejaVu','normal');
- const root=$('#orders'),txt=el=>el?el.innerText.replace(/\u00a0|\u202f/g,' ').trim():'',W=210,ML=12,CW=W-2*ML;let y=16;
- const para=(t,size,style,gap)=>{if(!t)return;doc.setFont('DejaVu',style||'normal');doc.setFontSize(size);const ls=doc.splitTextToSize(t,CW);doc.text(ls,ML,y);y+=ls.length*size*.42+(gap||2)};
- const po=root.querySelectorAll('.print-only');
- para(txt(po[0]&&po[0].querySelector('h1')),15,'bold',2);para(txt(po[0]&&po[0].querySelector('p')),9,'normal',4);
- para(txt(root.querySelector('h2')),12,'bold',2);para(txt(po[1]),9,'normal',3);
- doc.autoTable({html:root.querySelector('table.t'),startY:y,margin:{left:ML,right:ML},theme:'grid',useCss:false,
-  styles:{font:'DejaVu',fontSize:6.8,cellPadding:1,lineColor:[200,208,220],lineWidth:.15,textColor:[20,30,45],overflow:'linebreak'},
-  headStyles:{fillColor:[18,75,146],textColor:255,fontStyle:'bold',fontSize:6.8},footStyles:{fillColor:[234,241,250],textColor:[20,30,45],fontStyle:'bold'},
-  columnStyles:{0:{cellWidth:17},6:{halign:'right'},7:{halign:'right'},8:{halign:'right'},9:{halign:'right'},10:{halign:'right'},11:{halign:'right'},12:{halign:'right',fontStyle:'bold'}},
-  didParseCell:d=>{if(d.column.index>=6&&d.section!=='body')d.cell.styles.halign='right'}});
- y=doc.lastAutoTable.finalY+6;if(y>255){doc.addPage();y=16}
- for(const r of root.querySelectorAll('.rows .row')){const sp=r.querySelectorAll('span,b'),tot=r.classList.contains('total');doc.setFont('DejaVu',tot?'bold':'normal');doc.setFontSize(tot?10.5:9.5);doc.text(txt(sp[0]),W-ML-85,y);doc.text(txt(sp[1]),W-ML,y,{align:'right'});y+=tot?7:5.5}
- y=Math.max(y+14,0);if(y>280){doc.addPage();y=30}
- doc.setFont('DejaVu','normal');doc.setFontSize(9.5);const sig=[...(po[2]?po[2].querySelectorAll('span'):[])].map(txt);sig.forEach((s,i)=>doc.text(s,[ML,W/2,W-ML][i],y,{align:['left','center','right'][i]}));
- const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(7);doc.setTextColor(120);doc.text(`Moje docházka · ${MONTHS[M]} ${Y} · strana ${i}/${n}`,W/2,290,{align:'center'});doc.setTextColor(0)}
+function pdfFileName(kind){const p=P(),sur=String(p.name||'').trim().split(/\s+/).pop();return`${kind}-${Y}-${pad(M+1)}${sur?'-'+asciiName(sur):''}.pdf`}
+const cestakFileName=()=>pdfFileName('cestak');
+const usePdf=()=>true; // tiskneme vždy přes PDF formulář (iOS PWA window.print neumí)
+const FS={k:1};const BLUE=[35,78,132],INK=[16,16,16],GRID=[60,60,60];
+const nf=n=>{n=+r2(num(n));return n.toLocaleString('cs-CZ').replace(/[\u00a0\u202f]/g,' ')};
+const nz=n=>num(n)?nf(n):'';
+function newDoc(){const{jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true}),A=PDF_ASSETS;
+ doc.addFileToVFS('LS-R.ttf',A.regular);doc.addFont('LS-R.ttf','LS','normal');doc.addFileToVFS('LS-B.ttf',A.bold);doc.addFont('LS-B.ttf','LS','bold');doc.addFileToVFS('LS-BI.ttf',A.boldItalic);doc.addFont('LS-BI.ttf','LS','bolditalic');
+ doc.setFont('LS','normal');doc.setLineJoin('miter');return doc}
+function pT(doc,s,x,y,o={}){if(s==null||s==='')return;doc.setFont('LS',o.st||'normal');doc.setFontSize((o.sz||8)*(o.title?1:FS.k));doc.setTextColor(...(o.c||FS.c||INK));
+ const opt={baseline:'middle',align:o.al||'left'};if(o.cs)opt.charSpace=o.cs;if(o.ang)opt.angle=o.ang;
+ if(o.cs&&o.al==='center'){const w=doc.getTextWidth(s)+o.cs*(s.length-1);opt.align='left';doc.text(String(s),x-w/2,y,opt);return}
+ doc.text(String(s),x,y,opt)}
+function pL(doc,x1,y1,x2,y2,w,c,dash){doc.setLineWidth(w||.2);doc.setDrawColor(...(c||BLUE));if(dash)doc.setLineDashPattern(dash,0);doc.line(x1,y1,x2,y2);if(dash)doc.setLineDashPattern([],0)}
+const DOT=[.25,.55];
+function pR(doc,x,y,w,h,lw,c,fill){doc.setLineWidth(lw||.2);doc.setDrawColor(...(c||BLUE));if(fill){doc.setFillColor(...fill);doc.rect(x,y,w,h,'FD')}else doc.rect(x,y,w,h)}
+function pMulti(doc,lines,cx,cy,o){const lh=(o.lh||o.sz*.42);const n=lines.length;lines.forEach((s,i)=>pT(doc,s,cx,cy+(i-(n-1)/2)*lh,o))}
+function logo(doc,x,y,w){const im=PDF_ASSETS.logo;if(!im)return;doc.addImage(im,'PNG',x,y,w,w*70/248)}
+const dmy=d=>`${d.slice(8)}.${d.slice(5,7)}.${d.slice(0,4)}`,dmyy=d=>`${d.slice(8)}.${d.slice(5,7)}.${d.slice(2,4)}`;
+const HOL_SHORT={'01-01':'Nový rok','05-01':'Svátek práce','05-08':'Den vítězství','07-05':'Cyril a Metoděj','07-06':'Mistr Jan Hus','09-28':'Den české státnosti','10-28':'Den vzniku Československa','11-17':'Den boje za svobodu a demokracii','12-24':'Štědrý den','12-25':'1. svátek vánoční','12-26':'2. svátek vánoční'};
+
+/* ---------- PRACOVNÍ VÝKAZ ---------- */
+function dochazkaData(){const es=monthEntries(Y,M),hol=holidays(Y),days=[];const n=new Date(Y,M+1,0).getDate();const tot={t:0,o:0,w:0,j:0,b:0,v:0,d:0,s:0,h:0};
+ for(let d=1;d<=31;d++){if(d>n){days.push(null);continue}const k=iso(Y,M,d),de=es.filter(e=>e.date===k),h=hol[k];
+  const r={d,dow:DOW[new Date(Y,M,d).getDay()].toUpperCase()+(h?' - SV':''),hol:h,e:de.length>0};
+  if(de.length){const s=de.map(e=>e.startTime).filter(Boolean).sort(),en=de.map(e=>e.endTime).filter(Boolean).sort();
+   const sum=f=>de.reduce((a,e)=>a+num(e[f]),0);r.start=s[0]||'';r.end=en[en.length-1]||'';r.lunch=sum('lunchHours');r.total=sum('totalHours');r.ot=sum('overtime');r.job=sum('jobHours');r.base=de.reduce((a,e)=>a+Math.max(0,num(e.totalHours)-num(e.jobHours)),0);
+   const notes=de.map(e=>e.note).filter(Boolean);const extra=[];const v=sum('vacationHours'),dc=sum('doctorHours'),sk=sum('sickHours');if(v)extra.push('Dovolená '+nf(v)+' h');if(dc)extra.push('Lékař '+nf(dc)+' h');if(sk)extra.push('Nemoc '+nf(sk)+' h');
+   r.note=(h&&r.total?'SVÁTEK: '+(HOL_SHORT[k.slice(5)]||h)+(notes.length?' - ':''):'')+[...notes,...extra].join(' · ');
+   tot.t+=r.total;tot.o+=r.ot;tot.w+=sum('weekendHours');tot.j+=r.job;tot.b+=r.base;tot.v+=v;tot.d+=dc;tot.s+=sk;if(h)tot.h+=r.total}
+  days.push(r)}
+ return{days,tot}}
+function drawDochazka(doc){FS.k=1;FS.c=INK;const{days,tot}=dochazkaData(),p=P();
+ pT(doc,'PRACOVNÍ VÝKAZ',105,13.4,{st:'bolditalic',sz:17,al:'center'});
+ pT(doc,'Jméno a příjmení:',8.7,22.2,{sz:8.5});pT(doc,p.name||'',35.2,22.2,{sz:8.5});pL(doc,33.2,25.1,66.4,25.1,.2,GRID);
+ pT(doc,'Měsíc | Rok:',149.6,22.2,{sz:8.5});pT(doc,`${pad(M+1)} / ${Y}`,170.6,22.2,{sz:8.5});pL(doc,168.4,25.1,199.3,25.1,.2,GRID);
+ const X=[8.2,16.1,28.1,40.0,50.9,62.9,75.0,88.0,101.0,201.6],y0=28.9,hh=5.8,rh=6.506,HDR=[['DEN'],['ZAČÁTEK','ČAS'],['KONEC','ČAS'],['OBĚD','HODIN'],['CELKEM','HODIN'],['PŘESČAS','HODIN'],['ZÁKAZNÍK','HODIN'],['ALVIAN','HODIN'],['POZNÁMKY / STROJ']];
+ pR(doc,X[0],y0,X[9]-X[0],hh,.25,GRID,[219,233,249]);
+ days.forEach((r,i)=>{const y=y0+hh+i*rh;if(i%2===1){doc.setFillColor(218,229,240);doc.rect(X[0],y,X[9]-X[0],rh,'F')}});
+ HDR.forEach((h,i)=>pMulti(doc,h,(X[i]+X[i+1])/2,y0+hh/2,{sz:5.6,st:'bold',al:'center',lh:2.2}));
+ for(let i=0;i<=31;i++)pL(doc,X[0],y0+hh+i*rh,X[9],y0+hh+i*rh,.25,GRID);pL(doc,X[0],y0,X[9],y0,.25,GRID);
+ X.forEach(x=>pL(doc,x,y0,x,y0+hh+31*rh,.25,GRID));
+ days.forEach((r,i)=>{if(!r)return;const cy=y0+hh+i*rh+rh/2;pT(doc,String(r.d),(X[0]+X[1])/2,cy-1.1,{st:'bold',sz:7,al:'center'});pT(doc,r.dow,(X[0]+X[1])/2,cy+1.5,{st:'bold',sz:4.6,al:'center'});
+  if(!r.e)return;const c=(k,v)=>pT(doc,v,(X[k]+X[k+1])/2,cy,{sz:7,al:'center'});
+  c(1,r.start);c(2,r.end);c(3,nf(r.lunch));c(4,nf(r.total));c(5,nf(r.ot));c(6,nf(r.job));c(7,nf(r.base));
+  let s=r.note,sz=6;doc.setFont('LS','normal');doc.setFontSize(sz);while(s&&doc.getTextWidth(s)>X[9]-X[8]-1.5&&sz>4.2){sz-=.2;doc.setFontSize(sz)}pT(doc,s,X[8]+.8,cy,{sz})});
+ const lrow=(lab,val,y,x0,x1)=>{pT(doc,lab,x0+1,y,{sz:8.5});pT(doc,val,x1-.6,y,{sz:8.5,st:'bold',al:'right'});pL(doc,x0,y+3.1,x1,y+3.1,.2,GRID)};
+ lrow('Celkem hodin:',nf(tot.t),243.2,10.1,87.8);lrow('Hodiny přesčas:',nf(tot.o),249.0,10.1,87.8);lrow('Hodiny o víkendu:',nf(tot.w),254.9,10.1,87.8);
+ lrow('Hodiny zákazník:',nf(tot.j),243.2,104.6,198.8);lrow('Hodiny Alvian:',nf(tot.b),249.0,104.6,198.8);
+ [['Dovolená:',tot.v],['Lékař:',tot.d],['Nemoc:',tot.s],['Svátek:',tot.h]].forEach(([l,v],i)=>{const y=256.8+i*3.9;pT(doc,l,108.1,y,{sz:8});doc.setFontSize(8);const w=doc.getTextWidth(l+' ');pT(doc,nf(v),108.1+w,y,{sz:8,st:'bold'});doc.setFont('LS','bold');const w2=doc.getTextWidth(nf(v)+' ');pT(doc,'h',108.1+w+w2,y,{sz:8})});
+ const sig=(l,y,x1)=>{pT(doc,l,106,y,{sz:6.6,st:'bold'});pL(doc,x1,y+.4,198.5,y+.4,.2,GRID)};
+ sig('Dne:',274.8,113.4);sig(`V ${p.place||'Hradci Králové'} schválil:`,280.0,140.6);sig('Podpis:',284.9,117.9);
+ logo(doc,12.3,264.4,47.2)}
+async function dochazkaPdf(){await pdfLibs();const doc=newDoc();drawDochazka(doc);doc.setProperties({title:`Pracovní výkaz – ${MONTHS[M]} ${Y}`,author:P().name||'',creator:'Moje docházka'});
+ return new File([doc.output('blob')],pdfFileName('dochazka'),{type:'application/pdf'})}
+
+/* ---------- CESTOVNÍ PŘÍKAZ (strana A) ---------- */
+function drawPrikaz(doc,trips,o){FS.k=1.2;FS.c=BLUE;const p=P(),B=BLUE;
+ pR(doc,9.1,7.0,194.5,282.4,.5);pL(doc,147.2,7.0,147.2,34.2,.3);[13.9,20.6,27.2].forEach(y=>pL(doc,147.2,y,203.6,y,.3));pL(doc,9.1,34.2,203.6,34.2,.4);
+ pT(doc,'Firma',11,11.6,{st:'bold',sz:7.5,c:B});logo(doc,12.1,14.0,28.3);pT(doc,p.company||'',11,25.0,{sz:5.6,c:B});pL(doc,11,26.9,53.4,26.9,.2,B,DOT);
+ pT(doc,'CESTOVNÍ PŘÍKAZ',105.4,18.5,{st:'bold',sz:13.5,c:B,al:'center',cs:1.15,title:1});
+ pT(doc,'Osobní číslo',148.5,10.5,{sz:5.6,c:B});doc.setFontSize(5.6*FS.k);pT(doc,p.employeeNo||'',148.5+doc.getTextWidth('Osobní číslo ')+.3,10.5,{sz:5.8,st:'bold'});
+ pT(doc,'Útvar',148.5,17.2,{sz:5.6,c:B});pT(doc,'Telefon, linka',148.5,23.9,{sz:5.6,c:B});
+ pT(doc,'Normální pracovní doba od',148.5,30.6,{sz:5.2,c:B});pL(doc,177.2,31.4,189.5,31.4,.15,B);pT(doc,'do',190.5,30.6,{sz:5.2,c:B});pL(doc,193.4,31.4,202.4,31.4,.15,B);
+ pT(doc,'1. Příjmení, jméno, titul',11,37.8,{sz:7,c:B});pT(doc,p.name||'',46.5,37.8,{sz:7.2,st:'bold'});pL(doc,11,40.4,201.6,40.4,.2,B,DOT);
+ pT(doc,'2. Bydliště',11,44.5,{sz:7,c:B});pT(doc,p.homeAddress||'',46.5,44.5,{sz:7.2,st:'bold'});pL(doc,11,47.1,201.6,47.1,.2,B,DOT);
+ pL(doc,9.1,50.3,203.6,50.3,.4);pR(doc,9.8,51.0,192.6,87.9,.6);
+ const C=[9.8,54.1,106.4,160.6,202.4];C.slice(1,4).forEach(x=>pL(doc,x,51.0,x,138.9,.35));pL(doc,9.8,61.2,202.4,61.2,.35);
+ pMulti(doc,['Počátek cesty','(místo, datum, hod.)'],(C[0]+C[1])/2,56.1,{sz:6.4,st:'bold',al:'center',c:B,lh:2.7});
+ pT(doc,'Místo jednání',(C[1]+C[2])/2,56.1,{sz:6.4,st:'bold',al:'center',c:B});pT(doc,'Účel cesty',(C[2]+C[3])/2,56.1,{sz:6.4,st:'bold',al:'center',c:B});
+ pMulti(doc,['Konec cesty','(místo, datum)'],(C[3]+C[4])/2,56.1,{sz:6.4,st:'bold',al:'center',c:B,lh:2.7});
+ trips.forEach((e,i)=>{const t=e.travel||{},y=64.6+i*7.08;
+  pT(doc,t.from||'',(C[0]+C[1])/2,y,{sz:6.6,al:'center',c:B});pT(doc,`${dmy(e.date)} · ${t.start||''}`,(C[0]+C[1])/2,y+2.3,{sz:5,al:'center',c:B});
+  pT(doc,t.to||'',(C[1]+C[2])/2,y+.4,{sz:6.6,al:'center',c:B});pT(doc,t.purpose||'',(C[2]+C[3])/2,y+.4,{sz:6.6,al:'center',c:B});
+  pT(doc,t.returnTo||'',(C[3]+C[4])/2,y,{sz:6.6,al:'center',c:B});pT(doc,`${dmy(e.date)} · ${t.returnArrival||''}`,(C[3]+C[4])/2,y+2.3,{sz:5,al:'center',c:B})});
+ pL(doc,9.1,139.4,203.6,139.4,.4);
+ pT(doc,'3. Spolucestující',11,143.3,{sz:6.2,c:B});pT(doc,o.companions||'',38,143.3,{sz:6.6,st:'bold'});pL(doc,30.5,144.4,201.6,144.4,.2,B,DOT);
+ const tr=[...new Set(trips.map(e=>(e.travel||{}).transport).filter(Boolean))].join(', ');
+ pT(doc,'4. Určený dopravní prostředek (u vlastního vozidla druh, RZ)',11,149.1,{sz:6.2,c:B});pT(doc,tr+(o.vehicle?' '+o.vehicle:''),82.5,149.1,{sz:6.6,st:'bold'});pL(doc,89,150.2,201.6,150.2,.2,B,DOT);
+ pT(doc,'5. Povolená záloha Kč',11,154.6,{sz:6.2,c:B});pL(doc,35.5,155.7,78,155.7,.2,B,DOT);pT(doc,nf(o.advance)+' Kč',79,154.6,{sz:6.6,st:'bold'});pT(doc,'vyplacená dne',87.6,154.6,{sz:6.2,c:B});pL(doc,103,155.7,144,155.7,.2,B,DOT);pT(doc,'pokl. doklad číslo',145,154.6,{sz:6.2,c:B});pL(doc,166,155.7,201.6,155.7,.2,B,DOT);
+ [[11,57.8,'Podpis pokladníka'],[60.7,127.1,'Souhlas pracovníka s vysláním na služební cestu'],[130,200.8,'Datum a podpis pracovníka oprávněného k povolení cesty']].forEach(([a,b,l])=>{pL(doc,a,163.8,b,163.8,.2,B,DOT);pT(doc,l,(a+b)/2,166.7,{sz:4.9,al:'center',c:B})});
+ pL(doc,9.1,173.6,203.6,173.6,.4);pT(doc,'VYÚČTOVÁNÍ PRACOVNÍ CESTY',105.4,178.5,{st:'bold',sz:11,c:B,al:'center',cs:.7,title:1});pL(doc,9.1,183.3,203.6,183.3,.4);
+ pT(doc,'6. Zpráva o výsledku pracovní cesty byla podána dne',11,187.8,{sz:6.2,c:B});pL(doc,73,188.8,143,188.8,.2,B);
+ pT(doc,'Se způsobem provedení souhlasí:',11,193.6,{sz:6.2,c:B});pL(doc,127,197,202,197,.2,B,DOT);pT(doc,'Datum a podpis odpovědného pracovníka',164.5,198.6,{sz:4.6,al:'center',c:B});
+ pL(doc,9.1,200.3,203.6,200.3,.4);pL(doc,107.8,200.3,107.8,240.5,.35);
+ pT(doc,'Účtovací předpis',143,202.9,{sz:5.6,c:B});const AX=[107.8,127.1,145.9,164.7,183.7,203.6];
+ [205.7,212.5,220.8,229.1,237.2].forEach(y=>pL(doc,107.8,y,203.6,y,.35));AX.slice(1,5).forEach(x=>pL(doc,x,205.7,x,237.2,.35));
+ ['Má dáti','Dal','Částka','Středisko','Zakázka'].forEach((h,i)=>pT(doc,h,(AX[i]+AX[i+1])/2,209.1,{sz:5.6,st:'bold',al:'center',c:B}));
+ const dl=(lab,y,x0)=>{pT(doc,lab,x0,y,{sz:6.2,c:B});doc.setFontSize(6.2*FS.k);const w=doc.getTextWidth(lab);pL(doc,x0+w+.6,y+.8,101.7,y+.8,.2,B,DOT);pT(doc,'Kč',102.8,y,{sz:6.2,c:B})};
+ pT(doc,'7. Výdajový – příjmový pokladní doklad číslo',11,203.4,{sz:6.2,c:B});pL(doc,59,204.2,106,204.2,.2,B,DOT);
+ pT(doc,'Účtovaná náhrada byla přezkoušena a upravena',11,206.3,{sz:6.2,c:B});
+ pT(doc,'na Kč',55.4,210.6,{sz:6.2,c:B});pL(doc,61.5,211.4,101.7,211.4,.2,B,DOT);
+ dl('Vyplacená záloha',220.4,11);dl('Doplatek – Přeplatek',230.5,11);dl('Slovy',240.6,11);
+ [[11,57.8,['Datum a podpis pracovníka,','který upravil vyúčtování']],[60.7,104,['Datum a podpis příjemce','(průkaz totožnosti)']],[108.3,153,['Datum a podpis','pokladníka']],[154.6,202.2,['Schválil, datum a podpis']]].forEach(([a,b,l])=>{pL(doc,a,247.6,b,247.6,.2,B,DOT);l.forEach((s,i)=>pT(doc,s,(a+b)/2,250.8+i*2.6,{sz:4.9,al:'center',c:B}))});
+ pL(doc,9.1,259.2,203.6,259.2,.4);
+ ['Poznámky','Zaměstnanci vyslanému na pracovní cestu přísluší','a) náhrada prokázaných jízdních výdajů,','b) náhrada prokázaných výdajů na ubytování,','c) náhrada prokázaných nutných vedlejších výdajů,','d) stravné','Znemožní-li zaměstnavatel vyslanému na pracovní cestu, která trvá méně než 5 hodin, zaměstnanci stravovat se obvyklým způsobem, může mu poskytnout stravné.','Podrobnosti viz zákon č. 262/2006 Sb.'].forEach((s,i)=>pT(doc,s,11,261.9+i*2.95+(i>=6?.9:0),{sz:5,c:B}))}
+
+/* ---------- VYÚČTOVÁNÍ PRACOVNÍ CESTY (strana B) ---------- */
+function drawVyuct(doc,trips){FS.k=1.2;FS.c=INK;const B=BLUE,X=[10.2,25.5,70.2,80.6,94.9,105.4,115.9,129.2,140.6,152.0,163.5,174.9,188.2,200.4],Y0=49.6,LH=3.854;
+ pR(doc,10.2,9.0,190.2,210.2,.6);pL(doc,10.2,18.7,200.4,18.7,.45);
+ pT(doc,'VYÚČTOVÁNÍ PRACOVNÍ CESTY',105.3,14.0,{st:'bold',sz:11,c:B,al:'center',cs:1.1,title:1});pT(doc,'Počet přiložených dokladů',176.3,12.9,{sz:4.6,c:B});
+ [X[1],X[3],X[4],X[5],X[6],X[7],X[8],X[9],X[10],X[11],X[12]].forEach(x=>pL(doc,x,18.7,x,219.2,.3));pL(doc,X[2],41.0,X[2],219.2,.3);
+ pL(doc,X[1],41.0,X[3],41.0,.3);pL(doc,10.2,46.0,200.4,46.0,.3);pL(doc,10.2,49.6,200.4,49.6,.45);
+ pT(doc,'Datum',(X[0]+X[1])/2,32.4,{sz:5.8,st:'bold',al:'center'});
+ pT(doc,'Odjezd – Příjezd',(X[1]+X[3])/2-1,28.6,{sz:5.8,st:'bold',al:'center'});doc.setFontSize(5.8*FS.k);doc.setFont('LS','bold');pT(doc,'1)',(X[1]+X[3])/2-1+doc.getTextWidth('Odjezd – Příjezd')/2+.3,27.6,{sz:3.6,st:'bold'});
+ pT(doc,'Místo jednání podrobně',(X[1]+X[3])/2,31.0,{sz:5.8,st:'bold',al:'center'});
+ pT(doc,'Místo',(X[1]+X[2])/2,43.5,{sz:5.8,st:'bold',al:'center'});pT(doc,'hod.',(X[2]+X[3])/2,43.5,{sz:5.8,st:'bold',al:'center'});
+ [[3,['Použitý','dopravní','prostředek 2)']],[4,['Vzdálenost','v km 3)']],[5,['Sazba','za km 4)']]].forEach(([c,ls])=>{const cx=(X[c]+X[c+1])/2;ls.forEach((s,i)=>{doc.setFont('LS','bold');doc.setFontSize(3.9*FS.k);const w=doc.getTextWidth(s);pT(doc,s,cx+(i-(ls.length-1)/2)*1.7+.6,32.4+w/2,{sz:3.9,st:'bold',ang:90,al:'left'})})});
+ [[6,['Počátek a','konec','pracovního','výkonu','(hodina)']],[7,['Jízdné','a místní','doprava','Kč']],[8,['Stravné','(připl. na','stravné)','Kč']],[9,['Nocležné','Kč']],[10,['Nutné','vedlejší','výdaje','Kč']],[11,['Celkem','Kč']],[12,['Upraveno','Kč']]].forEach(([c,ls])=>pMulti(doc,ls,(X[c]+X[c+1])/2,32.4,{sz:5.3,st:'bold',al:'center',lh:2.25}));
+ ['1','2','3','4','5','6','7','8','9','10','11','12'].forEach((s,i)=>{const a=i===0?X[0]:i===1?X[1]:X[i+1],b=i===0?X[1]:i===1?X[3]:X[i+2];pT(doc,s,(a+b)/2,47.8,{sz:3.8,al:'center'})});
+ const tot={f:0,d:0,l:0,o:0,k:0,s:0};
+ for(let b=0;b<22;b++){const y=Y0+b*2*LH,e=trips[b>>1],ret=b%2===1;pL(doc,X[0],y+2*LH,X[13],y+2*LH,.45);pL(doc,X[1],y+LH,X[13],y+LH,.15);
+  pT(doc,'Odjezd:',X[1]+.5,y+LH/2,{sz:5.6});pT(doc,'Příjezd:',X[1]+.5,y+LH*1.5,{sz:5.6});
+  if(!e)continue;const t=e.travel||{},c=calc(e);
+  pT(doc,dmyy(e.date),(X[0]+X[1])/2,y+LH,{sz:5.8,st:'bold',al:'center'});
+  const from=ret?t.returnFrom:t.from,dep=ret?t.returnStart:t.start,to=ret?t.returnTo:t.to,arr=ret?t.returnArrival:t.arrival;
+  pT(doc,from||'',X[1]+10.2,y+LH/2,{sz:5.8});pT(doc,dep||'',(X[2]+X[3])/2,y+LH/2,{sz:5.8,al:'center'});pT(doc,to||'',X[1]+10.2,y+LH*1.5,{sz:5.8});pT(doc,arr||'',(X[2]+X[3])/2,y+LH*1.5,{sz:5.8,al:'center'});
+  pT(doc,t.transport||'',(X[3]+X[4])/2,y+LH/2,{sz:5.8,al:'center'});
+  if(ret){const ym=y+LH*1.5,cc=(k,v)=>pT(doc,v,(X[k]+X[k+1])/2,ym,{sz:5.8,al:'center'});const s=c.diet+c.c.sum;
+   if(num(t.km)){cc(4,nf(t.km))}cc(7,nz(c.c.fare+c.c.km));cc(8,nz(c.diet));cc(9,nz(c.c.lodging));cc(10,nz(c.c.other));cc(11,nz(s));
+   tot.f+=c.c.fare+c.c.km;tot.d+=c.diet;tot.l+=c.c.lodging;tot.o+=c.c.other;tot.s+=s}}
+ // součty
+ const ty=[219.4,227.3,235.0,242.3];pL(doc,115.9,ty[3],200.4,ty[3],.45);[115.9,200.4].forEach(x=>pL(doc,x,219.2,x,ty[3],.45));pL(doc,115.9,ty[1],200.4,ty[1],.3);pL(doc,115.9,ty[2],200.4,ty[2],.3);
+ [129.2,140.6,152.0,163.5].forEach(x=>pL(doc,x,219.2,x,ty[1],.3));[174.9,188.2].forEach(x=>pL(doc,x,219.2,x,ty[3],.3));
+ pT(doc,'Celkem',116.8,221.6,{sz:5.8});pT(doc,'Záloha',116.8,229.5,{sz:5.8});pT(doc,'Doplatek – Přeplatek',116.8,237.2,{sz:5.8});
+ const tv=(x,v)=>v&&pT(doc,v,x+.8,221.6,{sz:5.8});tv(129.2,nz(tot.f));tv(140.6,nz(tot.d));tv(152.0,nz(tot.l));tv(163.5,nz(tot.o));if(tot.s)tv(174.9,nf(tot.s)+' Kč');
+ pT(doc,'Prohlašuji, že jsem všechny údaje uvedl úplně a správně.',116.7,246.7,{sz:6.2,st:'bold'});
+ [['Stravování bylo poskytnuto bezplatně:'],['Ubytování bylo poskytnuto bezplatně:'],['Volná / zlevněná jízdenka:'],['Pobírám odlučné:']].forEach(([l],i)=>{const y=223.1+i*3.45;pT(doc,l,9.8,y,{sz:5.6});pT(doc,'ano – ne',53.3,y,{sz:5.6})});
+ [['O – osobní vlak','AUS – auto služební'],['R – rychlík','AUV – auto vlastní'],['A – autobus','MOS – motocykl služební'],['L – letadlo','P – pěšky']].forEach(([a,b],i)=>{const y=237.7+i*3.6;pT(doc,a,9.8,y,{sz:5.6});pT(doc,b,33.4,y,{sz:5.6})});
+ ['1) Dobu odjezdu a příjezdu vyplňte podle jízdního řádu.','2) Uvádějte ve zkratce.','3) Počet km uvádějte jen při použití jiného než veřejného hromadného dopravního prostředku.','4) Uvádí se pouze při uplatňování náhrad podle sazby za kilometry.'].forEach((s,i)=>pT(doc,s,9.8,265.8+i*2.95,{sz:5}));
+ pL(doc,132.3,272.4,201,272.4,.2,INK,DOT);pT(doc,'datum a podpis vyúčtovatele',166.7,275.9,{sz:5.2,st:'bold',al:'center'});pT(doc,'mSk - 501',9.8,289.6,{sz:4.6})}
+async function cestakPdf(){await pdfLibs();const key=`${Y}-${pad(M+1)}`,o=Object.assign({advance:0,orderNo:'',companions:'',receipts:0},(state.travelOrders||{})[key]||{}),trips=tripEntries(Y,M);
+ const doc=newDoc(),chunks=[];for(let i=0;i<trips.length;i+=11)chunks.push(trips.slice(i,i+11));if(!chunks.length)chunks.push([]);
+ chunks.forEach((c,i)=>{if(i)doc.addPage();drawPrikaz(doc,c,o);doc.addPage();drawVyuct(doc,c)});
  doc.setProperties({title:`Cestovní příkaz – ${MONTHS[M]} ${Y}`,author:P().name||'',creator:'Moje docházka'});
  return new File([doc.output('blob')],cestakFileName(),{type:'application/pdf'})}
-async function cestakPrint(btn){
- if(!usePdf())return window.print();
- const old=btn&&btn.textContent;if(btn){btn.disabled=true;btn.textContent='⏳ Připravuji PDF…'}
- try{const f=await cestakPdf();
+async function sharePdf(make,btn){const old=btn&&btn.textContent;if(btn){btn.disabled=true;btn.textContent='⏳ Připravuji PDF…'}
+ try{const f=await make();
   if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:f.name});return'shared'}catch(e){if(e&&e.name==='AbortError')return'aborted'}}
   const u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);toast('PDF staženo: '+f.name);return'download'}
- catch(e){console.warn(e);toast('PDF se nepodařilo vytvořit'+(navigator.onLine===false?' (offline – otevři aplikaci jednou online)':''));try{window.print()}catch(x){}return'error'}
+ catch(e){console.warn(e);toast('PDF se nepodařilo vytvořit'+(navigator.onLine===false?' (offline – otevři aplikaci jednou online)':''));return'error'}
  finally{if(btn){btn.disabled=false;btn.textContent=old}}}
-window.__cestak={cestakPdf,cestakPrint,cestakFileName,usePdf};
+const cestakPrint=btn=>sharePdf(cestakPdf,btn),dochazkaPrint=btn=>sharePdf(dochazkaPdf,btn);
+window.__cestak={cestakPdf,cestakPrint,cestakFileName,usePdf,dochazkaPdf,dochazkaPrint,dochazkaData,pdfFileName};
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const LS_DATA='mojeDochazka.data.v3',LS_UI='mojeDochazka.ui',LS_BK='mojeDochazka.backup';
@@ -751,6 +864,7 @@ document.addEventListener('input',ev=>{const el=ev.target;
 document.addEventListener('change',ev=>{const el=ev.target;if(el.dataset.to){setOrderField(el.dataset.to,el.value);renderOrders();renderBanner()}});
 $('#fileIn').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importFile(f)};
 $('#prev').onclick=()=>go(-1);$('#next').onclick=()=>go(1);
+$('#dochPdf').onclick=e=>dochazkaPrint(e.currentTarget);if(!window.APP_PWA)$('#dochPdf').hidden=true;
 $('#today').onclick=()=>{const t=new Date();Y=t.getFullYear();M=t.getMonth();sel=t.getDate();render()};
 $('#addBtn').onclick=()=>openQuick([iso(Y,M,sel)]);
 $('#eye').onclick=()=>{ui.hide=!ui.hide;saveUi();render()};
