@@ -1,0 +1,701 @@
+<!doctype html><html lang="cs"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#124b92"><title>Moje docházka</title><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Docházka"><meta name="robots" content="noindex,nofollow"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="icon-192.png"><script src="config.js"></script><script src="vendor/supabase.js"></script><style>
+*{box-sizing:border-box}body{margin:0;background:#f2f6fc;color:#1d304b;font:15px system-ui,-apple-system,sans-serif}button,select,input{font:inherit}button{cursor:pointer}button:focus-visible,select:focus-visible{outline:3px solid #d4a02e;outline-offset:3px}header{background:#124b92;color:white;padding:24px max(20px,calc((100vw - 1160px)/2));display:flex;justify-content:space-between;align-items:center}.brand{font-size:23px;font-weight:850;letter-spacing:2px}.brand small{display:block;font-size:10px;letter-spacing:2.4px;color:#c0d9fa;margin-top:5px}.profile{text-align:right;font-size:13px}.profile span{display:block;color:#c0d9fa;font-size:11px;margin-top:4px}main{max-width:1200px;padding:26px 20px 105px;margin:auto}.intro{display:flex;justify-content:space-between;align-items:center;gap:12px}h1{font-size:28px;letter-spacing:-1px;margin:6px 0}p{color:#667b96;line-height:1.5}.badge{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#80601c;background:#f5e8be;padding:7px 10px;border-radius:6px}.plain{border:1px solid #dce5f2;background:white;color:#24558a;border-radius:10px;padding:10px 13px}.stats{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;margin:22px 0}.stat{background:white;border:1px solid #dfe7f3;border-radius:17px;padding:20px}.stat:first-child{background:#124b92;color:white;border:0}.stat small{display:block;color:#6c819e;font-size:12px;margin-bottom:7px}.stat:first-child small{color:#c6dcfa}.stat strong{font-size:29px;letter-spacing:-1px}.stat em{font-size:12px;display:block;font-style:normal;margin-top:9px;color:#71839d}.stat:first-child em{color:#d5e5fc}.tabs{display:flex;gap:7px;margin:22px 0}.tabs button{padding:11px 22px;background:transparent;border:0;border-radius:9px;color:#6c7c93;font-weight:600}.tabs button.active{background:#e0ecff;color:#124b92}.layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:20px}.panel{background:#fff;border:1px solid #dfe7f3;border-radius:19px;padding:22px;min-width:0}.monthbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}h2{font-size:19px;margin:0;letter-spacing:-.4px}.arrows{display:flex;gap:6px}.arrows button{border:1px solid #e0e8f4;background:white;border-radius:9px;width:36px;height:36px;font-size:22px;color:#24558a}.week,.calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}.week{text-align:center;color:#74849c;font-size:11px;margin-bottom:12px}.day{border:1px solid transparent;background:#f6f9fe;border-radius:10px;min-height:83px;padding:10px 3px;color:#294365;text-align:center}.day.weekend{background:#edf2f9}.day.selected{border:2px solid #2472d8;background:#e5f0ff;padding:9px 2px}.day.holiday .num{color:#b36537}.num{font-weight:600;font-size:14px}.money{display:block;font-size:11px;font-weight:750;margin-top:9px;white-space:nowrap}.hours{display:block;color:#6f829d;font-size:10px;margin-top:4px}.leave{color:#99741c}.sick{color:#8a68a2}.legend{display:flex;flex-wrap:wrap;gap:15px;font-size:10px;color:#70829c;margin-top:18px}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;background:#2872cb}.detail-label{font-size:10px;font-weight:700;letter-spacing:1.4px;color:#7486a0;margin-bottom:12px}.detail-date{font-size:21px;margin-bottom:14px}.tag{display:inline-block;font-size:11px;background:#e5f0ff;color:#245a9b;padding:6px 10px;border-radius:6px}.detail-total{font-size:36px;font-weight:750;letter-spacing:-1.5px;margin:22px 0 4px}.muted{color:#70819a;font-size:12px}.rows{margin-top:24px}.row{display:flex;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #e8eef6;font-size:13px}.row span{color:#6b7e98}.row.total{font-weight:700;border:0}.job{background:#eff5fd;border-radius:10px;padding:14px;margin-top:18px;color:#567091;font-size:12px;line-height:1.7}.chart-panel{margin-top:20px}.chart-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:15px}select{background:#f0f5fd;border:1px solid #dce6f4;border-radius:8px;padding:9px;color:#28538a;font-size:12px;max-width:100%}.chart-scroll{overflow:auto}.chart{height:215px;min-width:620px;display:flex;align-items:end;gap:5px;padding-top:25px}.bar-wrap{flex:1;display:flex;flex-direction:column;justify-content:end;height:100%;align-items:center;min-width:0}.bar{width:100%;max-width:34px;background:#73a7ed;border:0;border-radius:4px 4px 0 0;min-height:3px}.bar.selected{background:#1759ae}.bar:hover{background:#4390f4}.bar-wrap small{font-size:9px;color:#71849f;margin:8px 0}.chart-note{font-size:11px;color:#6b7c95;margin:14px 0 0}.history-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.history-card{border:1px solid #dae5f4;border-radius:14px;background:white;padding:22px;text-align:left;color:#274b78}.history-card strong{font-size:24px;display:block;margin:14px 0}.history-card p{font-size:12px;margin-bottom:0}.history-meter{background:#eaf1fc;height:7px;border-radius:5px;margin-top:20px}.history-meter i{display:block;height:100%;background:#367bd4;border-radius:5px}.hidden{display:none!important}.footnote{font-size:11px;color:#75859b;margin-top:24px;line-height:1.7}.eye{font-size:12px}.empty{padding:20px 0;color:#71849f}.viewtitle{margin:8px 0 20px}.bottom{display:none}
+@media(max-width:700px){header{padding:18px 17px}.brand{font-size:20px}main{padding:20px 12px 95px}h1{font-size:24px}.intro{align-items:flex-start}.intro p{font-size:12px;margin-bottom:0}.stats{gap:8px;margin:18px 0;grid-template-columns:1fr 1fr}.stat{padding:16px;border-radius:13px}.stat:first-child{grid-column:1/-1}.stat strong{font-size:25px}.stat:first-child strong{font-size:32px}.stat em{font-size:10px}.layout{grid-template-columns:1fr;gap:14px}.panel{padding:16px;border-radius:15px}.calendar,.week{gap:4px}.day{min-height:74px;border-radius:8px;padding:8px 1px}.day.selected{padding:7px 0}.money{font-size:10px;margin-top:8px}.hours{font-size:9px}.monthbar{margin-bottom:18px}.tabs{margin:14px 0}.tabs button{flex:1;padding:11px 8px;font-size:13px}.chart-head{align-items:flex-start;flex-direction:column}.history-grid{grid-template-columns:1fr}.detail-total{font-size:32px}.badge{font-size:9px;padding:6px}.eye{padding:9px;font-size:11px}.profile{font-size:11px}.bottom{display:flex;position:fixed;bottom:0;background:#ffffffed;backdrop-filter:blur(12px);border-top:1px solid #dfe7f4;width:100%;padding:12px 15px max(15px,env(safe-area-inset-bottom));justify-content:space-around;z-index:5}.bottom button{background:none;border:0;color:#245b9e;font-size:12px;padding:7px 15px}}
+.company-logo{display:flex;align-items:center;justify-content:center;background:white;border-radius:8px;padding:8px 12px;width:156px;min-height:48px;color:#124b92}.company-logo img{display:block;width:132px;height:40px;object-fit:contain}.company-logo img[hidden]{display:none}.brand small{text-align:center}@media(max-width:700px){.company-logo{width:136px;padding:6px 10px}.company-logo img{width:116px;height:36px}}
+.tabs{flex-wrap:wrap}.logo-text{font-size:20px;font-weight:850;letter-spacing:2px}
+.btn{border:0;background:#124b92;color:#fff;border-radius:10px;padding:10px 16px;font-weight:600}.btn.sec{background:#e0ecff;color:#124b92}.btn.danger{background:#fbe3e0;color:#a2332a}.btn.small{padding:7px 11px;font-size:12px}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.entry-card{border-top:1px solid #e8eef6;margin-top:18px;padding-top:6px}
+.chip{display:inline-block;font-size:10px;padding:4px 8px;border-radius:6px;background:#fbe9dc;color:#a0532a;margin:0 4px 4px 0}.chip.blue{background:#e5f0ff;color:#245a9b}.chip.warn{background:#fff3cd;color:#80601c}
+.day .dot2{display:block;font-size:9px;color:#b36537;margin-top:2px}
+.backup-banner{background:#fff3cd;border:1px solid #f0d98a;color:#6b5112;border-radius:12px;padding:12px 14px;margin:16px 0;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:13px}
+dialog{border:0;border-radius:18px;padding:0;width:min(720px,100vw - 16px);max-height:calc(100vh - 16px);box-shadow:0 20px 60px #0b254a55}dialog::backdrop{background:#0b254a88}
+.dlg-head{position:sticky;top:0;background:#124b92;color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;z-index:2}.dlg-head h2{color:#fff}.dlg-head button{background:none;border:0;color:#fff;font-size:22px}
+.dlg-body{padding:16px 20px}.dlg-foot{position:sticky;bottom:0;background:#fff;border-top:1px solid #e8eef6;padding:12px 20px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+fieldset{border:1px solid #dfe7f3;border-radius:12px;margin:0 0 14px;padding:12px}legend{font-weight:700;font-size:13px;color:#124b92;padding:0 6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.f label{display:block;font-size:11px;color:#6b7e98;margin-bottom:4px}.f input,.f select,.f textarea{width:100%;border:1px solid #d4dff0;border-radius:8px;padding:9px;background:#fff;color:#1d304b;font-size:14px}.f.wide{grid-column:1/-1}
+.f .auto{display:flex;gap:4px}.f .auto input.manual{background:#fff8e6;border-color:#e3c56a}.f .auto button{border:1px solid #d4dff0;background:#f0f5fd;border-radius:8px;font-size:11px;padding:0 7px;color:#24558a;white-space:nowrap}
+.chk{display:flex;gap:6px;align-items:center;font-size:13px}.chk input{width:18px;height:18px}
+.msgs{margin-top:8px}.msg{font-size:12px;padding:8px 10px;border-radius:8px;margin-top:6px}.msg.err{background:#fbe3e0;color:#a2332a}.msg.warn{background:#fff3cd;color:#6b5112}.msg.info{background:#e5f0ff;color:#245a9b}
+.calc{background:#eff5fd;border-radius:10px;padding:10px 12px;font-size:13px;color:#24558a}
+table.t{width:100%;border-collapse:collapse;font-size:12px}table.t th,table.t td{border-bottom:1px solid #e8eef6;padding:7px 5px;text-align:left;vertical-align:top}table.t th{color:#6b7e98;font-weight:600}table.t td.n,table.t th.n{text-align:right;white-space:nowrap}table.t tfoot td{font-weight:700;border-top:2px solid #cbd8ea}
+.tscroll{overflow-x:auto}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.bal{font-size:26px;font-weight:750;color:#124b92;margin:6px 0}
+.print-only{display:none}
+header{padding-top:max(24px,env(safe-area-inset-top));padding-left:max(20px,env(safe-area-inset-left),calc((100vw - 1160px)/2));padding-right:max(20px,env(safe-area-inset-right),calc((100vw - 1160px)/2))}
+@media(max-width:700px){header{padding-top:max(18px,env(safe-area-inset-top))}.settings-grid{grid-template-columns:1fr}.bottom button{padding:6px 4px;font-size:11px}.grid{grid-template-columns:1fr 1fr}.dlg-body{padding:12px}.tabs{display:none}}
+@media print{header,#monthcontrol,.intro,.stats,.tabs,.bottom,#monthcontrol .arrows,.backup-banner,.no-print,.footnote,section:not(#ordersView),#chartPanel{display:none!important}body{background:#fff}main{padding:0}.panel{border:0;padding:0}.print-only{display:block}table.t{font-size:11px}#ordersView{display:block!important}}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}.qbtn{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid #d4dff0;background:#f6f9fe;border-radius:14px;padding:14px 12px;color:#1d304b;min-height:64px}.qbtn:hover,.qbtn:active{background:#e5f0ff;border-color:#2472d8}.qbtn .qi{font-size:24px}.qbtn b{display:block;font-size:15px}.qbtn small{display:block;font-size:11px;color:#6b7e98;margin-top:3px}
+.day.multi{background:#d7e7ff}.multibar{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:6;background:#124b92;color:#fff;border-radius:14px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;box-shadow:0 8px 24px #0b254a44}
+@media(min-width:701px){.multibar{bottom:20px;max-width:700px;margin:auto}}@media(max-width:380px){.qgrid{grid-template-columns:1fr}}
+.sync-pill{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:99px;background:#ffffff22;color:#dbe8ff;font-size:11px;border:0;cursor:pointer;white-space:nowrap}.sync-pill.offline,.sync-pill.error{background:#d4a02e;color:#1d304b}.sync-pill[hidden]{display:none}
+.brandname{font-size:20px;font-weight:800;letter-spacing:.2px;color:#fff}
+.auth{position:fixed;inset:0;z-index:200;background:linear-gradient(160deg,#124b92,#0b2f5e);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:max(24px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}.auth[hidden]{display:none}html.auth-open body{overflow:hidden}
+.auth-card{background:#fff;border-radius:20px;max-width:420px;width:100%;padding:24px 20px;margin-top:4vh;box-shadow:0 20px 50px #0006}.auth-brand{font-size:24px;font-weight:800;color:#124b92}.auth-sub{font-size:13px;color:#5b6e88;margin:6px 0 16px}
+.auth-tabs{display:flex;gap:6px;background:#eef3fa;border-radius:12px;padding:4px;margin-bottom:14px}.auth-tabs button{flex:1;border:0;background:none;padding:9px;border-radius:9px;font-weight:600;color:#47607f}.auth-tabs button.active{background:#fff;color:#124b92;box-shadow:0 1px 4px #0002}
+.auth form{display:flex;flex-direction:column;gap:10px}.auth form[hidden]{display:none}.auth label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:#47607f}.auth input{padding:12px;border:1px solid #c9d6e8;border-radius:10px;font-size:16px}.auth .btn{width:100%;justify-content:center;padding:13px}
+.linkbtn{background:none;border:0;color:#2472d8;padding:8px 0;font-size:14px;text-decoration:underline;width:100%}.auth-msg{min-height:20px;font-size:14px;margin:10px 0}.auth-msg.err{color:#b3261e}.auth-msg.ok{color:#1e7a3c}.auth-note{font-size:11px;color:#7a8ba3;margin:8px 0 0}
+</style></head><body>
+<header><div class="brand"><div class="brandname">Moje docházka</div><button type="button" id="syncStatus" class="sync-pill" hidden></button></div><div class="profile"><span id="pname" style="display:block;color:#fff;font-size:13px;margin:0"></span><span id="pcompany"></span></div></header>
+<main>
+<div class="intro"><div><span class="badge" id="badge">Moje docházka</span><h1>Můj pracovní měsíc</h1><p>Každá směna. Každá hodina. Přehledně.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="btn no-print" id="addBtn">+ Přidat den</button><button class="plain eye" id="eye">◉ Skrýt částky</button></div></div>
+<div id="backupBanner" class="backup-banner hidden"></div>
+<div class="stats" id="stats"></div>
+<nav class="tabs"><button data-view="calendar">Kalendář</button><button data-view="charts">Denní výdělky</button><button data-view="history">Historie</button><button data-view="orders">Cestovní příkaz</button><button data-view="settings">Nastavení</button></nav>
+<div id="monthcontrol" class="monthbar"><h2 id="monthtitle"></h2><div class="arrows"><button id="today" class="plain" style="width:auto;font-size:12px" aria-label="Dnes">Dnes</button><button id="prev" aria-label="Předchozí měsíc">‹</button><button id="next" aria-label="Další měsíc">›</button></div></div>
+<section id="calendarView"><div class="layout"><div class="panel"><div class="week"><span>PO</span><span>ÚT</span><span>ST</span><span>ČT</span><span>PÁ</span><span>SO</span><span>NE</span></div><div class="calendar" id="calendar"></div><div class="legend"><span><i class="dot"></i>Práce</span><span><i class="dot" style="background:#c3a453"></i>Dovolená</span><span><i class="dot" style="background:#9d83b5"></i>Sick day / nemoc</span><span style="color:#b36537">Oranžové datum = státní svátek</span></div></div><aside class="panel" id="detail"></aside></div></section>
+<section id="chartsView" class="hidden"><div class="panel" id="chartDetail"></div></section>
+<section id="historyView" class="hidden"><h2 class="viewtitle">Měsíc vedle měsíce</h2><div class="history-grid" id="history"></div></section>
+<section id="ordersView" class="hidden"><div class="panel" id="orders"></div></section>
+<section id="settingsView" class="hidden"><div id="settings"></div></section>
+<section class="panel chart-panel" id="chartPanel"><div class="chart-head"><div><h2>Výdělek po dnech</h2><p class="muted">Klepni na sloupec pro detail dne</p></div><select id="mode" aria-label="Co zobrazit"><option value="work">Výdělek bez diet a náhrad</option><option value="all">Celkem včetně diet a náhrad</option></select></div><div id="chartSummary" class="muted"></div><div class="chart-scroll"><div class="chart" id="chart"></div></div><p class="chart-note">Výška sloupce odpovídá částce. Dny bez záznamu jsou prázdné.</p></section>
+<p class="footnote">Data jsou uložena jen v tomto prohlížeči (localStorage). Částky jsou hrubé, bez odvodů: hodiny × sazby z Nastavení. Stravné podle zákoníku práce a vyhl. 573/2025 Sb. (5–12 h / nad 12–18 h / nad 18 h). Pravidelně si stahuj zálohu (Nastavení → Exportovat JSON).</p>
+</main>
+<nav class="bottom"><button data-view="calendar">▦ Kalendář</button><button data-view="charts">▥ Výdělky</button><button data-view="history">◷ Historie</button><button data-view="orders">✈ Cesťák</button><button data-view="settings">⚙ Nastavení</button></nav>
+<dialog id="dlg"></dialog>
+<input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
+
+<script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}}</script>
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.4";'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const LS_DATA='mojeDochazka.data.v3',LS_UI='mojeDochazka.ui',LS_BK='mojeDochazka.backup';
+const KM_RATE=5.90; // Kč/km, vyhl. 573/2025 Sb., osobní auto (jen u vlastního vozidla AUV)
+const MONTHS=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
+const MONTHS_GEN=['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
+const DOW=['ne','po','út','st','čt','pá','so'];
+const DEF_RATES=Object.assign({job:0,base:0,ot:0,weekend:0,dietShort:155,dietMid:236,dietLong:370},window.APP_DEFAULT_RATES||{});
+const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const SEED=JSON.parse(document.getElementById('seedData').textContent);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>{if(v===null||v===undefined||v==='')return 0;const n=+String(v).replace(',','.').replace(/\s/g,'');return isFinite(n)?n:0};
+const r2=n=>Math.round(n*100)/100;
+const pad=n=>String(n).padStart(2,'0');
+const iso=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
+const parseISO=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const todayISO=()=>{const t=new Date();return iso(t.getFullYear(),t.getMonth(),t.getDate())};
+const addDays=(s,n)=>{const d=parseISO(s);d.setDate(d.getDate()+n);return iso(d.getFullYear(),d.getMonth(),d.getDate())};
+const fmtH=n=>(+r2(n)).toLocaleString('cs-CZ');
+const fmtDate=s=>{const d=parseISO(s);return `${d.getDate()}. ${d.getMonth()+1}. ${d.getFullYear()}`};
+function pl(n,one,few,many){if(!Number.isInteger(n))return few==='dny'?'dne':many;const a=Math.abs(n);return a===1?one:(a>=2&&a<=4?few:many)}
+const toMin=t=>{if(!t||!/^\d{1,2}:\d{2}$/.test(t))return null;const[h,m]=t.split(':').map(Number);return h*60+m};
+function spanH(a,b){const x=toMin(a),y=toMin(b);if(x===null||y===null)return null;let d=y-x;if(d<0)d+=1440;return d/60}
+
+/* ---------- svátky ---------- */
+function easter(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;return new Date(y,mo-1,da)}
+const holCache={};
+function holidays(y){if(holCache[y])return holCache[y];const H={};const add=(m,d,n)=>H[iso(y,m,d)]=n;
+add(0,1,'Den obnovy samostatného českého státu, Nový rok');add(4,1,'Svátek práce');add(4,8,'Den vítězství');add(6,5,'Den slovanských věrozvěstů Cyrila a Metoděje');add(6,6,'Den upálení mistra Jana Husa');add(8,28,'Den české státnosti');add(9,28,'Den vzniku samostatného československého státu');add(10,17,'Den boje za svobodu a demokracii');add(11,24,'Štědrý den');add(11,25,'1. svátek vánoční');add(11,26,'2. svátek vánoční');
+const e=easter(y),gf=new Date(e),em=new Date(e);gf.setDate(e.getDate()-2);em.setDate(e.getDate()+1);
+H[iso(gf.getFullYear(),gf.getMonth(),gf.getDate())]='Velký pátek';H[iso(em.getFullYear(),em.getMonth(),em.getDate())]='Velikonoční pondělí';return holCache[y]=H}
+const holidayName=s=>holidays(+s.slice(0,4))[s]||'';
+const isWeekend=s=>{const g=parseISO(s).getDay();return g===0||g===6};
+
+/* ---------- data ---------- */
+let state,storageError='';
+const hooks={saved:null,account:null,cloudOn:()=>false};
+function loadData(){
+ const raw=localStorage.getItem(LS_DATA);
+ if(raw===null){state=clone(SEED);saveData(false);return 'seed'}
+ try{const d=JSON.parse(raw);if(!d||!Array.isArray(d.entries))throw new Error('chybí entries');state=d;return 'stored'}
+ catch(err){storageError='Uložená data jsou poškozená ('+err.message+'). Nic jsem nepřepsal – obnov je importem zálohy.';
+  try{localStorage.setItem(LS_DATA+'.corrupt.'+Date.now(),raw)}catch(e){}
+  state={version:3,entries:[],rates:clone(DEF_RATES),profile:{},travelOrders:{}};return 'corrupt'}
+}
+function saveData(markDirty=true){
+ if(storageError)return alert('Data nelze uložit: '+storageError);
+ try{localStorage.setItem(LS_DATA,JSON.stringify(state));if(markDirty){bk.dirty=(bk.dirty||0)+1;saveBk()}if(hooks.saved)hooks.saved()}
+ catch(e){alert('Uložení selhalo (plné úložiště?). Stáhni si hned zálohu JSON.\n'+e.message)}
+}
+let ui={hide:false,mode:'work'};try{Object.assign(ui,JSON.parse(localStorage.getItem(LS_UI)||'{}'))}catch(e){}
+const saveUi=()=>{try{localStorage.setItem(LS_UI,JSON.stringify(ui))}catch(e){}};
+let bk={last:null,dirty:0};try{Object.assign(bk,JSON.parse(localStorage.getItem(LS_BK)||'{}'))}catch(e){}
+const saveBk=()=>{try{localStorage.setItem(LS_BK,JSON.stringify(bk))}catch(e){}};
+const R=()=>Object.assign({},DEF_RATES,state.rates||{});
+const P=()=>state.profile||{};
+
+/* ---------- výpočty ---------- */
+function autoCalc(e){
+ const span=spanH(e.startTime,e.endTime);
+ const total=span===null?0:Math.max(0,r2(span-num(e.lunchHours)));
+ return {total,overtime:r2(Math.max(0,total-8-num(e.commuteHours))),weekend:e.date&&isWeekend(e.date)?total:0,
+  trip:r2(spanH(e.travel?.start,e.travel?.returnArrival)??0)};
+}
+function mealsCount(t){const f=t?.freeMeals;return f===true?1:Math.max(0,Math.min(3,num(f)))}
+function dietInfo(e,rates=R()){
+ const t=e.travel||{},trip=num(e.tripHours);
+ if(e.noTravelOrder)return{v:0,why:'bez cestovního příkazu'};
+ if(t.dietOverride!==null&&t.dietOverride!==undefined&&t.dietOverride!=='')return{v:num(t.dietOverride),why:'ručně zadané'};
+ let base=0,pct=0,tier='';
+ if(trip>18){base=num(rates.dietLong);pct=.25;tier='nad 18 h'}else if(trip>12){base=num(rates.dietMid);pct=.35;tier='12–18 h'}else if(trip>=5){base=num(rates.dietShort);pct=.70;tier='5–12 h'}
+ else return{v:0,why:trip>0?'cesta kratší než 5 h':'bez cesty'};
+ const m=mealsCount(t),red=Math.min(1,m*pct);
+ return{v:Math.round(base*(1-red)),why:tier+(m?`, ${m} ${pl(m,'jídlo','jídla','jídel')} zdarma −${Math.round(red*100)} %`:'')};
+}
+function costs(e){const t=e.travel||{};const km=String(t.transport||'').toUpperCase()==='AUV'?num(t.km)*KM_RATE:0;return{fare:num(t.fare),lodging:num(t.lodging),other:num(t.other),km:r2(km),sum:r2(num(t.fare)+num(t.lodging)+num(t.other)+km)}}
+function calc(e){
+ const rt=R(),p=P();
+ const job=num(e.jobHours)*num(rt.job),base=num(e.baseHours)*num(rt.base),ot=num(e.overtime)*num(rt.ot),wk=num(e.weekendHours)*num(rt.weekend);
+ const vac=num(e.vacationHours)*num(p.vacationAverageGross);
+ const d=dietInfo(e,rt),c=costs(e);
+ const work=r2(job+base+ot+wk+vac);
+ return{job,base,ot,wk,vac,diet:d.v,dietWhy:d.why,c,work,all:r2(work+d.v+c.sum),hol:holidayName(e.date)}
+}
+function dayType(e){if(num(e.totalHours)>0)return'Práce';if(num(e.vacationHours)>0)return'Dovolená';if(num(e.sickHours)>0)return'Nemoc';if(num(e.doctorHours)>0)return'Lékař';return'Záznam'}
+const byDate=()=>{const m={};for(const e of state.entries)(m[e.date]=m[e.date]||[]).push(e);return m};
+const monthEntries=(y,m)=>state.entries.filter(e=>e.date&&e.date.startsWith(`${y}-${pad(m+1)}-`)).sort((a,b)=>a.date.localeCompare(b.date)||String(a.startTime).localeCompare(String(b.startTime)));
+function summary(y,m){
+ const a=monthEntries(y,m),s={work:0,all:0,diet:0,cost:0,h:0,ot:0,wk:0,hol:0,trip:0,vac:0,sick:0,doc:0,days:0,a};
+ const wd=new Set();
+ for(const e of a){const c=calc(e);s.work+=c.work;s.all+=c.all;s.diet+=c.diet;s.cost+=c.c.sum;s.h+=num(e.totalHours);s.ot+=num(e.overtime);s.wk+=num(e.weekendHours);s.trip+=num(e.tripHours);s.vac+=num(e.vacationHours);s.sick+=num(e.sickHours);s.doc+=num(e.doctorHours);if(c.hol)s.hol+=num(e.totalHours);if(num(e.totalHours)>0)wd.add(e.date)}
+ s.days=wd.size;for(const k of['work','all','diet','cost','h','ot','wk','hol','trip'])s[k]=r2(s[k]);return s}
+
+/* ---------- UI stav ---------- */
+let Y,M,sel,view='calendar';
+const cash=n=>ui.hide?'••••':Math.round(n).toLocaleString('cs-CZ')+' Kč';
+const value=e=>{const c=calc(e);return ui.mode==='all'?c.all:c.work};
+function initialMonth(){
+ const t=new Date(),cur=`${t.getFullYear()}-${pad(t.getMonth()+1)}`;
+ const ms=state.entries.map(e=>e.date?.slice(0,7)).filter(Boolean).sort();
+ let k=ms.includes(cur)||!ms.length?cur:(ms.filter(x=>x<=cur).pop()||ms[ms.length-1]);
+ Y=+k.slice(0,4);M=+k.slice(5,7)-1;
+ const dim=new Date(Y,M+1,0).getDate();sel=k===cur?t.getDate():Math.min(dim,Math.max(...monthEntries(Y,M).map(e=>+e.date.slice(8)),1));
+}
+const dim=()=>new Date(Y,M+1,0).getDate();
+function go(delta){M+=delta;if(M<0){M=11;Y--}if(M>11){M=0;Y++}sel=Math.min(sel,dim());render()}
+
+/* ---------- render ---------- */
+function render(){
+ const s=summary(Y,M),p=P();
+ $('#pname').textContent=p.name||'';$('#pcompany').textContent=[p.company,p.employeeNo&&('os. č. '+p.employeeNo)].filter(Boolean).join(' · ');
+ $('#badge').textContent=`${state.entries.length} ${pl(state.entries.length,'záznam','záznamy','záznamů')} · ${hooks.cloudOn()?'synchronizováno s účtem':'uloženo v prohlížeči'}`;
+ $('#stats').innerHTML=`<div class="stat"><small>CELKEM OD FIRMY · ${MONTHS[M].toUpperCase()} ${Y}</small><strong>${cash(s.all)}</strong><em>Výdělek ${cash(s.work)} + diety a náhrady ${cash(s.all-s.work)}</em></div><div class="stat"><small>ODPRACOVÁNO</small><strong>${fmtH(s.h)} <span style="font-size:16px">h</span></strong><em>${s.days} ${pl(s.days,'pracovní den','pracovní dny','pracovních dnů')} · přesčas ${fmtH(s.ot)} h · víkend ${fmtH(s.wk)} h${s.hol?` · svátek ${fmtH(s.hol)} h`:''}${s.vac?` · dovolená ${fmtH(s.vac)} h`:''}</em></div><div class="stat"><small>PRŮMĚR ZA PRACOVNÍ DEN</small><strong style="font-size:24px">${cash(s.days?s.a.filter(e=>num(e.totalHours)>0).reduce((t,e)=>t+calc(e).work,0)/s.days:0)}</strong><em>Bez diet, náhrad a volna · diety ${cash(s.diet)}</em></div>`;
+ $('#monthtitle').textContent=MONTHS[M][0].toUpperCase()+MONTHS[M].slice(1)+' '+Y;
+ const bd=byDate();let html='';const off=(new Date(Y,M,1).getDay()+6)%7,days=dim();
+ for(let i=0;i<off;i++)html+='<div></div>';
+ for(let d=1;d<=days;d++){const k=iso(Y,M,d),es=bd[k]||[],hol=holidayName(k),v=es.reduce((t,e)=>t+value(e),0),h=es.reduce((t,e)=>t+num(e.totalHours),0),ty=es[0]?dayType(es[0]):'';
+  html+=`<button class="day ${isWeekend(k)?'weekend':''} ${(multi?multi.has(k):d===sel)?'selected':''} ${multi&&multi.has(k)?'multi':''} ${hol?'holiday':''}" data-day="${d}" title="${esc(hol)}" aria-label="${d}. ${MONTHS_GEN[M]}${hol?', '+esc(hol):''}, ${es.length?cash(v):'bez záznamu'}"><span class="num">${d}</span><span class="money ${ty==='Dovolená'?'leave':(ty==='Nemoc'||ty==='Lékař')?'sick':''}">${es.length?(ui.hide?'••••':Math.abs(v)>=10000?(v/1000).toLocaleString('cs-CZ',{maximumFractionDigits:1})+'k':cash(v).replace(' Kč','')):'—'}</span><span class="hours">${es.length?(h>0?fmtH(h)+' h':ty):''}${es.length>1?' ×'+es.length:''}</span></button>`}
+ $('#calendar').innerHTML=html;
+ const det=details();$('#detail').innerHTML=det;$('#chartDetail').innerHTML=det;
+ const vals=Array.from({length:days},(_,i)=>(bd[iso(Y,M,i+1)]||[]).reduce((t,e)=>t+value(e),0));const max=Math.max(1,...vals);
+ $('#chart').innerHTML=vals.map((v,i)=>{const d=i+1,has=!!bd[iso(Y,M,d)];return `<div class="bar-wrap"><button class="bar ${d===sel?'selected':''}" data-day="${d}" aria-label="${d}. ${MONTHS_GEN[M]}: ${cash(v)}" title="${d}.: ${cash(v)}" style="height:${ui.hide?4:Math.max(3,v/max*170)}px;opacity:${has?1:.18}"></button><small>${d}</small></div>`}).join('');
+ const total=vals.reduce((a,b)=>a+b,0);
+ $('#chartSummary').textContent=ui.hide?'Částky a výšky sloupců jsou skryté.':`Součet: ${cash(total)} · Nejvyšší den: ${cash(Math.max(0,...vals))} · ${ui.mode==='work'?'Kalendář ukazuje výdělek bez diet a náhrad.':'Kalendář ukazuje celkovou částku od firmy.'}`;
+ $('#mode').value=ui.mode;
+ if(view==='history')renderHistory();if(view==='orders')renderOrders();if(view==='settings')renderSettings();
+ ['calendar','charts','history','orders','settings'].forEach(v=>$('#'+v+'View').classList.toggle('hidden',v!==view));
+ $('#chartPanel').classList.toggle('hidden',!['calendar','charts'].includes(view));
+ $('#monthcontrol').classList.toggle('hidden',['history','settings'].includes(view));
+ $('#stats').classList.toggle('hidden',view==='settings');
+ $$('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+ $('#eye').textContent=ui.hide?'◉ Zobrazit částky':'◉ Skrýt částky';
+ renderBanner();renderMultiBar();
+}
+function renderBanner(){const b=$('#backupBanner');
+ if(storageError){b.classList.remove('hidden');b.innerHTML=`<span>⚠ ${esc(storageError)}</span><button class="btn small" data-act="import">Importovat zálohu</button>`;return}
+ if(!state.entries.length){b.classList.remove('hidden');b.innerHTML=`<span><b>Vítej v Moje docházka!</b> Máš zálohu z dosavadní aplikace? Nahraj ji tlačítkem <b>Importovat zálohu JSON</b>. Jinak si nejdřív v Nastavení vyplň své sazby a začni přidávat dny.</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" data-act="import">⬆ Importovat zálohu JSON</button><button class="btn sec small" data-view="settings">⚙ Nastavení</button></span>`;return}
+ if(['job','base','ot','weekend'].every(k=>!num(R()[k]))){b.classList.remove('hidden');b.innerHTML=`<span>⚠ <b>Nemáš vyplněné sazby</b> – výdělek se počítá jako 0 Kč. Vyplň v Nastavení, kolik dostáváš za hodinu (zakázka, základ/Depo, přesčas, víkend).</span><button class="btn small" data-view="settings">⚙ Vyplnit sazby</button>`;return}
+ if(hooks.cloudOn()){b.classList.add('hidden');return}
+ const old=bk.last&&(Date.now()-new Date(bk.last))>14*864e5;
+ if(bk.dirty>0){b.classList.remove('hidden');b.innerHTML=`<span>💾 Od poslední zálohy máš ${bk.dirty} ${pl(bk.dirty,'změnu','změny','změn')}${bk.last?' (poslední záloha '+fmtDate(bk.last.slice(0,10))+')':''}. Data jsou jen v tomto prohlížeči – stáhni si zálohu.</span><button class="btn small" data-act="export">Stáhnout zálohu</button>`}
+ else if(old){b.classList.remove('hidden');b.innerHTML=`<span>💾 Poslední záloha je z ${fmtDate(bk.last.slice(0,10))}.</span><button class="btn small" data-act="export">Stáhnout zálohu</button>`}
+ else b.classList.add('hidden');
+}
+function details(){
+ const k=iso(Y,M,sel),es=(byDate()[k]||[]),hol=holidayName(k);
+ const date=parseISO(k).toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+ let h=`<div class="detail-label">${es.length?'DETAIL DNE':'VYBRANÝ DEN'}</div><h2 class="detail-date">${date}</h2>${hol?`<span class="chip">Svátek: ${esc(hol)}</span>`:''}`;
+ if(!es.length)return h+`<p class="empty">Zatím bez záznamu – vyber, co jsi dělal:</p><div class="no-print">${quickButtons([k])}</div>`;
+ for(const e of es){const c=calc(e),t=e.travel||{},ty=dayType(e);
+  const rows=[];const row=(a,b)=>rows.push(`<div class="row"><span>${a}</span><b>${b}</b></div>`);
+  const rt=R();
+  if(num(e.jobHours))row(`Práce na zakázce ${fmtH(num(e.jobHours))} h × ${rt.job}`,cash(c.job));
+  if(num(e.baseHours))row(`Základ ${fmtH(num(e.baseHours))} h × ${rt.base}`,cash(c.base));
+  if(num(e.overtime))row(`Příplatek přesčas ${fmtH(num(e.overtime))} h × ${rt.ot}`,cash(c.ot));
+  if(num(e.weekendHours))row(`Příplatek víkend ${fmtH(num(e.weekendHours))} h × ${rt.weekend}`,cash(c.wk));
+  if(num(e.vacationHours))row(`Dovolená ${fmtH(num(e.vacationHours))} h × průměr`,cash(c.vac));
+  row(`Diety (${esc(c.dietWhy)})`,cash(c.diet));
+  if(c.c.sum)row(`Náhrady (jízdné ${c.c.fare}, ubyt. ${c.c.lodging}, ost. ${c.c.other}${c.c.km?', km '+c.c.km:''})`,cash(c.c.sum));
+  rows.push(`<div class="row total"><span>Celkem od firmy</span><b>${cash(c.all)}</b></div>`);
+  const chips=[];if(c.hol&&num(e.totalHours))chips.push(`<span class="chip">Práce ve svátek ${fmtH(num(e.totalHours))} h</span>`);if(num(e.overtime))chips.push(`<span class="chip blue">přesčas ${fmtH(num(e.overtime))} h</span>`);if(num(e.tripHours))chips.push(`<span class="chip blue">cesta ${fmtH(num(e.tripHours))} h</span>`);if(num(e.commuteHours))chips.push(`<span class="chip blue">dojíždění ${fmtH(num(e.commuteHours))} h</span>`);if(num(e.doctorHours))chips.push(`<span class="chip warn">lékař ${fmtH(num(e.doctorHours))} h</span>`);if(num(e.sickHours))chips.push(`<span class="chip warn">nemoc ${fmtH(num(e.sickHours))} h</span>`);if(e.noTravelOrder)chips.push(`<span class="chip warn">bez cestovního příkazu</span>`);
+  const route=t.from||t.to?`${esc(t.from)} ${esc(t.start)} → ${esc(t.to)} ${esc(t.arrival)}${t.returnStart||t.returnArrival?` · zpět ${esc(t.returnFrom)} ${esc(t.returnStart)} → ${esc(t.returnTo)} ${esc(t.returnArrival)}`:''}${t.transport?' · '+esc(t.transport):''}`:'';
+  h+=`<div class="entry-card"><span class="tag">${ty} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.doctorHours))} h${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)}`:''}${num(e.lunchHours)?` · pauza ${fmtH(num(e.lunchHours))} h`:''}</span><div style="margin-top:8px">${chips.join('')}</div><div class="detail-total">${cash(ty==='Práce'||ty==='Dovolená'?c.work:c.all)}</div><div class="muted">${ty==='Dovolená'?'Náhrada mzdy (průměrný výdělek)':'Výdělek včetně příplatků'}</div><div class="rows">${rows.join('')}</div>${e.note||route?`<div class="job">${esc(e.note)}${route?'<br>'+route:''}</div>`:''}<div class="btnrow no-print"><button class="btn sec small" data-act="edit" data-id="${esc(e.id)}">✎ Upravit</button><button class="btn danger small" data-act="del" data-id="${esc(e.id)}">Smazat</button></div></div>`}
+ return h+`<div class="btnrow no-print"><button class="btn small" data-act="add" data-date="${k}">+ Další záznam v tento den</button></div>`;
+}
+function monthRange(){const ks=state.entries.map(e=>e.date?.slice(0,7)).filter(Boolean).concat(Object.keys(state.travelOrders||{})).sort();const t=new Date(),cur=`${t.getFullYear()}-${pad(t.getMonth()+1)}`;if(!ks.length)return[cur];let a=ks[0],b=ks[ks.length-1]>cur?ks[ks.length-1]:cur;const out=[];let[y,m]=a.split('-').map(Number);while(`${y}-${pad(m)}`<=b){out.push(`${y}-${pad(m)}`);m++;if(m>12){m=1;y++}}return out.slice(-24).reverse()}
+function renderHistory(){const ks=monthRange();const sums=ks.map(k=>summary(+k.slice(0,4),+k.slice(5)-1));const vs=sums.map(s=>ui.mode==='work'?s.work:s.all);const mx=Math.max(1,...vs);const cur=todayISO().slice(0,7);
+ $('#history').innerHTML=ks.map((k,i)=>{const s=sums[i],m=+k.slice(5)-1;return `<button class="history-card" data-month="${k}"><span>${MONTHS[m][0].toUpperCase()+MONTHS[m].slice(1)} ${k.slice(0,4)} ${k===cur?'· rozpracováno':''}</span><strong>${cash(vs[i])}</strong><p>${fmtH(s.h)} h práce · ${s.days} ${pl(s.days,'směna','směny','směn')} · přesčas ${fmtH(s.ot)} h</p><p>${ui.mode==='work'?'Bez diet a náhrad':'Včetně diet a náhrad'} · diety ${cash(s.diet)}</p><div class="history-meter"><i style="width:${ui.hide?0:vs[i]/mx*100}%"></i></div><p>Zobrazit měsíc →</p></button>`}).join('')}
+
+/* ---------- cestovní příkaz ---------- */
+const tripEntries=(y,m)=>monthEntries(y,m).filter(e=>!e.noTravelOrder&&(num(e.tripHours)>0||e.travel?.to));
+function renderOrders(){
+ const key=`${Y}-${pad(M+1)}`,o=Object.assign({advance:0,orderNo:'',companions:'',receipts:0},(state.travelOrders||{})[key]||{}),p=P(),es=tripEntries(Y,M);
+ let tot={d:0,f:0,l:0,o:0,k:0,s:0,h:0};
+ const rows=es.map(e=>{const c=calc(e),t=e.travel||{};tot.d+=c.diet;tot.f+=c.c.fare;tot.l+=c.c.lodging;tot.o+=c.c.other;tot.k+=c.c.km;tot.h+=num(e.tripHours);const s=c.diet+c.c.sum;tot.s+=s;
+  return `<tr><td>${fmtDate(e.date)}</td><td>${esc(t.from)}<br>${esc(t.start)}</td><td>${esc(t.to)}<br>${esc(t.arrival)}</td><td>${esc(t.returnFrom)} ${esc(t.returnStart)}<br>→ ${esc(t.returnTo)} ${esc(t.returnArrival)}</td><td>${esc(t.purpose)}${e.note?'<br><span class="muted">'+esc(e.note)+'</span>':''}</td><td>${esc(t.transport)}${num(t.km)?'<br>'+fmtH(num(t.km))+' km':''}</td><td class="n">${fmtH(num(e.tripHours))}</td><td class="n">${c.diet}</td><td class="n">${c.c.fare}</td><td class="n">${c.c.lodging}</td><td class="n">${c.c.other}</td><td class="n">${c.c.km}</td><td class="n">${r2(s)}</td></tr>`}).join('');
+ const bal=r2(tot.s-num(o.advance));
+ $('#orders').innerHTML=`<div class="print-only"><h1>Cestovní příkaz – vyúčtování pracovních cest</h1><p>${esc(p.name)}${p.employeeNo?', os. č. '+esc(p.employeeNo):''} · ${esc(p.company)} · bydliště ${esc(p.homeAddress)} · pravidelné pracoviště ${esc(p.place)}</p></div>
+ <h2>Cestovní příkaz · ${MONTHS[M]} ${Y}</h2><p class="muted no-print">Souhrn pracovních cest za měsíc (dny označené „bez cestovního příkazu“ se nezapočítávají).</p>
+ <div class="grid no-print" style="margin:14px 0"><div class="f"><label>Číslo příkazu</label><input data-to="orderNo" value="${esc(o.orderNo)}"></div><div class="f"><label>Záloha (Kč)</label><input data-to="advance" inputmode="decimal" value="${esc(o.advance)}"></div><div class="f"><label>Spolucestující</label><input data-to="companions" value="${esc(o.companions)}"></div><div class="f"><label>Počet příloh / dokladů</label><input data-to="receipts" inputmode="numeric" value="${esc(o.receipts)}"></div></div>
+ <p class="print-only">Číslo příkazu: <b>${esc(o.orderNo)||'—'}</b> · Spolucestující: ${esc(o.companions)||'—'} · Přílohy: ${esc(o.receipts)}</p>
+ <div class="tscroll"><table class="t"><thead><tr><th>Datum</th><th>Odjezd</th><th>Příjezd</th><th>Návrat</th><th>Účel / poznámka</th><th>Doprava</th><th class="n">Hod.</th><th class="n">Stravné</th><th class="n">Jízdné</th><th class="n">Ubyt.</th><th class="n">Ostatní</th><th class="n">Km náhr.</th><th class="n">Celkem</th></tr></thead><tbody>${rows||'<tr><td colspan="13" class="empty">V tomto měsíci nejsou žádné pracovní cesty.</td></tr>'}</tbody><tfoot><tr><td colspan="6">Celkem ${es.length} ${pl(es.length,'cesta','cesty','cest')}</td><td class="n">${fmtH(tot.h)}</td><td class="n">${tot.d}</td><td class="n">${r2(tot.f)}</td><td class="n">${r2(tot.l)}</td><td class="n">${r2(tot.o)}</td><td class="n">${r2(tot.k)}</td><td class="n">${r2(tot.s)}</td></tr></tfoot></table></div>
+ <div class="rows" style="max-width:380px;margin-left:auto"><div class="row"><span>Náhrady celkem</span><b>${r2(tot.s).toLocaleString('cs-CZ')} Kč</b></div><div class="row"><span>Záloha</span><b>${num(o.advance).toLocaleString('cs-CZ')} Kč</b></div><div class="row total"><span>${bal>=0?'Doplatek zaměstnanci':'Přeplatek (vrátit)'}</span><b>${Math.abs(bal).toLocaleString('cs-CZ')} Kč</b></div></div>
+ <div class="print-only" style="margin-top:40px;display:flex;justify-content:space-between"><span>Datum: ____________</span><span>Podpis zaměstnance: ____________</span><span>Schválil: ____________</span></div>
+ <div class="btnrow no-print"><button class="btn" data-act="print">🖨 Tisk / PDF</button></div>`;
+}
+function setOrderField(f,v){const key=`${Y}-${pad(M+1)}`;state.travelOrders=state.travelOrders||{};const o=state.travelOrders[key]||(state.travelOrders[key]={advance:0,orderNo:'',companions:'',receipts:0});o[f]=(f==='advance'||f==='receipts')?num(v):v;saveData();}
+
+/* ---------- nastavení ---------- */
+const RATE_F=[['job','Práce na zakázce (Kč/h)'],['base','Základ (Kč/h)'],['ot','Příplatek přesčas (Kč/h)'],['weekend','Příplatek víkend (Kč/h)'],['dietShort','Stravné 5–12 h'],['dietMid','Stravné 12–18 h'],['dietLong','Stravné nad 18 h']];
+const PROF_F=[['name','Jméno','text'],['employeeNo','Osobní číslo','text'],['company','Firma','text'],['place','Pravidelné pracoviště','text'],['homeAddress','Bydliště','text'],['vacationAverageGross','Průměrný výdělek (Kč/h)','number'],['vacationBalanceHours','Zůstatek dovolené (h)','number'],['vacationBalanceFrom','…ke dni','date'],['vacationNewDays','Nový nárok (dní)','number'],['vacationNewFrom','…od','date'],['sickDaysBalance','Zůstatek sick days','number'],['sickDaysBalanceFrom','…ke dni','date'],['sickDaysAnnual','Sick days ročně','number']];
+function balances(){
+ const p=P(),today=todayISO();
+ const vf=p.vacationBalanceFrom||'0000',nf=p.vacationNewFrom||'9999';
+ let usedOld=0,usedNew=0,planned=0;for(const e of state.entries){const v=num(e.vacationHours);if(!v||e.date<vf)continue;if(e.date>=nf)usedNew+=v;else usedOld+=v;if(e.date>today)planned+=v}
+ let vac=num(p.vacationBalanceHours)-usedOld;const newActive=today>=nf;if(newActive)vac+=num(p.vacationNewDays)*8-usedNew;
+ const sf=p.sickDaysBalanceFrom||'0000',cy=today.slice(0,4);let sick,usedS=0;
+ if(cy===sf.slice(0,4)){for(const e of state.entries)if(num(e.sickHours)>0&&e.date>=sf&&e.date.slice(0,4)===cy)usedS++;sick=num(p.sickDaysBalance)-usedS}
+ else{for(const e of state.entries)if(num(e.sickHours)>0&&e.date.slice(0,4)===cy)usedS++;sick=num(p.sickDaysAnnual)-usedS}
+ return{vac:r2(vac),usedOld,usedNew,planned,newActive,sick,usedS}
+}
+function renderSettings(){
+ const r=R(),p=P(),b=balances();const vd=r2(b.vac/8);
+ $('#settings').innerHTML=`<div class="settings-grid"><div class="panel"><div class="detail-label">DOVOLENÁ</div><div class="bal">${fmtH(b.vac)} h</div><p class="muted">= ${fmtH(vd)} ${pl(vd,'den','dny','dní')} po 8 h · výchozí ${fmtH(num(p.vacationBalanceHours))} h k ${p.vacationBalanceFrom?fmtDate(p.vacationBalanceFrom):'?'}, vyčerpáno ${fmtH(b.usedOld)} h${b.planned?`, z toho naplánováno do budoucna ${fmtH(b.planned)} h`:''}${b.newActive?`; od ${fmtDate(p.vacationNewFrom)} připočten nový nárok ${p.vacationNewDays} dní, vyčerpáno ${fmtH(b.usedNew)} h`:p.vacationNewFrom?`; od ${fmtDate(p.vacationNewFrom)} přibude ${num(p.vacationNewDays)} ${pl(num(p.vacationNewDays),'den','dny','dní')}`:''}.</p></div>
+ <div class="panel"><div class="detail-label">SICK DAYS ${todayISO().slice(0,4)}</div><div class="bal">${b.sick} ${pl(b.sick,'den','dny','dní')}</div><p class="muted">Vyčerpáno ${b.usedS} ${pl(b.usedS,'den','dny','dní')} (dny se zadanou nemocí od ${p.sickDaysBalanceFrom?fmtDate(p.sickDaysBalanceFrom):'začátku roku'}).</p></div>
+ <div class="panel"><h2>Sazby</h2><div class="grid" style="margin-top:12px">${RATE_F.map(([k,l])=>`<div class="f"><label>${l}</label><input data-rate="${k}" inputmode="decimal" placeholder="${k.startsWith('diet')?'':'Kč/h'}" value="${['job','base','ot','weekend'].includes(k)&&!num(r[k])?'':esc(r[k])}"></div>`).join('')}</div><p class="muted">Stravné 2026 (vyhl. 573/2025 Sb.) – minimum v soukromé firmě: 155 / 236 / 370 Kč.</p></div>
+ <div class="panel"><h2>Profil</h2><div class="grid" style="margin-top:12px">${PROF_F.map(([k,l,t])=>`<div class="f ${t==='text'&&k!=='employeeNo'?'wide':''}"><label>${l}</label><input data-prof="${k}" data-type="${t}" ${t==='date'?'type="date"':t==='number'?'inputmode="decimal"':''} value="${esc(p[k]??'')}"></div>`).join('')}</div></div>
+ <div class="panel" style="grid-column:1/-1"><h2>Rychlé přidání</h2><div class="grid" style="margin-top:12px"><div class="f"><label>Depo od</label><input type="time" data-tpl="depo.start" value="${esc(tpl.depo.start)}"></div><div class="f"><label>Depo do</label><input type="time" data-tpl="depo.end" value="${esc(tpl.depo.end)}"></div><div class="f"><label>Depo pauza (h)</label><input inputmode="decimal" data-tpl="depo.lunch" value="${esc(tpl.depo.lunch)}"></div><div class="f"><label>Depo poznámka</label><input data-tpl="depo.note" value="${esc(tpl.depo.note)}"></div><div class="f"><label>Sazba Depo = základ (Kč/h)</label><input inputmode="decimal" data-tpl="rate" placeholder="Kč/h" value="${num(r.base)?esc(r.base):''}"></div><div class="f"><label>Dovolená h/den</label><input inputmode="decimal" data-tpl="vacHours" value="${esc(tpl.vacHours)}"></div><div class="f"><label>Nemoc h/den</label><input inputmode="decimal" data-tpl="sickHours" value="${esc(tpl.sickHours)}"></div></div><p class="muted">Depo = všechny hodiny jako základ, bez přesčasu, bez cestovního příkazu a stravného. Šablony se ukládají v tomto zařízení.</p></div>
+ ${hooks.account?hooks.account():''}<div class="panel" style="grid-column:1/-1"><h2>Data a zálohy</h2><p class="muted">${hooks.cloudOn()?'Data jsou v tomto zařízení a synchronizují se s tvým účtem. Záloha JSON se přesto hodí.':'Vše je uloženo jen v tomto prohlížeči.'} ${bk.last?'Poslední záloha: '+fmtDate(bk.last.slice(0,10))+'.':'Zatím jsi nestahoval zálohu.'} Záznamů: ${state.entries.length}. Verze aplikace: ${window.APP_VERSION||'dev'}.</p><div class="btnrow"><button class="btn" data-act="saveSettings">Uložit nastavení</button><button class="btn sec" data-act="export">⬇ Exportovat JSON</button><button class="btn sec" data-act="import">⬆ Importovat JSON</button><button class="btn sec" data-act="csv">CSV – ${MONTHS[M]} ${Y}</button></div></div></div>`;
+}
+function saveSettings(){
+ state.rates=state.rates||{};state.profile=state.profile||{};
+ $$('[data-rate]').forEach(i=>state.rates[i.dataset.rate]=num(i.value));
+ $$('[data-prof]').forEach(i=>{const k=i.dataset.prof,t=i.dataset.type;if(t==='number')state.profile[k]=num(i.value);else if(i.value!==''||k in state.profile)state.profile[k]=i.value});
+ $$('[data-tpl]').forEach(i=>{const k=i.dataset.tpl;if(k==='rate'){if(i.value!==i.defaultValue)state.rates.base=num(i.value)}else if(k.startsWith('depo.'))tpl.depo[k.slice(5)]=k==='depo.lunch'?num(i.value):i.value;else tpl[k]=num(i.value)});saveTpl();
+ saveData();render();toast('Nastavení uloženo');
+}
+function toast(t){let d=document.createElement('div');d.textContent=t;d.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#124b92;color:#fff;padding:10px 16px;border-radius:10px;z-index:99;font-size:13px';document.body.appendChild(d);setTimeout(()=>d.remove(),2200)}
+
+/* ---------- rychlé přidání ---------- */
+const LS_TPL='mojeDochazka.templates';
+const DEF_TPL={depo:{start:'07:00',end:'15:30',lunch:0.5,note:'Depo'},vacHours:8,sickHours:8};
+let tpl=clone(DEF_TPL);try{const t=JSON.parse(localStorage.getItem(LS_TPL)||'{}');tpl=Object.assign(tpl,t,{depo:Object.assign({},DEF_TPL.depo,t.depo||{})})}catch(e){}
+const saveTpl=()=>{try{localStorage.setItem(LS_TPL,JSON.stringify(tpl))}catch(e){}};
+const newId=()=>crypto.randomUUID?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(16).slice(2);
+const addMin=(t,m)=>{const x=toMin(t);if(x===null)return'';const v=((x+Math.round(m))%1440+1440)%1440;return pad(Math.floor(v/60))+':'+pad(v%60)};
+function lastTrip(){return[...state.entries].filter(e=>!e.noTravelOrder&&e.travel?.to).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0]}
+const homeFrom=()=>lastTrip()?.travel?.from||[...state.entries].map(e=>e.travel?.from).filter(Boolean).pop()||'';
+function blankTravel(from){return{from:from||'',start:'',to:'',arrival:'',returnFrom:from||'',returnStart:'',returnTo:'',returnArrival:'',purpose:'Služební cesta',transport:'AUS',km:0,fare:0,lodging:0,other:0,dietOverride:null,freeMeals:false,freeLodging:false,reducedTicket:false}}
+const depoHours=()=>Math.max(0,r2((spanH(tpl.depo.start,tpl.depo.end)??0)-num(tpl.depo.lunch)));
+function makeDepo(date){const t=tpl.depo,total=depoHours();return{id:newId(),date,startTime:t.start,endTime:t.end,lunchHours:num(t.lunch),totalHours:total,note:t.note||'Depo',jobHours:0,baseHours:total,overtime:0,commuteHours:0,weekendHours:isWeekend(date)?total:0,noTravelOrder:true,tripHours:0,vacationHours:0,doctorHours:0,sickHours:0,travel:blankTravel(homeFrom())}}
+function makeLeave(date,kind){const h=num(kind==='vac'?tpl.vacHours:tpl.sickHours)||8;return{id:newId(),date,startTime:'',endTime:'',lunchHours:0,totalHours:0,note:kind==='vac'?'Dovolená':'Nemoc / sick day',jobHours:0,baseHours:0,overtime:0,commuteHours:0,weekendHours:0,noTravelOrder:true,tripHours:0,vacationHours:kind==='vac'?h:0,doctorHours:0,sickHours:kind==='sick'?h:0,travel:blankTravel(homeFrom())}}
+function makeJob(v){
+ const span=spanH(v.start,v.end)??0,total=Math.max(0,r2(span-num(v.lunch))),com=Math.min(num(v.commute),total),half=com*30;
+ return{id:newId(),date:v.date,startTime:v.start,endTime:v.end,lunchHours:num(v.lunch),totalHours:total,note:v.note||'',jobHours:r2(total-com),baseHours:r2(com),overtime:r2(Math.max(0,total-8-com)),commuteHours:r2(com),weekendHours:isWeekend(v.date)?total:0,noTravelOrder:false,tripHours:r2(span),vacationHours:0,doctorHours:0,sickHours:0,
+  travel:Object.assign(blankTravel(v.from),{start:v.start,to:v.to||'',arrival:addMin(v.start,half),returnFrom:v.to||'',returnStart:addMin(v.end,-half),returnTo:v.from||'',returnArrival:v.end})}
+}
+function quickAdd(kind,dates){
+ const mk=d=>kind==='depo'?makeDepo(d):makeLeave(d,kind);let added=0,skipped=[];
+ if(dates.length===1){const d=dates[0];if(state.entries.some(x=>x.date===d)&&!confirm(`${fmtDate(d)} už má záznam. Přidat další?`))return;state.entries.push(mk(d));added=1}
+ else for(const d of dates){if(state.entries.some(x=>x.date===d)){skipped.push(fmtDate(d));continue}state.entries.push(mk(d));added++}
+ if(added)saveData();multi=null;if($('#dlg').open)$('#dlg').close();
+ const d=parseISO(dates[dates.length-1]);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();
+ toast(`Přidáno: ${added} ${pl(added,'den','dny','dní')}${skipped.length?` · přeskočeno ${skipped.length} (už mají záznam)`:''}`);
+}
+const quickBtn=(act,icon,title,sub,dates)=>`<button class="qbtn" data-act="${act}" data-dates="${dates.join(',')}"><span class="qi">${icon}</span><span><b>${title}</b><small>${sub}</small></span></button>`;
+function quickButtons(dates){
+ const one=dates.length===1,lt=lastTrip(),rt=R();
+ return `<div class="qgrid">${quickBtn('qDepo','🏭','Depo',`${tpl.depo.start}–${tpl.depo.end}, pauza ${fmtH(num(tpl.depo.lunch))} h = ${fmtH(depoHours())} h × ${num(rt.base)} Kč`,dates)}${one?quickBtn('qJob','🏗️','Zakázka',lt?`jako naposledy: ${esc(lt.travel.from)} → ${esc(lt.travel.to)}`:'směna s cestou a stravným',dates):''}${quickBtn('qVac','🌴','Dovolená',`${fmtH(num(tpl.vacHours))} h`,dates)}${quickBtn('qSick','🤒','Nemoc / sick day',`${fmtH(num(tpl.sickHours))} h`,dates)}</div>
+ <div class="btnrow">${one?`<button class="btn sec small" data-act="full" data-date="${dates[0]}">✎ Vlastní (plný formulář)</button><button class="btn sec small" data-act="multiStart" data-date="${dates[0]}">☑ Vybrat více dní</button>`:''}</div>`;
+}
+function openQuick(dates){
+ const t=dates.length===1?parseISO(dates[0]).toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'long'}):`${dates.length} ${pl(dates.length,'vybraný den','vybrané dny','vybraných dní')}`;
+ $('#dlg').innerHTML=`<div class="dlg-head"><h2>Přidat · ${t}</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body">${quickButtons(dates)}${dates.length>1?'<p class="muted">Dny, které už mají záznam, se přeskočí.</p>':''}</div>`;
+ if(!$('#dlg').open)$('#dlg').showModal();
+}
+let multi=null;
+function renderMultiBar(){let b=$('#multiBar');if(!multi){if(b)b.remove();return}
+ if(!b){b=document.createElement('div');b.id='multiBar';b.className='multibar no-print';document.body.appendChild(b)}
+ const ds=[...multi].sort();b.innerHTML=`<span>Vybráno <b>${ds.length}</b> ${pl(ds.length,'den','dny','dní')} – klepej na dny v kalendáři</span><span style="display:flex;gap:6px"><button class="btn small" data-act="multiAdd" ${ds.length?'':'disabled'}>Přidat…</button><button class="btn sec small" data-act="multiCancel">Zrušit</button></span>`}
+function openJobQuick(date){
+ const lt=lastTrip(),tv=lt?.travel||{};
+ const v={date,start:lt?.startTime||'06:00',end:lt?.endTime||'16:00',lunch:lt?num(lt.lunchHours):0,note:lt?.note||'',from:tv.from||homeFrom(),to:tv.to||'',commute:lt?num(lt.commuteHours):0};
+ const places=[...new Set(state.entries.flatMap(x=>[x.travel?.from,x.travel?.to]).filter(Boolean))],notes=[...new Set(state.entries.map(x=>x.note).filter(Boolean))].slice(-40);
+ $('#dlg').innerHTML=`<form id="jform" novalidate><div class="dlg-head"><h2>Zakázka · ${fmtDate(date)}</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body">
+ <datalist id="dl_places">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_notes">${notes.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+ <div class="grid"><div class="f"><label>Datum</label><input type="date" data-j="date" value="${esc(v.date)}"></div><div class="f"><label>Od</label><input type="time" data-j="start" value="${esc(v.start)}"></div><div class="f"><label>Do</label><input type="time" data-j="end" value="${esc(v.end)}"></div><div class="f"><label>Pauza (h)</label><input inputmode="decimal" data-j="lunch" value="${esc(v.lunch)}"></div>
+ <div class="f wide"><label>Zakázka / poznámka</label><input data-j="note" list="dl_notes" value="${esc(v.note)}"></div><div class="f"><label>Odkud</label><input data-j="from" list="dl_places" value="${esc(v.from)}"></div><div class="f"><label>Kam</label><input data-j="to" list="dl_places" value="${esc(v.to)}"></div><div class="f"><label>Dojíždění tam+zpět (h)</label><input inputmode="decimal" data-j="commute" value="${esc(v.commute)}"></div></div>
+ <p class="muted">Dojíždění se počítá jako základ, zbytek jako práce na zakázce; časy cesty se dopočítají.</p><div class="calc" id="jcalc"></div><div class="msgs" id="jmsgs"></div></div>
+ <div class="dlg-foot"><button type="button" class="btn sec" data-act="jobFull" style="margin-right:auto">Plný formulář</button><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="jobSave">Uložit</button></div></form>`;
+ if(!$('#dlg').open)$('#dlg').showModal();refreshJob();
+}
+const jobVals=()=>{const v={};$$('[data-j]').forEach(i=>v[i.dataset.j]=i.value);return v};
+function refreshJob(){const v=jobVals(),e=makeJob(v),c=calc(e),{errs,warns,infos}=validate(e);if(!v.start||!v.end)errs.unshift('Vyplň čas od–do.');
+ $('#jcalc').innerHTML=`${fmtH(e.totalHours)} h (zakázka ${fmtH(e.jobHours)} + základ ${fmtH(e.baseHours)}${e.overtime?`, přesčas ${fmtH(e.overtime)}`:''}) · výdělek <b>${cash(c.work)}</b> · stravné <b>${cash(c.diet)}</b> · celkem <b>${cash(c.all)}</b>`;
+ $('#jmsgs').innerHTML=errs.map(x=>`<div class="msg err">✖ ${x}</div>`).join('')+warns.map(x=>`<div class="msg warn">⚠ ${x}</div>`).join('')+infos.map(x=>`<div class="msg info">ℹ ${x}</div>`).join('');return{e,errs}}
+function saveJob(){const{e,errs}=refreshJob();if(errs.length)return;if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?`))return;state.entries.push(e);saveData();$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();toast('Uloženo')}
+
+/* ---------- formulář ---------- */
+let editing=null,manual=new Set();
+const TRAVEL_KEYS=['from','start','to','arrival','returnFrom','returnStart','returnTo','returnArrival','purpose','transport','km','fare','lodging','other','dietOverride','freeMeals','freeLodging','reducedTicket'];
+const fld=(k,l,o={})=>`<div class="f ${o.wide?'wide':''}"><label for="f_${k}">${l}</label>${o.auto?`<div class="auto"><input id="f_${k}" data-k="${k}" inputmode="decimal"><button type="button" data-reset="${k}" title="Vrátit automatický výpočet">↺ auto</button></div>`:o.sel?`<select id="f_${k}" data-k="${k}">${o.sel.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select>`:`<input id="f_${k}" data-k="${k}" ${o.type?`type="${o.type}"`:''} ${o.num?'inputmode="decimal"':''} ${o.list?`list="${o.list}"`:''}>`}</div>`;
+const chk=(k,l)=>`<label class="chk"><input type="checkbox" id="f_${k}" data-k="${k}">${l}</label>`;
+function openForm(entry,date,draft){
+ editing=entry||null;manual=new Set();
+ const e=entry?clone(entry):draft?clone(draft):{date:date||iso(Y,M,sel),startTime:'',endTime:'',lunchHours:0,note:'',jobHours:0,baseHours:0,commuteHours:0,vacationHours:0,doctorHours:0,sickHours:0,travel:{transport:'AUS',purpose:'Služební cesta',from:([...state.entries].sort((a,b)=>String(a.date).localeCompare(String(b.date))).pop()?.travel?.from)||'',dietOverride:null,freeMeals:false}};
+ const places=[...new Set(state.entries.flatMap(x=>[x.travel?.from,x.travel?.to,x.travel?.returnFrom,x.travel?.returnTo]).filter(Boolean))];
+ const notes=[...new Set(state.entries.map(x=>x.note).filter(Boolean))].slice(-40);
+ $('#dlg').innerHTML=`<form method="dialog" id="eform" novalidate><div class="dlg-head"><h2>${entry?'Upravit záznam':'Nový záznam'}</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body">
+ <datalist id="dl_places">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_notes">${notes.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+ <fieldset><legend>Směna</legend><div class="grid">${fld('date','Datum',{type:'date'})}${fld('startTime','Začátek',{type:'time'})}${fld('endTime','Konec',{type:'time'})}${fld('lunchHours','Pauza / oběd (h)',{num:1})}${fld('note','Poznámka / zakázka',{wide:1,list:'dl_notes'})}</div></fieldset>
+ <fieldset><legend>Hodiny</legend><div class="grid">${fld('totalHours','Celkem h',{auto:1})}${fld('jobHours','Na zakázce h',{num:1})}${fld('baseHours','Základ h',{auto:1})}${fld('commuteHours','Dojíždění h',{num:1})}${fld('overtime','Přesčas h',{auto:1})}${fld('weekendHours','Víkend h',{auto:1})}${fld('vacationHours','Dovolená h',{num:1})}${fld('doctorHours','Lékař h',{num:1})}${fld('sickHours','Nemoc / sick day h',{num:1})}</div></fieldset>
+ <fieldset><legend>Pracovní cesta</legend><div style="margin-bottom:10px">${chk('noTravelOrder','Bez cestovního příkazu (žádné stravné)')}</div><div class="grid">${fld('t.from','Odkud',{list:'dl_places'})}${fld('t.start','Odjezd',{type:'time'})}${fld('t.to','Kam',{list:'dl_places'})}${fld('t.arrival','Příjezd',{type:'time'})}${fld('t.returnFrom','Zpět odkud',{list:'dl_places'})}${fld('t.returnStart','Odjezd zpět',{type:'time'})}${fld('t.returnTo','Zpět kam',{list:'dl_places'})}${fld('t.returnArrival','Příjezd zpět',{type:'time'})}${fld('tripHours','Doba cesty h',{auto:1})}${fld('t.purpose','Účel')}${fld('t.transport','Doprava',{sel:[['AUS','AUS – služební auto'],['AUV','AUV – vlastní auto'],['VLAK','Vlak'],['BUS','Autobus'],['MHD','MHD'],['JINE','Jiné']]})}${fld('t.km','Km (vlastní auto)',{num:1})}${fld('t.fare','Jízdné Kč',{num:1})}${fld('t.lodging','Ubytování Kč',{num:1})}${fld('t.other','Ostatní Kč',{num:1})}${fld('t.dietOverride','Stravné ručně Kč (prázdné = auto)',{num:1})}${fld('t.freeMeals','Jídla zdarma',{sel:[['0','žádné'],['1','1 jídlo'],['2','2 jídla'],['3','3 jídla']]})}</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">${chk('t.freeLodging','Ubytování zdarma')}${chk('t.reducedTicket','Zlevněná jízdenka')}</div></fieldset>
+ <div class="calc" id="fcalc"></div><div class="msgs" id="fmsgs"></div></div>
+ <div class="dlg-foot">${entry?'<button type="button" class="btn danger" data-act="delForm" style="margin-right:auto">Smazat</button>':''}<button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="saveForm">Uložit</button></div></form>`;
+ const set=(k,v)=>{const el=$('#f_'+k.replace('.','\\.'));if(!el)return;if(el.type==='checkbox')el.checked=!!v;else el.value=v??''};
+ for(const k of['date','startTime','endTime','lunchHours','note','totalHours','jobHours','baseHours','commuteHours','overtime','weekendHours','vacationHours','doctorHours','sickHours','tripHours'])set(k,e[k]??'');
+ set('noTravelOrder',e.noTravelOrder);const t=e.travel||{};
+ for(const k of TRAVEL_KEYS)set('t.'+k,k==='freeMeals'?String(mealsCount(t)):k==='transport'?(t[k]||'AUS'):t[k]);
+ if(t.transport&&!['AUS','AUV','VLAK','BUS','MHD','JINE'].includes(t.transport)){const s=$('#f_t\\.transport');s.add(new Option(t.transport,t.transport,true,true))}
+ if(entry||draft){const a=autoCalc(e);const cmp=(k,v)=>{if(Math.abs(num(e[k])-v)>0.001)manual.add(k)};cmp('totalHours',a.total);cmp('overtime',r2(Math.max(0,num(e.totalHours)-8-num(e.commuteHours))));cmp('weekendHours',isWeekend(e.date)?num(e.totalHours):0);cmp('tripHours',a.trip);cmp('baseHours',r2(Math.max(0,num(e.totalHours)-num(e.jobHours))))}
+ refreshForm();$('#dlg').showModal();
+}
+function formVal(k){const el=$('#f_'+k.replace('.','\\.'));if(!el)return undefined;return el.type==='checkbox'?el.checked:el.value}
+function refreshForm(){
+ const g=formVal,setAuto=(k,v)=>{const el=$('#f_'+k);el.classList.toggle('manual',manual.has(k));if(!manual.has(k))el.value=v};
+ const tmp={date:g('date'),startTime:g('startTime'),endTime:g('endTime'),lunchHours:g('lunchHours'),commuteHours:g('commuteHours'),travel:{start:g('t.start'),returnArrival:g('t.returnArrival')}};
+ const a=autoCalc(tmp);setAuto('totalHours',a.total);const total=num(g('totalHours'));
+ setAuto('baseHours',r2(Math.max(0,total-num(g('jobHours')))));
+ setAuto('overtime',r2(Math.max(0,total-8-num(g('commuteHours')))));
+ setAuto('weekendHours',tmp.date&&isWeekend(tmp.date)?total:0);
+ setAuto('tripHours',a.trip);
+ const e=buildEntry(true),{errs,warns,infos}=validate(e);const c=calc(e);
+ $('#fcalc').innerHTML=`Výdělek <b>${cash(c.work)}</b> · stravné <b>${cash(c.diet)}</b> (${esc(c.dietWhy)}) · náhrady <b>${cash(c.c.sum)}</b> · celkem <b>${cash(c.all)}</b>${c.hol?` · <span style="color:#b36537">svátek: ${esc(c.hol)}</span>`:''}`;
+ $('#fmsgs').innerHTML=errs.map(x=>`<div class="msg err">✖ ${x}</div>`).join('')+warns.map(x=>`<div class="msg warn">⚠ ${x}</div>`).join('')+infos.map(x=>`<div class="msg info">ℹ ${x}</div>`).join('');
+ return{errs,warns}
+}
+function buildEntry(preview){
+ const g=formVal,src=editing?clone(editing):{};
+ const e=editing?src:{id:(crypto.randomUUID?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(16).slice(2))};
+ const put=(k,v)=>{e[k]=v};
+ put('date',g('date'));put('startTime',g('startTime'));put('endTime',g('endTime'));put('lunchHours',num(g('lunchHours')));put('totalHours',num(g('totalHours')));put('note',g('note'));
+ put('jobHours',num(g('jobHours')));put('baseHours',num(g('baseHours')));put('overtime',num(g('overtime')));put('commuteHours',num(g('commuteHours')));put('weekendHours',num(g('weekendHours')));put('tripHours',num(g('tripHours')));
+ put('vacationHours',num(g('vacationHours')));put('doctorHours',num(g('doctorHours')));put('sickHours',num(g('sickHours')));
+ const t=Object.assign({},src.travel||{}),old=src.travel||{};
+ for(const k of TRAVEL_KEYS){const v=g('t.'+k);
+  if(['km','fare','lodging','other'].includes(k))t[k]=num(v);
+  else if(k==='dietOverride')t[k]=v===''||v===null?null:num(v);
+  else if(k==='freeMeals'){const n=num(v);t[k]=n===0?false:(n===1&&old.freeMeals===true?true:n)}
+  else if(k==='freeLodging'||k==='reducedTicket')t[k]=!!v;
+  else t[k]=v??''}
+ e.travel=t;
+ const nto=!!g('noTravelOrder');if('noTravelOrder'in src||nto)e.noTravelOrder=nto;
+ return e;
+}
+function validate(e){
+ const errs=[],warns=[],infos=[];
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(e.date||''))errs.push('Zadej platné datum.');
+ if((e.startTime&&!e.endTime)||(!e.startTime&&e.endTime))errs.push('Vyplň začátek i konec směny.');
+ if(e.startTime&&e.endTime){if(e.startTime===e.endTime)errs.push('Začátek a konec směny jsou stejné.');else if(toMin(e.endTime)<toMin(e.startTime))infos.push('Konec je dřív než začátek – počítám směnu přes půlnoc ('+fmtH(spanH(e.startTime,e.endTime))+' h).')}
+ for(const k of['lunchHours','totalHours','jobHours','baseHours','overtime','commuteHours','weekendHours','tripHours','vacationHours','doctorHours','sickHours'])if(num(e[k])<0)errs.push('Hodnota „'+k+'“ nesmí být záporná.');
+ if(Math.abs(num(e.jobHours)+num(e.baseHours)-num(e.totalHours))>0.001)errs.push(`Zakázka (${fmtH(num(e.jobHours))} h) + základ (${fmtH(num(e.baseHours))} h) musí dát celkem ${fmtH(num(e.totalHours))} h.`);
+ if(num(e.totalHours)>16)warns.push('Směna delší než 16 hodin – zkontroluj časy.');
+ const t=e.travel||{},sm=toMin(e.startTime),ts=toMin(t.start),ra=toMin(t.returnArrival);
+ if(sm!==null&&toMin(e.endTime)!==null&&ts!==null&&ra!==null&&!e.noTravelOrder){const len=spanH(e.startTime,e.endTime)*60,o1=(ts-sm+1440)%1440,o2=(ra-sm+1440)%1440;
+  if(o1>0&&o1<720)warns.push(`Cesta začíná (${t.start}) až po začátku směny (${e.startTime}).`);
+  if(o2<len&&o2>=0&&!(o1>0&&o1>=720))warns.push(`Cesta končí (${t.returnArrival}) před koncem směny (${e.endTime}).`)}
+ if((t.start||t.returnArrival)&&!(t.start&&t.returnArrival))warns.push('U cesty vyplň odjezd i příjezd zpět, jinak se nespočítá doba cesty.');
+ if(e.noTravelOrder&&num(e.tripHours)>0)infos.push('Den je bez cestovního příkazu – stravné se nepočítá.');
+ if(e.date){const others=state.entries.filter(x=>x.id!==e.id);
+  if(others.some(x=>x.date===e.date))warns.push('V tento den už existuje jiný záznam.');
+  const endDT=x=>{const s=toMin(x.startTime),en=toMin(x.endTime);if(s===null||en===null)return null;return parseISO(x.date).getTime()+(en<s?en+1440:en)*6e4};
+  const stDT=x=>{const s=toMin(x.startTime);return s===null?null:parseISO(x.date).getTime()+s*6e4};
+  const myS=stDT(e),myE=endDT(e);
+  if(myS!==null)for(const x of others){if(x.date<addDays(e.date,-1)||x.date>addDays(e.date,1))continue;const xs=stDT(x),xe=endDT(x);if(xs===null)continue;
+   if(xe<=myS){const rest=(myS-xe)/36e5;if(rest<11)warns.push(`Odpočinek od předchozí směny (${fmtDate(x.date)} do ${x.endTime}) je jen ${fmtH(r2(rest))} h (zákon: min. 11 h).`)}
+   else if(xs>=myE){const rest=(xs-myE)/36e5;if(rest<11)warns.push(`Odpočinek před další směnou (${fmtDate(x.date)} od ${x.startTime}) je jen ${fmtH(r2(rest))} h (zákon: min. 11 h).`)}
+   else warns.push(`Směna se překrývá se záznamem ${fmtDate(x.date)} ${x.startTime}–${x.endTime}.`)}}
+ if(e.date&&holidayName(e.date)&&num(e.totalHours)>0)infos.push('Práce ve svátek ('+holidayName(e.date)+') – nárok na náhradní volno nebo příplatek min. 100 % průměrného výdělku (§ 115 ZP).');
+ return{errs,warns,infos}
+}
+function saveForm(){
+ const{errs,warns}=refreshForm();if(errs.length){$('#fmsgs').scrollIntoView({block:'nearest'});return}
+ const e=buildEntry(false);
+ if(!editing&&state.entries.some(x=>x.date===e.date)&&!confirm('V tento den už záznam existuje. Opravdu přidat další?'))return;
+ if(editing){const i=state.entries.findIndex(x=>x.id===editing.id);state.entries[i]=e}else state.entries.push(e);
+ saveData();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();$('#dlg').close();render();toast('Uloženo');
+}
+function delEntry(id){const e=state.entries.find(x=>x.id===id);if(!e)return;if(!confirm(`Smazat záznam ${fmtDate(e.date)}${e.note?' – '+e.note:''}?`))return;state.entries=state.entries.filter(x=>x.id!==id);saveData();if($('#dlg').open)$('#dlg').close();render();toast('Smazáno')}
+
+/* ---------- import / export ---------- */
+async function download(name,text,type){
+ if(IS_IOS&&navigator.canShare){try{const f=new File([text],name,{type});if(navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return true}}catch(e){if(e&&e.name==='AbortError')return false}}
+ return dl(name,text,type)}
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);return true}
+async function exportJSON(){const okk=await download(`moje-dochazka-zaloha-${todayISO()}.json`,JSON.stringify(state,null,2),'application/json');if(okk===false)return;bk.last=new Date().toISOString();bk.dirty=0;saveBk();render();toast('Záloha stažena')}
+function exportCSV(){
+ const f=v=>{let s=typeof v==='number'?String(r2(v)).replace('.',','):String(v??'');return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+ const head=['Datum','Den','Začátek','Konec','Pauza h','Celkem h','Zakázka h','Základ h','Přesčas h','Dojíždění h','Víkend h','Svátek','Cesta h','Dovolená h','Lékař h','Nemoc h','Poznámka','Odkud','Kam','Doprava','Bez CP','Výdělek Kč','Stravné Kč','Náhrady Kč','Celkem Kč'];
+ const rows=monthEntries(Y,M).map(e=>{const c=calc(e),t=e.travel||{};return[e.date,DOW[parseISO(e.date).getDay()],e.startTime,e.endTime,num(e.lunchHours),num(e.totalHours),num(e.jobHours),num(e.baseHours),num(e.overtime),num(e.commuteHours),num(e.weekendHours),c.hol,num(e.tripHours),num(e.vacationHours),num(e.doctorHours),num(e.sickHours),e.note,t.from,t.to,t.transport,e.noTravelOrder?'ano':'',c.work,c.diet,c.c.sum,c.all]});
+ const s=summary(Y,M);rows.push(['CELKEM','','','','',s.h,'','',s.ot,'',s.wk,'',s.trip,s.vac,s.doc,s.sick,'','','','','',s.work,s.diet,s.cost,s.all]);
+ download(`moje-dochazka-${Y}-${pad(M+1)}.csv`,'\ufeff'+[head,...rows].map(r=>r.map(f).join(';')).join('\r\n'),'text/csv;charset=utf-8')}
+function validateImport(d){
+ if(!d||typeof d!=='object')return'Soubor není JSON objekt.';if(!Array.isArray(d.entries))return'Chybí seznam záznamů (entries).';
+ if(d.version!==undefined&&d.version!==3)return`Nepodporovaná verze zálohy (${d.version}), očekávám 3.`;
+ const bad=d.entries.filter(e=>!e||!/^\d{4}-\d{2}-\d{2}$/.test(e.date||''));if(bad.length)return`${bad.length} ${pl(bad.length,'záznam má','záznamy mají','záznamů má')} neplatné datum.`;
+ return''}
+function importFile(file){const rd=new FileReader();rd.onload=()=>{let d;try{d=JSON.parse(rd.result)}catch(e){return alert('Soubor nejde přečíst jako JSON: '+e.message)}
+ const err=validateImport(d);if(err)return alert('Import zrušen: '+err);
+ d.entries.forEach(e=>{if(!e.id)e.id=(crypto.randomUUID?crypto.randomUUID():'id-'+Math.random().toString(16).slice(2))});
+ const ds=d.entries.map(e=>e.date).sort();
+ $('#dlg').innerHTML=`<div class="dlg-head"><h2>Import zálohy</h2><button type="button" data-act="close">✕</button></div><div class="dlg-body"><p>Soubor <b>${esc(file.name)}</b> obsahuje ${d.entries.length} ${pl(d.entries.length,'záznam','záznamy','záznamů')}${ds.length?` (${fmtDate(ds[0])} – ${fmtDate(ds[ds.length-1])})`:''}.</p><p><b>Nahradit</b> = smaže současná data (${state.entries.length} ${pl(state.entries.length,'záznam','záznamy','záznamů')}) a použije soubor včetně sazeb a profilu.<br><b>Sloučit</b> = přidá/aktualizuje záznamy podle id, případně data. Sazby a profil převezme ze zálohy, pokud ještě nejsou vyplněné; jinak se zeptá.</p></div><div class="dlg-foot"><button class="btn sec" data-act="close">Zrušit</button><button class="btn sec" data-act="impMerge">Sloučit</button><button class="btn ${state.entries.length?'danger':''}" data-act="impReplace">${state.entries.length?'Nahradit':'Nahradit (doporučeno)'}</button></div>`;
+ pendingImport=d;$('#dlg').showModal()};rd.readAsText(file)}
+let pendingImport=null;
+function doImport(replace){const d=pendingImport;pendingImport=null;if(!d)return;
+ if(replace){if(state.entries.length&&!confirm('Opravdu nahradit všechna současná data?'))return;storageError='';state=d;saveData(false);bk.dirty=0;bk.last=bk.last||new Date().toISOString();saveBk()}
+ else{
+  const payZero=r=>['job','base','ot','weekend'].every(k=>!num((r||{})[k]));
+  const profEmpty=p=>!p||Object.values(p).every(v=>v===''||v===null||v===undefined||v===0);
+  const sameObj=(a,b)=>{a=a||{};b=b||{};return[...new Set([...Object.keys(a),...Object.keys(b)])].every(k=>String(a[k]??'')===String(b[k]??''))};
+  let takeRates=false,takeProf=false;
+  if(d.rates&&typeof d.rates==='object'){if(payZero(state.rates))takeRates=true;else if(!sameObj(state.rates,d.rates))takeRates=confirm('Sazby v záloze se liší od tvých současných sazeb.\n\nOK = použít sazby ze zálohy\nZrušit = ponechat současné sazby')}
+  if(d.profile&&typeof d.profile==='object'){if(profEmpty(state.profile))takeProf=true;else if(!sameObj(state.profile,d.profile))takeProf=confirm('Profil v záloze (jméno, dovolená, sick days…) se liší od současného.\n\nOK = použít profil ze zálohy\nZrušit = ponechat současný')}
+  if(takeRates)state.rates=clone(d.rates);if(takeProf)state.profile=clone(d.profile);
+  let add=0,upd=0;for(const e of d.entries){let i=state.entries.findIndex(x=>x.id===e.id);if(i<0){const same=state.entries.filter(x=>x.date===e.date);if(same.length===1)i=state.entries.indexOf(same[0])}if(i>=0){state.entries[i]=e;upd++}else{state.entries.push(e);add++}}
+  state.travelOrders=Object.assign(state.travelOrders||{},d.travelOrders||{});storageError='';saveData();alert(`Sloučeno: ${add} nových, ${upd} aktualizovaných.\nSazby: ${takeRates?'převzaty ze zálohy':'ponechány'} · profil: ${takeProf?'převzat ze zálohy':'ponechán'}.`)}
+ $('#dlg').close();initialMonth();render()}
+
+/* ---------- události ---------- */
+document.addEventListener('click',ev=>{
+ const a=ev.target.closest('[data-act]');
+ if(a){const act=a.dataset.act;
+  if(act==='add')return openQuick([a.dataset.date]);
+  if(act==='full'){if($('#dlg').open)$('#dlg').close();return openForm(null,a.dataset.date)}
+  if(act==='qDepo')return quickAdd('depo',a.dataset.dates.split(','));
+  if(act==='qVac')return quickAdd('vac',a.dataset.dates.split(','));
+  if(act==='qSick')return quickAdd('sick',a.dataset.dates.split(','));
+  if(act==='qJob')return openJobQuick(a.dataset.dates);
+  if(act==='jobSave')return saveJob();
+  if(act==='jobFull'){const e=makeJob(jobVals());$('#dlg').close();return openForm(null,e.date,e)}
+  if(act==='multiStart'){if($('#dlg').open)$('#dlg').close();multi=new Set([a.dataset.date]);view='calendar';render();return}
+  if(act==='multiAdd')return openQuick([...multi].sort());
+  if(act==='multiCancel'){multi=null;render();return}
+  if(act==='edit')return openForm(state.entries.find(x=>x.id===a.dataset.id));
+  if(act==='del')return delEntry(a.dataset.id);
+  if(act==='delForm')return delEntry(editing.id);
+  if(act==='close')return $('#dlg').close();
+  if(act==='saveForm')return saveForm();
+  if(act==='export')return exportJSON();
+  if(act==='import')return $('#fileIn').click();
+  if(act==='csv')return exportCSV();
+  if(act==='saveSettings')return saveSettings();
+  if(act==='print')return window.print();
+  if(act==='impMerge')return doImport(false);
+  if(act==='impReplace')return doImport(true);
+ }
+ const rs=ev.target.closest('[data-reset]');if(rs){manual.delete(rs.dataset.reset);refreshForm();return}
+ const d=ev.target.closest('[data-day]'),v=ev.target.closest('[data-view]'),m=ev.target.closest('[data-month]');
+ if(d&&multi&&d.closest('#calendar')){const k=iso(Y,M,+d.dataset.day);multi.has(k)?multi.delete(k):multi.add(k);sel=+d.dataset.day;render();return}
+ if(d){sel=+d.dataset.day;render();if(view==='charts')$('#chartDetail').scrollIntoView({behavior:'smooth',block:'nearest'});else if(innerWidth<=700)$('#detail').scrollIntoView({behavior:'smooth',block:'start'})}
+ if(v){view=v.dataset.view;render();window.scrollTo({top:0})}
+ if(m){Y=+m.dataset.month.slice(0,4);M=+m.dataset.month.slice(5)-1;const es=monthEntries(Y,M);sel=es.length?+es[0].date.slice(8):1;view='calendar';render();window.scrollTo({top:0,behavior:'smooth'})}
+});
+document.addEventListener('input',ev=>{const el=ev.target;
+ if(el.closest('#jform')){refreshJob();return}
+ if(el.closest('#eform')){const k=el.dataset.k;if(['totalHours','overtime','weekendHours','tripHours','baseHours'].includes(k))manual.add(k);refreshForm()}
+});
+document.addEventListener('change',ev=>{const el=ev.target;if(el.dataset.to){setOrderField(el.dataset.to,el.value);renderOrders();renderBanner()}});
+$('#fileIn').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importFile(f)};
+$('#prev').onclick=()=>go(-1);$('#next').onclick=()=>go(1);
+$('#today').onclick=()=>{const t=new Date();Y=t.getFullYear();M=t.getMonth();sel=t.getDate();render()};
+$('#addBtn').onclick=()=>openQuick([iso(Y,M,sel)]);
+$('#eye').onclick=()=>{ui.hide=!ui.hide;saveUi();render()};
+$('#mode').onchange=e=>{ui.mode=e.target.value;saveUi();render()};
+window.addEventListener('storage',e=>{if(e.key===LS_DATA){loadData();render()}});
+
+if(IS_IOS)$('#fileIn').removeAttribute('accept'); // iOS Files picker greys out .json with some accept values
+if(window.APP_PWA&&'serviceWorker'in navigator&&location.protocol==='https:'){
+ const hadCtrl=!!navigator.serviceWorker.controller;
+ navigator.serviceWorker.register('sw.js').then(reg=>{reg.update();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update()})}).catch(e=>console.warn('SW',e));
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadCtrl)return;const b=document.createElement('div');b.className='backup-banner';b.style.cssText='position:fixed;left:12px;right:12px;top:max(12px,env(safe-area-inset-top));z-index:100';b.innerHTML='<span>🔄 Je k dispozici nová verze aplikace.</span><button class="btn small">Načíst znovu</button>';b.querySelector('button').onclick=()=>location.reload();document.body.appendChild(b)});
+}
+const loaded=loadData();initialMonth();render();
+window.__app={get state(){return state},calc,dietInfo,holidays,summary,loaded,save:()=>{saveData();render()}};
+
+/* ================= Cloud sync (Supabase) – jen ve veřejné verzi ================= */
+const CFG=window.APP_CONFIG||{};
+const LS_META='mojeDochazka.sync',LS_LOCALONLY='mojeDochazka.localOnly';
+const SECTIONS=['rates','profile','travelOrders','templates'];
+const EMPTY_DOC=()=>({version:3,entries:[],rates:clone(DEF_RATES),profile:{},travelOrders:{}});
+let meta={init:false,owner:null,stamps:{},tomb:{},sec:{},h:{},sh:{},dirty:false,rev:0,version:0,lastSync:null};
+try{Object.assign(meta,JSON.parse(localStorage.getItem(LS_META)||'{}'))}catch(e){}
+const saveMeta=()=>{try{localStorage.setItem(LS_META,JSON.stringify(meta))}catch(e){}};
+// stabilní JSON (jsonb v Postgresu nezachovává pořadí klíčů)
+const canon=o=>o===null||typeof o!=='object'?JSON.stringify(o===undefined?null:o):Array.isArray(o)?'['+o.map(canon).join(',')+']':'{'+Object.keys(o).filter(k=>o[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+canon(o[k])).join(',')+'}';
+const hsh=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(36)+'.'+s.length.toString(36)};
+const secVal=k=>k==='templates'?tpl:(state[k]||{});
+const TOMB_TTL=400*864e5;
+const cmpS=(p,q)=>p<q?-1:p>q?1:0,sByDate=(x,y)=>cmpS(String(x.date||''),String(y.date||''))||cmpS(String(x.id),String(y.id)),sById=(x,y)=>cmpS(String(x.id),String(y.id));
+/* Zaznamená změny lokálního stavu: nové/změněné záznamy dostanou updatedAt, smazané tombstone. */
+function track(baseline){
+ const now=Date.now();let ch=false;const seen={};
+ for(const e of state.entries){if(!e||!e.id)continue;seen[e.id]=1;const h=hsh(canon(e));
+  if(meta.h[e.id]!==h){meta.h[e.id]=h;meta.stamps[e.id]=baseline?(meta.stamps[e.id]||1):Math.max(now,(meta.stamps[e.id]||0)+1);delete meta.tomb[e.id];ch=true}}
+ for(const id of Object.keys(meta.h))if(!seen[id]){delete meta.h[id];meta.tomb[id]=baseline?1:Math.max(now,(meta.stamps[id]||0)+1);delete meta.stamps[id];ch=true}
+ for(const k of SECTIONS){const h=hsh(canon(secVal(k)));if(meta.sh[k]!==h){meta.sh[k]=h;meta.sec[k]=baseline?(meta.sec[k]||1):Math.max(now,(meta.sec[k]||0)+1);ch=true}}
+ if(ch&&!baseline){meta.dirty=true;meta.rev++}
+ meta.init=true;saveMeta();return ch}
+function cloudDoc(){return{version:3,entries:state.entries.filter(e=>e&&e.id).map(e=>Object.assign({},e,{updatedAt:meta.stamps[e.id]||1})).sort(sByDate),rates:state.rates||{},profile:state.profile||{},travelOrders:state.travelOrders||{},templates:tpl,
+ deleted:Object.entries(meta.tomb).map(([id,t])=>({id,deletedAt:t})).sort(sById),sectionsUpdatedAt:Object.assign({},meta.sec)}}
+/* Sloučení dvou cloud dokumentů: last-write-wins po záznamech (id) a po sekcích. */
+function mergeDocs(a,b){
+ if(!b||!Array.isArray(b.entries))return a;if(!a)return b;
+ const rec=new Map(),order=[];
+ // při shodném čase vyhrává b (cloud); v rámci jednoho dokumentu záznam před tombstonem
+ const put=(id,t,e,fromB)=>{if(!id)return;t=+t||0;const c=rec.get(id);if(!c)order.push(id);if(!c||t>c.t||(t===c.t&&((fromB&&!c.b)||(e&&!c.e&&fromB===c.b))))rec.set(id,{t,e,b:fromB})};
+ for(const[d,fb]of[[a,false],[b,true]]){for(const e of d.entries||[])put(e.id,e.updatedAt||0,e,fb);for(const x of d.deleted||[])put(x.id,x.deletedAt||0,null,fb)}
+ const cut=Date.now()-TOMB_TTL,out={version:3,entries:[],deleted:[],sectionsUpdatedAt:{}};
+ for(const id of order){const r=rec.get(id);if(r.e)out.entries.push(r.e);else if(r.t>cut||r.t<=1)out.deleted.push({id,deletedAt:r.t})}
+ for(const k of SECTIONS){const ta=+(a.sectionsUpdatedAt||{})[k]||0,tb=+(b.sectionsUpdatedAt||{})[k]||0;const pick=tb>=ta&&b[k]!==undefined?b:a;out[k]=pick[k]!==undefined?pick[k]:(k==='templates'?undefined:{});out.sectionsUpdatedAt[k]=Math.max(ta,tb)}
+ out.entries.sort(sByDate);out.deleted.sort(sById);return out}
+function applyDoc(doc){
+ const strip=e=>{const c=Object.assign({},e);delete c.updatedAt;return c};
+ state={version:3,entries:(doc.entries||[]).map(strip),rates:doc.rates||clone(DEF_RATES),profile:doc.profile||{},travelOrders:doc.travelOrders||{}};
+ if(doc.templates){tpl=Object.assign(clone(DEF_TPL),doc.templates,{depo:Object.assign({},DEF_TPL.depo,doc.templates.depo||{})});saveTpl()}
+ meta.stamps={};meta.h={};for(const e of doc.entries||[]){meta.stamps[e.id]=+e.updatedAt||1;meta.h[e.id]=hsh(canon(strip(e)))}
+ meta.tomb={};for(const x of doc.deleted||[])meta.tomb[x.id]=+x.deletedAt||1;
+ meta.sec=Object.assign({},doc.sectionsUpdatedAt||{});meta.sh={};for(const k of SECTIONS)meta.sh[k]=hsh(canon(secVal(k)));
+ saveMeta();applying=true;storageError='';saveData(false);applying=false;render()}
+function resetLocal(backupKey){
+ try{localStorage.setItem(backupKey,JSON.stringify(state))}catch(e){}
+ state=EMPTY_DOC();tpl=clone(DEF_TPL);saveTpl();Object.assign(meta,{stamps:{},tomb:{},sec:{},h:{},sh:{},dirty:false,version:0});applying=true;saveData(false);applying=false;track(true);render()}
+
+let sessionKnown=false,sb=null,user=null,syncing=false,again=false,syncState='',syncErr='',timer=null,applying=false;
+const isNet=e=>navigator.onLine===false||/fetch|network|load failed|offline|timeout/i.test(String(e&&(e.message||e)));
+function setStatus(s,err){syncState=s;syncErr=err?String(err.message||err):'';const el=$('#syncStatus');if(!el)return;
+ const T={ok:'☁ Uloženo',sync:'⟳ Synchronizuji…',offline:'⚠ Offline – uloženo v zařízení',error:'⚠ Chyba synchronizace',local:'○ Jen v zařízení · přihlásit'};
+ el.textContent=T[s]||'';el.className='sync-pill '+s;el.title=syncErr||(meta.lastSync?'Naposledy synchronizováno '+new Date(meta.lastSync).toLocaleString('cs-CZ'):'');el.hidden=!s}
+function schedule(ms){if(!user)return;clearTimeout(timer);timer=setTimeout(syncNow,ms)}
+async function syncNow(){
+ if(!sb||!user)return;if(syncing){again=true;return}
+ if(navigator.onLine===false){setStatus('offline');return}
+ syncing=true;setStatus('sync');
+ try{
+  let done=false;
+  for(let i=0;i<5&&!done;i++){
+   const{data:row,error}=await sb.from('user_data').select('data,version,updated_at').eq('user_id',user.id).maybeSingle();
+   if(error)throw error;
+   track(false);
+   const local=cloudDoc(),merged=row?mergeDocs(local,row.data):local;
+   if(canon(merged)!==canon(local))applyDoc(merged);
+   if(row&&!meta.dirty&&canon(cloudDoc())===canon(row.data)){meta.version=row.version;done=true;break}
+   const rev=meta.rev,doc=cloudDoc();let res;
+   if(!row)res=await sb.from('user_data').insert({user_id:user.id,data:doc,version:1}).select('version,updated_at');
+   else res=await sb.from('user_data').update({data:doc,version:row.version+1}).eq('user_id',user.id).eq('version',row.version).select('version,updated_at');
+   if(res.error){if(res.error.code==='23505')continue;throw res.error}
+   if(!res.data||!res.data.length)continue; // někdo zapsal mezitím → znovu stáhnout a sloučit
+   meta.version=res.data[0].version;if(meta.rev===rev)meta.dirty=false;done=true}
+  if(!done)throw new Error('Nepodařilo se vyřešit souběžné změny, zkusím znovu.');
+  meta.lastSync=new Date().toISOString();saveMeta();setStatus(meta.dirty?'sync':'ok');if(meta.dirty)again=true
+ }catch(e){console.warn('sync',e);setStatus(isNet(e)?'offline':'error',e);if(!isNet(e))schedule(30000)}
+ finally{syncing=false;if(again){again=false;schedule(400)}}
+}
+hooks.saved=()=>{if(applying)return;track(false);if(user&&meta.dirty){setStatus(navigator.onLine===false?'offline':'sync');schedule(1500)}};
+hooks.cloudOn=()=>!!user;
+
+/* ---------- přihlášení ---------- */
+const AUTH_ERR=[[/invalid login credentials/i,'Špatný e-mail nebo heslo.'],[/email not confirmed/i,'E-mail ještě není potvrzený – klikni na odkaz, který ti přišel.'],[/already registered|already been registered|user_already_exists/i,'Účet s tímto e-mailem už existuje – přihlas se.'],[/rate limit|too many|429/i,'Příliš mnoho pokusů nebo e-mailů – zkus to prosím za chvíli.'],[/password should be|weak_password|at least/i,'Heslo je moc slabé (aspoň 8 znaků).'],[/not authorized|email_address_not_authorized/i,'Tento e-mail teď nejde obsloužit (správce musí nastavit odesílání e-mailů). Použij přihlášení heslem.'],[/signups not allowed|signup is disabled/i,'Registrace jsou vypnuté.'],[/fetch|network|load failed/i,'Nejsi online – zkus to, až bude připojení.'],[/invalid email|unable to validate email/i,'Neplatný e-mail.']];
+const authMsg=(e)=>{const m=String(e&&(e.message||e)||'');for(const[r,t]of AUTH_ERR)if(r.test(m)||r.test(e&&e.code||''))return t;return 'Něco se nepovedlo: '+m};
+const redirectTo=()=>location.origin+location.pathname;
+function authHTML(){return `<div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle"><div class="auth-brand" id="authTitle">Moje docházka</div><p class="auth-sub">Docházka, výdělek a cestovní příkazy. Data se ukládají do tvého účtu a jsou na všech tvých zařízeních.</p>
+<div class="auth-tabs"><button type="button" data-auth-tab="login">Přihlášení</button><button type="button" data-auth-tab="register">Registrace</button></div>
+<form data-auth="login" novalidate><label>E-mail<input type="email" name="email" autocomplete="username" required></label><label>Heslo<input type="password" name="password" autocomplete="current-password"></label><button class="btn" type="submit">Přihlásit se</button><button class="btn sec" type="button" data-auth-act="magic">✉ Poslat přihlašovací odkaz e-mailem</button><button class="linkbtn" type="button" data-auth-tab="forgot">Zapomenuté heslo?</button></form>
+<form data-auth="register" novalidate><label>E-mail<input type="email" name="email" autocomplete="username" required></label><label>Heslo (aspoň 8 znaků)<input type="password" name="password" autocomplete="new-password"></label><label>Heslo znovu<input type="password" name="password2" autocomplete="new-password"></label><button class="btn" type="submit">Vytvořit účet</button></form>
+<form data-auth="forgot" novalidate><p>Pošleme ti e-mail s odkazem pro nastavení nového hesla.</p><label>E-mail<input type="email" name="email" autocomplete="username" required></label><button class="btn" type="submit">Poslat odkaz</button><button class="linkbtn" type="button" data-auth-tab="login">← Zpět na přihlášení</button></form>
+<form data-auth="newpw" novalidate><p>Zadej nové heslo.</p><label>Nové heslo<input type="password" name="password" autocomplete="new-password"></label><label>Heslo znovu<input type="password" name="password2" autocomplete="new-password"></label><button class="btn" type="submit">Uložit nové heslo</button></form>
+<div id="authMsg" class="auth-msg" role="status" aria-live="polite"></div>
+<button class="linkbtn" type="button" data-auth-act="local">Pokračovat bez účtu (data jen v tomto zařízení)</button>
+<p class="auth-note">Na iPhonu v aplikaci z plochy se přihlašuj heslem – odkaz z e-mailu se otevře v Safari, ne v aplikaci.</p></div>`}
+function showAuth(tab){let d=$('#authScreen');if(!d){d=document.createElement('div');d.id='authScreen';d.className='auth';d.innerHTML=authHTML();document.body.appendChild(d)}
+ d.hidden=false;authTab(tab||'login');document.documentElement.classList.add('auth-open')}
+function hideAuth(){const d=$('#authScreen');if(d)d.hidden=true;document.documentElement.classList.remove('auth-open')}
+function authTab(t){$$('#authScreen [data-auth]').forEach(f=>f.hidden=f.dataset.auth!==t);$$('#authScreen .auth-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.authTab===t));$('#authScreen .auth-tabs').hidden=t==='newpw';say('');const f=$(`#authScreen [data-auth="${t}"] input`);if(f)setTimeout(()=>f.focus(),30)}
+function say(t,ok){const m=$('#authMsg');if(m){m.textContent=t;m.className='auth-msg'+(t?(ok?' ok':' err'):'')}}
+async function authSubmit(form,act){
+ const v=Object.fromEntries(new FormData(form).entries()),email=(v.email||'').trim(),kind=act||form.dataset.auth;
+ const needEmail=['login','register','forgot','magic'].includes(kind);
+ if(needEmail&&!/^\S+@\S+\.\S+$/.test(email))return say('Zadej platný e-mail.');
+ if((kind==='register'||kind==='newpw')&&(v.password||'').length<8)return say('Heslo musí mít aspoň 8 znaků.');
+ if((kind==='register'||kind==='newpw')&&v.password!==v.password2)return say('Hesla se neshodují.');
+ if(kind==='login'&&!v.password)return say('Zadej heslo, nebo si nech poslat přihlašovací odkaz.');
+ const btns=$$('#authScreen button');btns.forEach(b=>b.disabled=true);say('Moment…',true);
+ try{let r;
+  if(kind==='login')r=await sb.auth.signInWithPassword({email,password:v.password});
+  else if(kind==='magic')r=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:redirectTo()}});
+  else if(kind==='register')r=await sb.auth.signUp({email,password:v.password,options:{emailRedirectTo:redirectTo()}});
+  else if(kind==='forgot')r=await sb.auth.resetPasswordForEmail(email,{redirectTo:redirectTo()});
+  else if(kind==='newpw')r=await sb.auth.updateUser({password:v.password});
+  if(r&&r.error)throw r.error;
+  if(kind==='magic')say('Odkaz jsme poslali na '+email+'. Otevři ho na tomhle zařízení.',true);
+  else if(kind==='forgot')say('Pokud účet existuje, poslali jsme e-mail s odkazem na '+email+'.',true);
+  else if(kind==='register'&&!(r.data&&r.data.session))say('Účet je vytvořený. Potvrď ho kliknutím na odkaz v e-mailu, pak se přihlas.',true);
+  else if(kind==='newpw'){say('Heslo změněno.',true);toast('Heslo změněno');hideAuth();handleSession((await sb.auth.getSession()).data.session)}
+  else say('',true);
+ }catch(e){say(authMsg(e))}finally{btns.forEach(b=>b.disabled=false)}
+}
+document.addEventListener('submit',ev=>{const f=ev.target.closest('#authScreen form');if(!f)return;ev.preventDefault();authSubmit(f)});
+document.addEventListener('click',ev=>{
+ const t=ev.target.closest('[data-auth-tab]');if(t){authTab(t.dataset.authTab);return}
+ const a=ev.target.closest('[data-auth-act]');if(a){if(a.dataset.authAct==='local'){try{localStorage.setItem(LS_LOCALONLY,'1')}catch(e){}hideAuth();setStatus('local');render()}else authSubmit(a.closest('form'),a.dataset.authAct);return}
+ const s=ev.target.closest('[data-sync-act]');if(!s)return;const k=s.dataset.syncAct;
+ if(k==='login')showAuth('login');else if(k==='logout')logout();else if(k==='now')syncNow();else if(k==='pill'){user?syncNow():showAuth('login')}
+});
+async function logout(){
+ if(meta.dirty&&!confirm('Některé změny ještě nejsou v cloudu (jsi offline?). Po odhlášení zůstanou jen v tomto zařízení. Pokračovat?'))return;
+ const wipe=confirm('Smazat data z tohoto zařízení?\n\nOK = smazat (doporučeno na cizím nebo sdíleném telefonu – v účtu zůstanou)\nZrušit = ponechat v zařízení');
+ const uid=user&&user.id;try{await sb.auth.signOut()}catch(e){}
+ user=null;clearTimeout(timer);
+ if(wipe){resetLocal('mojeDochazka.data.v3.loggedout.'+uid);meta.owner=null;saveMeta()}
+ try{localStorage.removeItem(LS_LOCALONLY)}catch(e){}
+ setStatus('local');render();showAuth('login')}
+/* První přihlášení na zařízení: rozhodnout, co s lokálními daty. */
+async function adopt(u){
+ if(meta.owner===u.id)return true;
+ const{data:row,error}=await sb.from('user_data').select('data,version,updated_at').eq('user_id',u.id).maybeSingle();
+ if(error)throw error;
+ const n=state.entries.length,localHas=n>0||['job','base','ot','weekend'].some(k=>num((state.rates||{})[k]));
+ const cn=row&&row.data&&Array.isArray(row.data.entries)?row.data.entries.length:0;
+ if(meta.owner&&meta.owner!==u.id){resetLocal('mojeDochazka.data.v3.prev.'+meta.owner)}
+ else if(localHas){
+  const msg=cn?`V účtu už máš ${cn} ${pl(cn,'záznam','záznamy','záznamů')} a v tomto zařízení ${n}.\n\nOK = sloučit (nic se neztratí)\nZrušit = použít jen data z účtu (data ze zařízení si odložím stranou)`
+   :`Nahrát data z tohoto zařízení (${n} ${pl(n,'záznam','záznamy','záznamů')}, sazby, profil) do tvého účtu?\n\nOK = nahrát\nZrušit = začít s prázdným účtem (data ze zařízení si odložím stranou)`;
+  if(!confirm(msg))resetLocal('mojeDochazka.data.v3.beforeLogin.'+Date.now());
+ }
+ meta.owner=u.id;saveMeta();return true}
+async function handleSession(session){
+ const u=session&&session.user||null;
+ if(sessionKnown&&(u&&u.id)===(user&&user.id)){if(u)hideAuth();return}
+ sessionKnown=true;user=u;render();
+ if(!u){setStatus('local');let lo=null;try{lo=localStorage.getItem(LS_LOCALONLY)}catch(e){}if(!lo)showAuth('login');return}
+ hideAuth();setStatus('sync');
+ try{await adopt(u);await syncNow()}catch(e){console.warn('adopt',e);setStatus(isNet(e)?'offline':'error',e)}
+ render()}
+hooks.account=()=>{if(!sb)return'';
+ return user?`<div class="panel" style="grid-column:1/-1"><h2>Účet a synchronizace</h2><p class="muted">Přihlášen: <b>${esc(user.email||'')}</b> · stav: ${esc(($('#syncStatus')||{}).textContent||'')}${meta.lastSync?' · naposledy '+new Date(meta.lastSync).toLocaleString('cs-CZ'):''}</p><div class="btnrow"><button class="btn sec" data-sync-act="now">⟳ Synchronizovat teď</button><button class="btn sec" data-sync-act="logout">Odhlásit se</button></div></div>`
+ :`<div class="panel" style="grid-column:1/-1"><h2>Účet a synchronizace</h2><p class="muted">Nejsi přihlášený – data jsou jen v tomto zařízení. Po přihlášení se zálohují do účtu a uvidíš je i na jiném telefonu.</p><div class="btnrow"><button class="btn" data-sync-act="login">Přihlásit / registrovat</button></div></div>`};
+async function initCloud(){
+ if(!meta.init)track(true);
+ if(!CFG.SUPABASE_URL||!CFG.SUPABASE_ANON_KEY)return; // lokální režim
+ const factory=window.APP_SUPABASE_FACTORY||(window.supabase&&window.supabase.createClient);
+ if(!factory){console.warn('supabase-js chybí – běžím lokálně');return}
+ try{sb=factory(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit',storageKey:'mojeDochazka.auth'}})}catch(e){console.warn('supabase init',e);return}
+ const pill=$('#syncStatus');if(pill){pill.hidden=false;pill.dataset.syncAct='pill'}
+ sb.auth.onAuthStateChange((ev,session)=>{if(ev==='PASSWORD_RECOVERY'){setTimeout(()=>showAuth('newpw'),0);return}setTimeout(()=>handleSession(session),0)});
+ try{const{data}=await sb.auth.getSession();await handleSession(data&&data.session)}catch(e){setStatus('offline',e)}
+ window.addEventListener('online',()=>syncNow());window.addEventListener('offline',()=>user&&setStatus('offline'));
+ document.addEventListener('visibilitychange',()=>{if(!user)return;if(document.visibilityState==='hidden'){if(meta.dirty)syncNow()}else if(!meta.lastSync||Date.now()-new Date(meta.lastSync)>30000)syncNow()});
+ setInterval(()=>{if(user&&document.visibilityState==='visible')syncNow()},180000);
+}
+initCloud();
+window.__sync={get meta(){return meta},get user(){return user},get status(){return syncState},syncNow,mergeDocs,cloudDoc,canon};
+</script></body></html>
