@@ -80,19 +80,54 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.9";
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.10";
 /* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
 const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
-const PHOTO_CLOUD=!!window.APP_PHOTO_CLOUD; // zapnout až bude v Supabase bucket "stazky" (viz SETUP)
+const PHOTO_CLOUD=window.APP_PHOTO_CLOUD!==false; // bucket "stazky" existuje; vypnout lze v config.js: window.APP_PHOTO_CLOUD=false
+const LS_PDEL='mojeDochazka.photoDel',LS_PCLEAN='mojeDochazka.photoCleanup',PHOTO_NOTE='Fotky štítků se po 2 měsících automaticky mažou.';
 let _pdb=null;
 function pdb(){if(_pdb)return _pdb;_pdb=new Promise((res,rej)=>{if(!window.indexedDB)return rej(new Error('IndexedDB není k dispozici'));const r=indexedDB.open(PHOTO_DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(PHOTO_STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return _pdb}
 async function pPut(id,blob){const db=await pdb();return new Promise((res,rej)=>{const t=db.transaction(PHOTO_STORE,'readwrite');t.objectStore(PHOTO_STORE).put(blob,id);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
 async function pGet(id){try{const db=await pdb();const b=await new Promise((res,rej)=>{const r=db.transaction(PHOTO_STORE).objectStore(PHOTO_STORE).get(id);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error)});if(b)return b}catch(e){}
- if(PHOTO_CLOUD&&hooks.photoDownload){try{const b=await hooks.photoDownload(id);if(b){pPut(id,b).catch(()=>{});return b}}catch(e){}}return null}
+ if(PHOTO_CLOUD&&hooks.photoDownload&&navigator.onLine!==false){try{const b=await hooks.photoDownload(id);if(b){pPut(id,b).catch(()=>{});return b}}catch(e){}}return null}
 async function pDel(id){try{const db=await pdb();db.transaction(PHOTO_STORE,'readwrite').objectStore(PHOTO_STORE).delete(id)}catch(e){}}
 const _urls={};async function pUrl(id){if(_urls[id])return _urls[id];const b=await pGet(id);return b?(_urls[id]=URL.createObjectURL(b)):''}
 async function hydrateThumbs(root){for(const im of (root||document).querySelectorAll('img[data-photo]')){if(im.dataset.loaded)continue;im.dataset.loaded=1;const u=await pUrl(im.dataset.photo);if(u)im.src=u;else im.alt='Fotka je v jiném zařízení'}}
-function photoCloudQueue(){if(!PHOTO_CLOUD||!hooks.photoUpload)return;for(const e of state.entries)for(const p of e.photos||[])if(!p.path)pGet(p.id).then(b=>b&&hooks.photoUpload(p.id,b)).then(path=>{if(path){p.path=path;saveData()}}).catch(()=>{})}
+const cloudReady=()=>PHOTO_CLOUD&&hooks.photoUser&&hooks.photoUser()&&navigator.onLine!==false;
+async function pLocalHas(id){try{const db=await pdb();return await new Promise(r=>{const q=db.transaction(PHOTO_STORE).objectStore(PHOTO_STORE).count(id);q.onsuccess=()=>r(q.result>0);q.onerror=()=>r(false)})}catch(e){return false}}
+let _pq=false;
+async function photoCloudQueue(){if(_pq||!cloudReady())return;_pq=true;let changed=false;
+ try{for(const e of state.entries)for(const p of e.photos||[]){
+  if(!p.path){if(e.date<photoCutoff())continue;const b=await pGet(p.id);if(!b)continue;try{const path=await hooks.photoUpload(p.id,b);
+   // stav se mohl mezitím nahradit synchronizací → zapsat cestu do aktuálního záznamu
+   const cur=state.entries.flatMap(x=>x.photos||[]).find(x=>x.id===p.id);if(path&&cur&&!cur.path){cur.path=path;changed=true}else if(path&&!cur)await hooks.photoRemove([path])}catch(x){console.warn('upload štítku',x&&x.message);if(navigator.onLine===false)break}}
+  else if(!(await pLocalHas(p.id))){await pGet(p.id)} // stáhnout chybějící (jiné zařízení)
+ }}finally{_pq=false}
+ if(changed){saveData();render()}}
+/* ---------- automatické mazání fotek starších 2 měsíců ---------- */
+const isoD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function photoCutoff(today){const t=today?new Date(today+'T12:00:00'):new Date(),y=t.getFullYear(),m=t.getMonth()-2,dim=new Date(y,m+1,0).getDate();return isoD(new Date(y,m,Math.min(t.getDate(),dim)))}
+const lsJ=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+async function photoCleanup(force,today){const now=today||isoD(new Date());if(!force&&localStorage.getItem(LS_PCLEAN)===now)return null;
+ const cut=photoCutoff(now),pend=new Set(lsJ(LS_PDEL,[]));let removed=0;
+ for(const e of state.entries){if(!e.photos||!e.photos.length||!(e.date<cut))continue;
+  for(const p of e.photos){pend.add(p.path||((hooks.photoUser&&hooks.photoUser())?hooks.photoUser()+'/'+p.id+'.jpg':'local:'+p.id));await pDel(p.id);if(_urls[p.id]){URL.revokeObjectURL(_urls[p.id]);delete _urls[p.id]}removed++}
+  delete e.photos}
+ if(removed){saveData();render()}
+ let cloudOk=true;const cloudP=[...pend].filter(x=>!x.startsWith('local:'));
+ if(cloudP.length){if(cloudReady()){try{await hooks.photoRemove(cloudP);cloudP.forEach(x=>pend.delete(x))}catch(e){cloudOk=false}}else cloudOk=!PHOTO_CLOUD}
+ [...pend].filter(x=>x.startsWith('local:')).forEach(x=>pend.delete(x));
+ // osiřelé objekty v cloudu (smazané fotky/záznamy), starší než 1 den
+ if(cloudReady()&&hooks.photoList){try{const refs=new Set();for(const e of state.entries)for(const p of e.photos||[])refs.add(hooks.photoUser()+'/'+p.id+'.jpg');
+  const old=Date.now()-864e5,orph=(await hooks.photoList()).filter(o=>!refs.has(o.path)&&o.created&&Date.parse(o.created)<old).map(o=>o.path);if(orph.length)await hooks.photoRemove(orph)}catch(e){}}
+ try{const db=await pdb(),keys=await new Promise(r=>{const q=db.transaction(PHOTO_STORE).objectStore(PHOTO_STORE).getAllKeys();q.onsuccess=()=>r(q.result||[]);q.onerror=()=>r([])}),refs=new Set();for(const e of state.entries)for(const p of e.photos||[])refs.add(p.id);
+  for(const k of keys){const ts=parseInt(String(k).split('-')[1],36);if(!refs.has(k)&&ts&&ts<Date.now()-864e5)await pDel(k)}}catch(e){}
+ localStorage.setItem(LS_PDEL,JSON.stringify([...pend]));
+ if(cloudOk&&(!PHOTO_CLOUD||cloudReady()||!pend.size))localStorage.setItem(LS_PCLEAN,now);
+ return{removed,cut,pending:pend.size}}
+window.stitekAfterSync=async()=>{try{await photoCleanup()}catch(e){}photoCloudQueue()};
+window.addEventListener('online',()=>setTimeout(window.stitekAfterSync,1500));
+setTimeout(()=>{photoCleanup().catch(()=>{})},0);
 
 /* ---------- popisek pro WhatsApp ---------- */
 function stCaption(e){const d=e.date?`${+e.date.slice(8)}.${+e.date.slice(5,7)}.${e.date.slice(0,4)}`:'';
@@ -108,7 +143,7 @@ function stitekFormHTML(e){formPhotos=(e.photos||[]).map(p=>Object.assign({},p))
  <div class="grid"><div class="f"><label for="f_place">Místo</label><textarea id="f_place" data-st="place" rows="2" placeholder="např. Trutnov">${esc(e.place??(e.travel&&e.travel.to)??'')}</textarea></div><div class="f"><label for="f_customer">Zákazník</label><input id="f_customer" data-st="customer" list="dl_cust" autocapitalize="characters" placeholder="např. METROSTAV" value="${esc(e.customer||'')}"></div><div class="f wide"><label for="f_machine">Stroj (typ + SPZ)</label><input id="f_machine" data-st="machine" list="dl_mach" placeholder="např. AC40   U01 3139" value="${esc(e.machine??lastM)}"></div></div>
  <div class="st-photos" id="stFormPhotos"></div>
  <div class="btnrow"><label class="btn sec st-file">📷 Vyfotit / nahrát štítek<input type="file" accept="image/*" capture="environment" data-st-file="form" hidden></label><label class="btn sec st-file">🖼 Z galerie<input type="file" accept="image/*" multiple data-st-file="form" hidden></label></div>
- <p class="muted">Fotky se ukládají v tomto zařízení${PHOTO_CLOUD?' a do tvého účtu':''}. Záloha JSON fotky neobsahuje (zůstává malá).</p></fieldset>`}
+ <p class="muted st-note">Fotky se ukládají do tvého účtu${PHOTO_CLOUD?'':' (cloud vypnut – jen v zařízení)'} a v zařízení pro offline. ${PHOTO_NOTE}</p></fieldset>`}
 function renderFormPhotos(){const b=$('#stFormPhotos');if(!b)return;b.innerHTML=formPhotos.map(p=>`<div class="st-th"><img data-photo="${esc(p.id)}" alt="štítek" data-st-act="view" data-id="${esc(p.id)}"><button type="button" class="st-x" data-st-act="formDel" data-id="${esc(p.id)}" aria-label="Odebrat">✕</button></div>`).join('');hydrateThumbs(b)}
 function stitekFormInit(){renderFormPhotos();stitekToggle()}
 function stitekToggle(){const s=$('#stitekSet');if(!s)return;const j=num(formVal('jobHours'));s.hidden=!(j>0||formPhotos.length)}
@@ -120,7 +155,7 @@ function stitekSaved(e){if(e.machine)try{localStorage.setItem(LS_MACHINE,e.machi
 
 /* ---------- detail dne ---------- */
 function stitekDetailHTML(e){if(!isJobDay(e))return'';const ps=e.photos||[];
- return `<div class="st-box no-print"><div class="detail-label">ŠTÍTEK</div>${ps.length?`<div class="st-photos">${ps.map(p=>`<div class="st-th"><img data-photo="${esc(p.id)}" alt="štítek" data-st-act="view" data-id="${esc(p.id)}"></div>`).join('')}</div>`:'<p class="muted">Zatím bez fotky štítku.</p>'}
+ return `<div class="st-box no-print"><div class="detail-label">ŠTÍTEK</div><p class="muted st-note">${PHOTO_NOTE}</p>${ps.length?`<div class="st-photos">${ps.map(p=>`<div class="st-th"><img data-photo="${esc(p.id)}" alt="štítek" data-st-act="view" data-id="${esc(p.id)}"></div>`).join('')}</div>`:'<p class="muted">Zatím bez fotky štítku.</p>'}
  ${stCaption(e).includes('\n')?`<pre class="st-cap">${esc(stCaption(e))}</pre>`:''}
  <div class="btnrow"><label class="btn sec small st-file">📷 Přidat štítek<input type="file" accept="image/*" capture="environment" data-st-file="${esc(e.id)}" hidden></label>${ps.length?`<button class="btn small" data-st-act="share" data-id="${esc(e.id)}">Poslat do WhatsAppu</button>`:''}<button class="btn sec small" data-st-act="copy" data-id="${esc(e.id)}">Kopírovat popisek</button></div></div>`}
 
@@ -194,7 +229,7 @@ document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.clos
  else if(k==='view')stView(a.dataset.id);else if(k==='viewClose')$('#photoView').close();
  else if(k==='share'){const e=ent();if(e)stShare(e)}else if(k==='copy'){const e=ent();if(e)copyText(stCaption(e)).then(ok=>toast(ok?'Popisek zkopírován':'Kopírování se nepovedlo'))}});
 window.addEventListener('resize',()=>{if(crop)cropDraw()});
-window.__stitek={stCaption,autoQuad,warp,toCanvas,pPut,pGet,stShare,cropFinish,openCrop,get crop(){return crop},get formPhotos(){return formPhotos}};
+window.__stitek={photoCleanup,photoCutoff,photoCloudQueue,stCaption,autoQuad,warp,toCanvas,pPut,pGet,stShare,cropFinish,openCrop,get crop(){return crop},get formPhotos(){return formPhotos}};
 
 const _stRender=render;render=function(){_stRender.apply(this,arguments);hydrateThumbs()};
 'use strict';
@@ -413,7 +448,7 @@ function renderSettings(){
  <div class="panel"><h2>Sazby</h2><div class="grid" style="margin-top:12px">${RATE_F.map(([k,l])=>`<div class="f"><label>${l}</label><input data-rate="${k}" inputmode="decimal" placeholder="${k.startsWith('diet')?'':k==='holidayPct'?'%':'Kč/h'}" value="${['job','base','ot','weekend'].includes(k)&&!num(r[k])?'':esc(r[k])}"></div>`).join('')}</div><p class="muted">Dojíždění = sazba Alvian (Alvian / Depo), do přesčasu se nepočítá. Stravné 2026 (vyhl. 573/2025 Sb.) – minimum v soukromé firmě: 155 / 236 / 370 Kč.</p></div>
  <div class="panel"><h2>Profil</h2><div class="grid" style="margin-top:12px">${PROF_F.map(([k,l,t])=>`<div class="f ${t==='text'&&k!=='employeeNo'?'wide':''}"><label>${l}</label><input data-prof="${k}" data-type="${t}" ${t==='date'?'type="date"':t==='number'?'inputmode="decimal"':''} value="${esc(k==='vacationAnnualHours'?annualVac(p):p[k]??'')}"></div>`).join('')}</div></div>
  <div class="panel" style="grid-column:1/-1"><h2>Rychlé přidání</h2><div class="grid" style="margin-top:12px"><div class="f"><label>Depo od</label><input type="time" data-tpl="depo.start" value="${esc(tpl.depo.start)}"></div><div class="f"><label>Depo do</label><input type="time" data-tpl="depo.end" value="${esc(tpl.depo.end)}"></div><div class="f"><label>Depo pauza (h)</label><input inputmode="decimal" data-tpl="depo.lunch" value="${esc(tpl.depo.lunch)}"></div><div class="f"><label>Depo poznámka</label><input data-tpl="depo.note" value="${esc(tpl.depo.note)}"></div><div class="f"><label>Sazba Depo = základ (Kč/h)</label><input inputmode="decimal" data-tpl="rate" placeholder="Kč/h" value="${num(r.base)?esc(r.base):''}"></div><div class="f"><label>Dovolená h/den</label><input inputmode="decimal" data-tpl="vacHours" value="${esc(tpl.vacHours)}"></div><div class="f"><label>Nemoc h/den</label><input inputmode="decimal" data-tpl="sickHours" value="${esc(tpl.sickHours)}"></div></div><p class="muted">Depo = všechny hodiny jako základ, bez přesčasu, bez cestovního příkazu a stravného. Šablony se ukládají v tomto zařízení.</p></div>
- ${hooks.account?hooks.account():''}<div class="panel" style="grid-column:1/-1"><h2>Data a zálohy</h2><p class="muted">${hooks.cloudOn()?'Data jsou v tomto zařízení a synchronizují se s tvým účtem. Záloha JSON se přesto hodí.':'Vše je uloženo jen v tomto prohlížeči.'} ${bk.last?'Poslední záloha: '+fmtDate(bk.last.slice(0,10))+'.':'Zatím jsi nestahoval zálohu.'} Záznamů: ${state.entries.length}. Verze aplikace: ${window.APP_VERSION||'dev'}.</p><p class="muted" id="backupPhotoNote">📎 Záloha JSON obsahuje údaje ke štítkům (místo, zákazník, stroj), ale <b>ne samotné fotky</b> – ty zůstávají v zařízení${window.APP_PHOTO_CLOUD?' a v cloudu':''}.</p><div class="btnrow"><button class="btn" data-act="saveSettings">Uložit nastavení</button><button class="btn sec" data-act="export">⬇ Exportovat JSON</button><button class="btn sec" data-act="import">⬆ Importovat JSON</button><button class="btn sec" data-act="csv">CSV – ${MONTHS[M]} ${Y}</button></div></div></div>`;
+ ${hooks.account?hooks.account():''}<div class="panel" style="grid-column:1/-1"><h2>Data a zálohy</h2><p class="muted">${hooks.cloudOn()?'Data jsou v tomto zařízení a synchronizují se s tvým účtem. Záloha JSON se přesto hodí.':'Vše je uloženo jen v tomto prohlížeči.'} ${bk.last?'Poslední záloha: '+fmtDate(bk.last.slice(0,10))+'.':'Zatím jsi nestahoval zálohu.'} Záznamů: ${state.entries.length}. Verze aplikace: ${window.APP_VERSION||'dev'}.</p><p class="muted" id="backupPhotoNote">📎 Fotky štítků jsou uložené v tvém účtu (a v zařízení pro offline); záloha JSON obsahuje jen údaje ke štítkům (místo, zákazník, stroj), <b>ne samotné fotky</b>. Fotky štítků se po 2 měsících automaticky mažou.</p><div class="btnrow"><button class="btn" data-act="saveSettings">Uložit nastavení</button><button class="btn sec" data-act="export">⬇ Exportovat JSON</button><button class="btn sec" data-act="import">⬆ Importovat JSON</button><button class="btn sec" data-act="csv">CSV – ${MONTHS[M]} ${Y}</button></div></div></div>`;
 }
 function saveSettings(){
  state.rates=state.rates||{};state.profile=state.profile||{};
@@ -749,6 +784,7 @@ async function syncNow(){
    meta.version=res.data[0].version;if(meta.rev===rev)meta.dirty=false;done=true}
   if(!done)throw new Error('Nepodařilo se vyřešit souběžné změny, zkusím znovu.');
   meta.lastSync=new Date().toISOString();saveMeta();setStatus(meta.dirty?'sync':'ok');if(meta.dirty)again=true
+  if(window.stitekAfterSync)setTimeout(window.stitekAfterSync,0);
  }catch(e){console.warn('sync',e);setStatus(isNet(e)?'offline':'error',e);if(!isNet(e))schedule(30000)}
  finally{syncing=false;if(again){again=false;schedule(400)}}
 }
@@ -756,6 +792,9 @@ hooks.saved=()=>{if(applying)return;track(false);if(user&&meta.dirty){setStatus(
 hooks.cloudOn=()=>!!user;
 // Fotky štítků do privátního bucketu "stazky" (složka = auth.uid()). Aktivní jen s window.APP_PHOTO_CLOUD=true.
 hooks.photoUpload=async(id,blob)=>{if(!sb||!user)return null;const path=user.id+'/'+id+'.jpg';const{error}=await sb.storage.from('stazky').upload(path,blob,{contentType:'image/jpeg',upsert:true});if(error)throw error;return path};
+hooks.photoUser=()=>user&&user.id||null;
+hooks.photoRemove=async paths=>{if(!sb||!user||!paths.length)return false;const{data,error}=await sb.storage.from('stazky').remove(paths);if(error)throw error;return true};
+hooks.photoList=async()=>{if(!sb||!user)return null;const{data,error}=await sb.storage.from('stazky').list(user.id,{limit:1000});if(error)throw error;return(data||[]).map(o=>({path:user.id+'/'+o.name,created:o.created_at}))};
 hooks.photoDownload=async id=>{if(!sb||!user)return null;const{data,error}=await sb.storage.from('stazky').download(user.id+'/'+id+'.jpg');if(error)return null;return data};
 
 /* ---------- přihlášení ---------- */
