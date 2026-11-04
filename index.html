@@ -79,6 +79,14 @@ header{padding-top:max(24px,env(safe-area-inset-top));padding-left:max(20px,env(
 /* v14 form hints */
 #eform .grid .hint.wide{grid-column:1/-1;margin:-6px 0 4px;font-size:12.5px}
 
+/* v15: detail on top, money below calendar */
+body[data-view]:not([data-view="calendar"]) #detail{display:none!important}
+#detail{margin:0 0 16px}
+#calendarView .layout{grid-template-columns:1fr}
+#stats{margin-top:16px}
+@media(max-width:700px){body[data-view]:not([data-view="calendar"]) #stats{display:none!important}}
+@media(max-width:700px){.intro p{display:none}.intro h1{font-size:22px;margin:4px 0 0}}
+
 header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.brand .brandname{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#c0d9fa;margin-top:6px}
 .day.selected{border-color:#124b92}.dot{background:#124b92}.bar{background:#7fa6d6}.bar.selected{background:#124b92}.bar:hover{background:#24558a}.history-meter i{background:#124b92}.qbtn:hover,.qbtn:active{border-color:#124b92}.linkbtn{color:#124b92}
 .auth-logo{display:block;height:44px;width:auto;margin-bottom:12px}
@@ -88,10 +96,11 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <main>
 <div class="intro"><div><span class="badge" id="badge">Moje docházka</span><h1>Můj pracovní měsíc</h1><p>Každá směna. Každá hodina. Přehledně.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="btn no-print" id="addBtn">+ Přidat den</button><button class="plain eye" id="eye">◉ Skrýt částky</button></div></div>
 <div id="backupBanner" class="backup-banner hidden"></div>
-<div class="stats" id="stats"></div>
+<aside class="panel" id="detail"></aside>
 <nav class="tabs"><button data-view="calendar">Kalendář</button><button data-view="charts">Denní výdělky</button><button data-view="history">Historie</button><button data-view="orders">Cestovní příkaz</button><button data-view="settings">Nastavení</button></nav>
 <div id="monthcontrol" class="monthbar"><h2 id="monthtitle"></h2><div class="arrows"><button id="dochPdf" class="plain no-print" style="width:auto;font-size:12px" aria-label="Docházka PDF – pracovní výkaz za měsíc">📄 Docházka PDF</button><button id="today" class="plain" style="width:auto;font-size:12px" aria-label="Dnes">Dnes</button><button id="prev" aria-label="Předchozí měsíc">‹</button><button id="next" aria-label="Další měsíc">›</button></div></div>
-<section id="calendarView"><div class="layout"><div class="panel"><div class="week"><span>PO</span><span>ÚT</span><span>ST</span><span>ČT</span><span>PÁ</span><span>SO</span><span>NE</span></div><div class="calendar" id="calendar"></div><div class="legend"><span><i class="dot"></i>Práce</span><span><i class="dot" style="background:#c3a453"></i>Dovolená</span><span><i class="dot" style="background:#9d83b5"></i>Sick day / nemoc</span><span style="color:#b36537">Oranžové datum = státní svátek</span></div></div><aside class="panel" id="detail"></aside></div></section>
+<section id="calendarView"><div class="layout"><div class="panel"><div class="week"><span>PO</span><span>ÚT</span><span>ST</span><span>ČT</span><span>PÁ</span><span>SO</span><span>NE</span></div><div class="calendar" id="calendar"></div><div class="legend"><span><i class="dot"></i>Práce</span><span><i class="dot" style="background:#c3a453"></i>Dovolená</span><span><i class="dot" style="background:#9d83b5"></i>Sick day / nemoc</span><span style="color:#b36537">Oranžové datum = státní svátek</span></div></div></div></section>
+<div class="stats" id="stats"></div>
 <section id="chartsView" class="hidden"><div class="panel" id="chartDetail"></div></section>
 <section id="historyView" class="hidden"><h2 class="viewtitle">Měsíc vedle měsíce</h2><div class="history-grid" id="history"></div></section>
 <section id="ordersView" class="hidden"><div class="panel" id="orders"></div></section>
@@ -104,7 +113,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.14";
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.15";
 /* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
 const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
 const PHOTO_CLOUD=window.APP_PHOTO_CLOUD!==false; // bucket "stazky" existuje; vypnout lze v config.js: window.APP_PHOTO_CLOUD=false
