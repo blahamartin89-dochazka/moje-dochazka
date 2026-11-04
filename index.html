@@ -54,6 +54,24 @@ header{padding-top:max(24px,env(safe-area-inset-top));padding-left:max(20px,env(
 .photo-view[open]{display:flex;align-items:center;justify-content:center}.photo-view img{max-width:100%;max-height:100%;object-fit:contain}
 .pv-x{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.2);color:#fff;font-size:20px;z-index:2}
 .crop-foot .btn{padding:8px 12px;min-height:40px}.crop-foot{flex-wrap:nowrap}
+/* v11 – spodní lišta (tab bar) */
+@media (max-width:700px){
+ nav.bottom{display:flex!important;position:fixed;left:0;right:0;bottom:0;width:100%;z-index:50;justify-content:stretch;align-items:stretch;gap:0;
+  padding:0 0 env(safe-area-inset-bottom) 0;background:rgba(255,255,255,.97);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-top:1px solid #d5deeb;box-shadow:0 -2px 12px rgba(18,75,146,.08)}
+ nav.bottom button{flex:1 1 0;min-width:0;min-height:62px;margin:0;padding:8px 2px 6px;border:0;background:none;color:#6c7c93;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  font:600 12.5px/1.1 inherit;font-family:inherit;touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,97,164,.12);cursor:pointer;position:relative}
+ nav.bottom button *{pointer-events:none}
+ nav.bottom .ico{font-size:23px;line-height:24px;height:24px}
+ nav.bottom .lbl{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+ nav.bottom button.active{color:#0061a4}
+ nav.bottom button.active::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;border-radius:0 0 3px 3px;background:#0061a4}
+ nav.bottom button.active .ico{transform:scale(1.08)}
+ body{padding-bottom:calc(84px + env(safe-area-inset-bottom))!important}
+ main{padding-bottom:12px}
+ nav.tabs{display:none!important}
+ /* na mobilu u jiných pohledů než kalendář skrýt úvod a souhrn, ať je obsah hned vidět */
+ body[data-view]:not([data-view="calendar"]) .intro,body[data-view]:not([data-view="calendar"]) #stats{display:none!important}
+}
 
 header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.brand .brandname{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#c0d9fa;margin-top:6px}
 .day.selected{border-color:#124b92}.dot{background:#124b92}.bar{background:#7fa6d6}.bar.selected{background:#124b92}.bar:hover{background:#24558a}.history-meter i{background:#124b92}.qbtn:hover,.qbtn:active{border-color:#124b92}.linkbtn{color:#124b92}
@@ -75,12 +93,12 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <section class="panel chart-panel" id="chartPanel"><div class="chart-head"><div><h2>Výdělek po dnech</h2><p class="muted">Klepni na sloupec pro detail dne</p></div><select id="mode" aria-label="Co zobrazit"><option value="work">Výdělek bez diet a náhrad</option><option value="all">Celkem včetně diet a náhrad</option></select></div><div id="chartSummary" class="muted"></div><div class="chart-scroll"><div class="chart" id="chart"></div></div><p class="chart-note">Výška sloupce odpovídá částce. Dny bez záznamu jsou prázdné.</p></section>
 <p class="footnote">Data jsou uložena jen v tomto prohlížeči (localStorage). Částky jsou hrubé, bez odvodů: hodiny × sazby z Nastavení. Stravné podle zákoníku práce a vyhl. 573/2025 Sb. (5–12 h / nad 12–18 h / nad 18 h). Pravidelně si stahuj zálohu (Nastavení → Exportovat JSON).</p>
 </main>
-<nav class="bottom"><button data-view="calendar">▦ Kalendář</button><button data-view="charts">▥ Výdělky</button><button data-view="history">◷ Historie</button><button data-view="orders">✈ Cesťák</button><button data-view="settings">⚙ Nastavení</button></nav>
+<nav class="bottom" aria-label="Hlavní navigace"><button type="button" data-view="calendar" aria-label="Kalendář"><span class="ico" aria-hidden="true">▦</span><span class="lbl">Kalendář</span></button><button type="button" data-view="charts" aria-label="Výdělky"><span class="ico" aria-hidden="true">▥</span><span class="lbl">Výdělky</span></button><button type="button" data-view="history" aria-label="Historie"><span class="ico" aria-hidden="true">◷</span><span class="lbl">Historie</span></button><button type="button" data-view="orders" aria-label="Cesťák"><span class="ico" aria-hidden="true">✈︎</span><span class="lbl">Cesťák</span></button><button type="button" data-view="settings" aria-label="Nastavení"><span class="ico" aria-hidden="true">⚙︎</span><span class="lbl">Nastavení</span></button></nav>
 <dialog id="dlg"></dialog>
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.10";
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-04.11";
 /* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
 const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
 const PHOTO_CLOUD=window.APP_PHOTO_CLOUD!==false; // bucket "stazky" existuje; vypnout lze v config.js: window.APP_PHOTO_CLOUD=false
@@ -364,7 +382,7 @@ function render(){
  $('#chartPanel').classList.toggle('hidden',!['calendar','charts'].includes(view));
  $('#monthcontrol').classList.toggle('hidden',['history','settings'].includes(view));
  $('#stats').classList.toggle('hidden',view==='settings');
- $$('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+ $$('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$$('[data-view]').forEach(b=>b.setAttribute('aria-current',b.dataset.view===view?'page':'false'));document.body.dataset.view=view;
  $('#eye').textContent=ui.hide?'◉ Zobrazit částky':'◉ Skrýt částky';
  renderBanner();renderMultiBar();
 }
@@ -684,7 +702,7 @@ document.addEventListener('click',ev=>{
  const d=ev.target.closest('[data-day]'),v=ev.target.closest('[data-view]'),m=ev.target.closest('[data-month]');
  if(d&&multi&&d.closest('#calendar')){const k=iso(Y,M,+d.dataset.day);multi.has(k)?multi.delete(k):multi.add(k);sel=+d.dataset.day;render();return}
  if(d){sel=+d.dataset.day;render();if(view==='charts')$('#chartDetail').scrollIntoView({behavior:'smooth',block:'nearest'});else if(innerWidth<=700)$('#detail').scrollIntoView({behavior:'smooth',block:'start'})}
- if(v){view=v.dataset.view;render();window.scrollTo({top:0})}
+ if(v){view=v.dataset.view;render();window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0}
  if(m){Y=+m.dataset.month.slice(0,4);M=+m.dataset.month.slice(5)-1;const es=monthEntries(Y,M);sel=es.length?+es[0].date.slice(8):1;view='calendar';render();window.scrollTo({top:0,behavior:'smooth'})}
 });
 document.addEventListener('input',ev=>{const el=ev.target;
