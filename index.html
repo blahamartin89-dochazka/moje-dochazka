@@ -181,6 +181,18 @@ body[data-view="charts"] .history-grid{display:grid;grid-template-columns:1fr;ga
 
 .slip-list{display:flex;flex-direction:column;gap:10px;margin:12px 0}.slip-card{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;background:#f4f7fb;border-radius:14px;padding:12px;border:1px solid #d7e3f4}.slip-card b{display:block;font-size:16px}.slip-card small{display:block;color:#5a6b85;margin-top:4px;line-height:1.35}.slip-cmp i{display:block;font-style:normal;color:#5a6b85;font-size:12px;font-weight:500}.slip-cmp em{font-style:normal;font-size:12px;margin-left:8px}.slip-cmp em.up{color:#2e9e5b}.slip-cmp em.dn{color:#b3261e}
 
+/* save celebration */
+.save-celeb{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;background:rgba(11,37,74,.35);opacity:0;transition:opacity .2s;pointer-events:auto;padding:24px;touch-action:manipulation}
+.save-celeb.in{opacity:1}.save-celeb.out{opacity:0}
+.sc-card{background:#fff;border-radius:20px;padding:22px 28px 18px;text-align:center;box-shadow:0 16px 48px rgba(11,37,74,.35);max-width:320px;width:100%;transform:scale(.86);transition:transform .25s cubic-bezier(.2,1.2,.4,1)}
+.save-celeb.in .sc-card{transform:scale(1)}
+.sc-amt{font-size:28px;font-weight:800;color:#124b92;letter-spacing:-.5px}
+.sc-sub{font-size:13px;color:#5b6e88;margin-top:6px}
+.sc-coins{height:28px;margin-bottom:8px;position:relative}
+.sc-coin{display:inline-block;font-size:22px;animation:scPop .7s ease both;animation-delay:calc(var(--i)*.07s)}
+@keyframes scPop{0%{transform:translateY(12px) scale(0);opacity:0}60%{transform:translateY(-8px) scale(1.2);opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
+#settings input[type=range]{width:100%;accent-color:#124b92}
+
 header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.brand .brandname{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#c0d9fa;margin-top:6px}
 .day.selected{border-color:#124b92}.dot{background:#124b92}.bar{background:#7fa6d6}.bar.selected{background:#124b92}.bar:hover{background:#24558a}.history-meter i{background:#124b92}.qbtn:hover,.qbtn:active{border-color:#124b92}.linkbtn{color:#124b92}
 .auth-logo{display:block;height:44px;width:auto;margin-bottom:12px}
@@ -208,7 +220,141 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.11";
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.12";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+(function(){
+ const DEF={soundFx:true,soundMusic:false,soundVol:.45};
+ let ctx=null,master=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
+ const AC=window.AudioContext||window.webkitAudioContext;
+
+ function prefs(){
+  const u=(typeof ui!=='undefined'&&ui)?ui:{};
+  return{
+   fx:u.soundFx===undefined?DEF.soundFx:!!u.soundFx,
+   music:u.soundMusic===undefined?DEF.soundMusic:!!u.soundMusic,
+   vol:Math.max(0,Math.min(1,u.soundVol==null?DEF.soundVol:+u.soundVol))
+  }}
+ function ensure(){
+  if(!AC)return null;
+  if(!ctx){try{ctx=new AC();master=ctx.createGain();master.gain.value=prefs().vol;master.connect(ctx.destination)}catch(e){ctx=null;return null}}
+  if(ctx.state==='suspended')ctx.resume().catch(()=>{});
+  return ctx}
+ function unlock(){ensure()}
+ function setVol(v){if(master)master.gain.value=Math.max(0,Math.min(1,v));if(musicGain&&musicOn){try{musicGain.gain.setTargetAtTime(.12*Math.max(0,Math.min(1,v)),ctx.currentTime,.05)}catch(e){}}}
+
+ function beep(opts){
+  const c=ensure();if(!c||!master)return;
+  const p=prefs();if(!p.fx&&!opts.force)return;
+  try{
+   const t0=c.currentTime,o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter();
+   o.type=opts.type||'sine';o.frequency.value=opts.freq||880;
+   if(opts.freq2){o.frequency.setValueAtTime(opts.freq,t0);o.frequency.exponentialRampToValueAtTime(Math.max(40,opts.freq2),t0+(opts.dur||.08))}
+   f.type='lowpass';f.frequency.value=opts.lp||4000;
+   g.gain.setValueAtTime(0,t0);
+   g.gain.linearRampToValueAtTime((opts.gain||.12)*p.vol,t0+.008);
+   g.gain.exponentialRampToValueAtTime(.0008,t0+(opts.dur||.08));
+   o.connect(f);f.connect(g);g.connect(master);
+   o.start(t0);o.stop(t0+(opts.dur||.08)+.02);
+  }catch(e){}}
+
+ function playTap(){beep({type:'triangle',freq:920,freq2:640,dur:.035,gain:.07,lp:2800})}
+ function playDing(){beep({type:'sine',freq:880,dur:.05,gain:.1,lp:5000});setTimeout(()=>beep({type:'sine',freq:1174,dur:.12,gain:.09,lp:5000}),55)}
+ function playError(){beep({type:'sawtooth',freq:220,freq2:140,dur:.16,gain:.06,lp:900})}
+ function playChaChing(){
+  const c=ensure();if(!c||!master)return;
+  const p=prefs();if(!p.fx)return;
+  try{
+   const t0=c.currentTime,vol=p.vol;
+   // metallic coin clinks
+   [[980,.04,.14],[1310,.05,.11],[780,.06,.09],[1560,.07,.08]].forEach(([f,at,g],i)=>{
+    const o=c.createOscillator(),gN=c.createGain(),fl=c.createBiquadFilter();
+    o.type='square';o.frequency.value=f;fl.type='bandpass';fl.frequency.value=f*1.2;fl.Q.value=6;
+    const t=t0+i*.045;gN.gain.setValueAtTime(0,t);gN.gain.linearRampToValueAtTime(g*vol,t+.005);gN.gain.exponentialRampToValueAtTime(.001,t+.12);
+    o.connect(fl);fl.connect(gN);gN.connect(master);o.start(t);o.stop(t+.14);
+   });
+   // soft cash-drawer thud
+   const o2=c.createOscillator(),g2=c.createGain();o2.type='sine';o2.frequency.setValueAtTime(180,t0);o2.frequency.exponentialRampToValueAtTime(70,t0+.18);
+   g2.gain.setValueAtTime(.1*vol,t0);g2.gain.exponentialRampToValueAtTime(.001,t0+.22);o2.connect(g2);g2.connect(master);o2.start(t0);o2.stop(t0+.25);
+   // noise burst (coins)
+   const n=c.createBufferSource(),len=Math.floor(c.sampleRate*.08),buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);
+   for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.5);
+   const gn=c.createGain(),fn=c.createBiquadFilter();fn.type='highpass';fn.frequency.value=2500;
+   gn.gain.setValueAtTime(.12*vol,t0+.02);gn.gain.exponentialRampToValueAtTime(.001,t0+.1);
+   n.buffer=buf;n.connect(fn);fn.connect(gn);gn.connect(master);n.start(t0+.02);n.stop(t0+.12);
+  }catch(e){}}
+ function playShutter(){
+  const c=ensure();if(!c||!master||!prefs().fx)return;
+  try{
+   const t0=c.currentTime,n=c.createBufferSource(),len=Math.floor(c.sampleRate*.04),buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);
+   for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2);
+   const g=c.createGain(),f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=1800;f.Q.value=0.8;
+   g.gain.setValueAtTime(.18*prefs().vol,t0);g.gain.exponentialRampToValueAtTime(.001,t0+.05);
+   n.buffer=buf;n.connect(f);f.connect(g);g.connect(master);n.start(t0);n.stop(t0+.06);
+  }catch(e){}}
+
+ /* Calm ambient pads – soft triad loop, royalty-free (procedural). */
+ const CHORDS=[[196.00,246.94,293.66],[174.61,220.00,261.63],[164.81,207.65,246.94],[146.83,196.00,233.08]];
+ function stopMusicNodes(){
+  if(musicTimer){clearTimeout(musicTimer);musicTimer=null}
+  if(musicGain&&ctx){try{musicGain.gain.cancelScheduledValues(ctx.currentTime);musicGain.gain.setTargetAtTime(.0001,ctx.currentTime,.15)}catch(e){}}
+ }
+ function scheduleChord(){
+  if(!musicOn||!ctx||!musicGain)return;
+  const t0=ctx.currentTime+.02,chord=CHORDS[chordI%CHORDS.length];chordI++;
+  const gPad=ctx.createGain();gPad.gain.setValueAtTime(0,t0);gPad.gain.linearRampToValueAtTime(.045,t0+1.8);gPad.gain.setValueAtTime(.045,t0+5.5);gPad.gain.linearRampToValueAtTime(0,t0+8.2);
+  gPad.connect(musicGain);
+  for(const f0 of chord){
+   const o=ctx.createOscillator(),f=ctx.createBiquadFilter();
+   o.type='sine';o.frequency.value=f0;
+   f.type='lowpass';f.frequency.value=900;
+   o.connect(f);f.connect(gPad);o.start(t0);o.stop(t0+8.4);
+   const o2=ctx.createOscillator();o2.type='triangle';o2.frequency.value=f0*.5;o2.connect(f);o2.start(t0);o2.stop(t0+8.4);
+  }
+  musicTimer=setTimeout(scheduleChord,7000);
+ }
+ function startMusic(){
+  if(!AC)return;const c=ensure();if(!c)return;
+  if(!musicGain){musicGain=c.createGain();musicGain.gain.value=0;musicGain.connect(master)}
+  musicOn=true;chordI=0;
+  const v=prefs().vol;
+  try{musicGain.gain.cancelScheduledValues(c.currentTime);musicGain.gain.setValueAtTime(musicGain.gain.value,c.currentTime);musicGain.gain.linearRampToValueAtTime(.12*v,c.currentTime+2.5)}catch(e){}
+  if(!musicTimer)scheduleChord();
+ }
+ function pauseMusic(){
+  musicOn=false;stopMusicNodes();
+  if(musicGain&&ctx){try{musicGain.gain.cancelScheduledValues(ctx.currentTime);musicGain.gain.setTargetAtTime(0,ctx.currentTime,.2)}catch(e){}}
+ }
+ function applyPrefs(){
+  const p=prefs();setVol(p.vol);
+  if(p.music&&!document.hidden){unlock();startMusic()}else pauseMusic();
+ }
+
+ function buzz(ms){try{if(navigator.vibrate)navigator.vibrate(ms||8)}catch(e){}}
+
+ function isUiTarget(el){
+  if(!el||!el.closest)return null;
+  return el.closest('button,.btn,[data-view],[data-act],[data-st-act],[data-day],.day,.qbtn,.tplb,.wd,.history-card,label.st-file,nav.tabs button,nav.bottom button,.auth-tabs button');
+ }
+
+ document.addEventListener('pointerdown',ev=>{
+  unlock();
+  const t=isUiTarget(ev.target);if(!t||t.disabled||t.getAttribute('aria-disabled')==='true')return;
+  if(t.closest&&t.closest('#cropDlg,#photoView')){/* still tap, but shutter on file labels */}
+  if(t.matches&&(t.matches('label.st-file')||t.closest('label.st-file'))){playShutter();buzz(12);return}
+  playTap();buzz(8);
+ },{capture:true,passive:true});
+
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)pauseMusic();
+  else if(prefs().music){unlock();startMusic()}
+ });
+
+ // First gesture unlock anywhere
+ ['touchstart','pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,unlock,{once:false,passive:true,capture:true}));
+
+ window.__sounds={unlock,playTap,playDing,playError,playShutter,playChaChing,startMusic,pauseMusic,applyPrefs,prefs,ensure,
+  get ctx(){return ctx}, DEF};
+})();
+
 /* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
 const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
 const PHOTO_CLOUD=window.APP_PHOTO_CLOUD!==false; // bucket "stazky" existuje; vypnout lze v config.js: window.APP_PHOTO_CLOUD=false
@@ -808,7 +954,7 @@ function qRefresh(){const e=qBuild(),c=calc(e),{errs}=validate(e);for(const f of
  $('#qmsgs').innerHTML=errs.map(x=>`<div class="msg err">✖ ${x}</div>`).join('');return{e,errs}}
 function qSave(){const{e,errs}=qRefresh();if(errs.length||!e.totalHours){if(!errs.length)$('#qmsgs').innerHTML='<div class="msg err">✖ Zkontroluj časy.</div>';return}
  if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?`))return;
- state.entries.push(e);saveData();if(typeof stitekSaved==='function')stitekSaved(e);qs=null;$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();toast('Uloženo')}
+ state.entries.push(e);saveData();if(typeof stitekSaved==='function')stitekSaved(e);qs=null;$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();if(typeof celebrateSave==='function')celebrateSave(e);toast('Uloženo','silent')}
 document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
  if(act==='tpl'){ev.stopPropagation();return openTpl(a.dataset.k,a.dataset.date)}
  if(act==='dPick'){dnesDate=a.dataset.date===todayISO()?null:a.dataset.date;view='dnes';render();return}
@@ -873,8 +1019,12 @@ function saveData(markDirty=true){
  try{localStorage.setItem(LS_DATA,JSON.stringify(state));if(markDirty){bk.dirty=(bk.dirty||0)+1;saveBk()}if(hooks.saved)hooks.saved()}
  catch(e){alert('Uložení selhalo (plné úložiště?). Stáhni si hned zálohu JSON.\n'+e.message)}
 }
-let ui={hide:false,mode:'work'};try{Object.assign(ui,JSON.parse(localStorage.getItem(LS_UI)||'{}'))}catch(e){}
+let ui={hide:false,mode:'work',soundFx:true,soundMusic:false,soundVol:.45};try{Object.assign(ui,JSON.parse(localStorage.getItem(LS_UI)||'{}'))}catch(e){}
 const saveUi=()=>{try{localStorage.setItem(LS_UI,JSON.stringify(ui))}catch(e){}};
+function syncSoundFromProfile(){const p=state.profile||{};if('soundFx'in p)ui.soundFx=!!p.soundFx;if('soundMusic'in p)ui.soundMusic=!!p.soundMusic;if('soundVol'in p)ui.soundVol=Math.max(0,Math.min(1,+p.soundVol));saveUi();try{window.__sounds&&window.__sounds.applyPrefs()}catch(e){}}
+function writeSoundToProfile(){state.profile=state.profile||{};state.profile.soundFx=ui.soundFx!==false;state.profile.soundMusic=!!ui.soundMusic;state.profile.soundVol=Math.max(0,Math.min(1,ui.soundVol==null?.45:+ui.soundVol))}
+function readSoundControls(){const fx=$('[data-sound="fx"]'),mu=$('[data-sound="music"]'),vo=$('[data-sound="vol"]');if(fx)ui.soundFx=!!fx.checked;if(mu)ui.soundMusic=!!mu.checked;if(vo)ui.soundVol=Math.max(0,Math.min(1,num(vo.value)/100));try{window.__sounds&&window.__sounds.applyPrefs()}catch(e){}}
+
 let bk={last:null,dirty:0};try{Object.assign(bk,JSON.parse(localStorage.getItem(LS_BK)||'{}'))}catch(e){}
 const saveBk=()=>{try{localStorage.setItem(LS_BK,JSON.stringify(bk))}catch(e){}};
 const R=()=>Object.assign({},DEF_RATES,state.rates||{});
@@ -1097,16 +1247,37 @@ function renderSettings(){
  <div class="panel"><h2>Sazby</h2><div class="grid" style="margin-top:12px">${RATE_F.map(([k,l])=>`<div class="f"><label>${l}</label><input data-rate="${k}" inputmode="decimal" placeholder="${k.startsWith('diet')?'':k==='holidayPct'?'%':'Kč/h'}" value="${['job','base','ot','weekend'].includes(k)&&!num(r[k])?'':esc(r[k])}"></div>`).join('')}</div><p class="muted">Dojíždění = sazba Alvian (Alvian / Depo), do přesčasu se nepočítá. Stravné 2026 (vyhl. 573/2025 Sb.) – minimum v soukromé firmě: 155 / 236 / 370 Kč.</p></div>
  <div class="panel"><h2>Profil</h2><div class="grid" style="margin-top:12px">${PROF_F.map(([k,l,t])=>`<div class="f ${t==='text'&&k!=='employeeNo'?'wide':''}"><label>${l}</label><input data-prof="${k}" data-type="${t}" ${t==='date'?'type="date"':t==='number'?'inputmode="decimal"':''} value="${esc(k==='vacationAnnualHours'?annualVac(p):k==='homePlace'?homePlace():p[k]??'')}"></div>`).join('')}</div></div>
  <div class="panel" style="grid-column:1/-1"><h2>Rychlé přidání</h2><div class="grid" style="margin-top:12px"><div class="f"><label>Depo od</label><input type="time" data-tpl="depo.start" value="${esc(tpl.depo.start)}"></div><div class="f"><label>Depo do</label><input type="time" data-tpl="depo.end" value="${esc(tpl.depo.end)}"></div><div class="f"><label>Depo pauza (h) · 0 = bez oběda</label><input inputmode="decimal" data-tpl="depo.lunch" value="${esc(tpl.depo.lunch)}"></div><div class="f"><label>Depo poznámka</label><input data-tpl="depo.note" value="${esc(tpl.depo.note)}"></div><div class="f"><label>Sazba Depo = základ (Kč/h)</label><input inputmode="decimal" data-tpl="rate" placeholder="Kč/h" value="${num(r.base)?esc(r.base):''}"></div><div class="f"><label>Dovolená h/den</label><input inputmode="decimal" data-tpl="vacHours" value="${esc(tpl.vacHours)}"></div><div class="f"><label>Nemoc h/den</label><input inputmode="decimal" data-tpl="sickHours" value="${esc(tpl.sickHours)}"></div></div><p class="muted">Depo = všechny hodiny jako základ, bez přesčasu, bez cestovního příkazu a stravného. Šablony se ukládají v tomto zařízení.</p></div>
- ${typeof renderSlipsPanel==='function'?renderSlipsPanel():''}${hooks.account?hooks.account():''}<div class="panel" style="grid-column:1/-1"><h2>Data a zálohy</h2><p class="muted">${hooks.cloudOn()?'Data jsou v tomto zařízení a synchronizují se s tvým účtem. Záloha JSON se přesto hodí.':'Vše je uloženo jen v tomto prohlížeči.'} ${bk.last?'Poslední záloha: '+fmtDate(bk.last.slice(0,10))+'.':'Zatím jsi nestahoval zálohu.'} Záznamů: ${state.entries.length}. Verze aplikace: ${window.APP_VERSION||'dev'}.</p><p class="muted" id="backupPhotoNote">📎 Fotky štítků jsou uložené v tvém účtu (a v zařízení pro offline); záloha JSON obsahuje jen údaje ke štítkům (místo, zákazník, stroj), <b>ne samotné fotky</b>. Fotky štítků se po 2 měsících automaticky mažou.</p><div class="btnrow"><button class="btn" data-act="saveSettings">Uložit nastavení</button><button class="btn sec" data-act="export">⬇ Exportovat JSON</button><button class="btn sec" data-act="import">⬆ Importovat JSON</button><button class="btn sec" data-act="csv">CSV – ${MONTHS[M]} ${Y}</button></div></div></div>`;
+ ${typeof renderSlipsPanel==='function'?renderSlipsPanel():''}${hooks.account?hooks.account():''}<div class="panel" style="grid-column:1/-1"><h2>Zvuky</h2>
+ <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+  <label class="chk"><input type="checkbox" data-sound="fx" ${ui.soundFx!==false?'checked':''}> Zvuky tlačítek</label>
+  <label class="chk"><input type="checkbox" data-sound="music" ${ui.soundMusic?'checked':''}> Hudba na pozadí</label>
+  <div class="f"><label for="soundVol">Hlasitost</label><input id="soundVol" type="range" min="0" max="100" step="1" data-sound="vol" value="${Math.round((ui.soundVol==null?.45:ui.soundVol)*100)}"></div>
+ </div>
+ <p class="muted" style="margin-top:8px">Na iPhonu nehraje v tichém režimu. Hudba se spustí jen když ji zapneš — při přepnutí aplikace na pozadí se pozastaví.</p></div>
+ <div class="panel" style="grid-column:1/-1"><h2>Data a zálohy</h2><p class="muted">${hooks.cloudOn()?'Data jsou v tomto zařízení a synchronizují se s tvým účtem. Záloha JSON se přesto hodí.':'Vše je uloženo jen v tomto prohlížeči.'} ${bk.last?'Poslední záloha: '+fmtDate(bk.last.slice(0,10))+'.':'Zatím jsi nestahoval zálohu.'} Záznamů: ${state.entries.length}. Verze aplikace: ${window.APP_VERSION||'dev'}.</p><p class="muted" id="backupPhotoNote">📎 Fotky štítků jsou uložené v tvém účtu (a v zařízení pro offline); záloha JSON obsahuje jen údaje ke štítkům (místo, zákazník, stroj), <b>ne samotné fotky</b>. Fotky štítků se po 2 měsících automaticky mažou.</p><div class="btnrow"><button class="btn" data-act="saveSettings">Uložit nastavení</button><button class="btn sec" data-act="export">⬇ Exportovat JSON</button><button class="btn sec" data-act="import">⬆ Importovat JSON</button><button class="btn sec" data-act="csv">CSV – ${MONTHS[M]} ${Y}</button></div></div></div>`;
 }
 function saveSettings(){
  state.rates=state.rates||{};state.profile=state.profile||{};
  $$('[data-rate]').forEach(i=>state.rates[i.dataset.rate]=num(i.value));
  $$('[data-prof]').forEach(i=>{const k=i.dataset.prof,t=i.dataset.type;if(t==='number')state.profile[k]=num(i.value);else if(i.value!==''||k in state.profile)state.profile[k]=i.value});
  $$('[data-tpl]').forEach(i=>{const k=i.dataset.tpl;if(k==='rate'){if(i.value!==i.defaultValue)state.rates.base=num(i.value)}else if(k.startsWith('depo.'))tpl.depo[k.slice(5)]=k==='depo.lunch'?num(i.value):i.value;else tpl[k]=num(i.value)});saveTpl();
+ readSoundControls();writeSoundToProfile();saveUi();
  saveData();render();toast('Nastavení uloženo');
 }
-function toast(t){let d=document.createElement('div');d.textContent=t;d.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#124b92;color:#fff;padding:10px 16px;border-radius:10px;z-index:99;font-size:13px';document.body.appendChild(d);setTimeout(()=>d.remove(),2200)}
+function toast(t,kind){let d=document.createElement('div');d.textContent=t;d.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#124b92;color:#fff;padding:10px 16px;border-radius:10px;z-index:99;font-size:13px';document.body.appendChild(d);setTimeout(()=>d.remove(),2200);try{if(window.__sounds){if(kind==='err')window.__sounds.playError();else if(kind!=='silent')window.__sounds.playDing()}}catch(e){}}
+/* Celebratory day-save overlay: earnings + cha-ching (overlay always, sound if fx on) */
+function celebrateSave(e){
+ if(!e)return;const c=calc(e);const all=Math.round(c.all),work=Math.round(c.work),diet=Math.round(c.diet||0);
+ try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}
+ let ov=$('#saveCeleb');if(ov)ov.remove();
+ ov=document.createElement('div');ov.id='saveCeleb';ov.className='save-celeb';ov.setAttribute('role','status');
+ const coins=['💰','🪙','💵','💰','🪙'].map((em,i)=>`<span class="sc-coin" style="--i:${i}">${em}</span>`).join('');
+ ov.innerHTML=`<div class="sc-card"><div class="sc-coins" aria-hidden="true">${coins}</div><div class="sc-amt">+${all.toLocaleString('cs-CZ')} Kč 💰</div><div class="sc-sub">výdělek ${work.toLocaleString('cs-CZ')} Kč${diet?` + stravné ${diet.toLocaleString('cs-CZ')} Kč`:''}</div></div>`;
+ const dismiss=()=>{ov.classList.add('out');setTimeout(()=>ov.remove(),220)};
+ ov.addEventListener('click',dismiss);document.body.appendChild(ov);
+ requestAnimationFrame(()=>ov.classList.add('in'));
+ setTimeout(dismiss,1800);
+}
 
 /* ---------- rychlé přidání ---------- */
 const LS_TPL='mojeDochazka.templates';
@@ -1137,7 +1308,8 @@ function quickAdd(kind,dates){
  else for(const d of dates){if(state.entries.some(x=>x.date===d)){skipped.push(fmtDate(d));continue}state.entries.push(mk(d));added++}
  if(added)saveData();multi=null;if($('#dlg').open)$('#dlg').close();
  const d=parseISO(dates[dates.length-1]);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();
- toast(`Přidáno: ${added} ${pl(added,'den','dny','dní')}${skipped.length?` · přeskočeno ${skipped.length} (už mají záznam)`:''}`);
+ if(added){const last=state.entries.filter(x=>dates.includes(x.date)).slice(-1)[0];if(last)celebrateSave(last);toast(`Přidáno: ${added} ${pl(added,'den','dny','dní')}${skipped.length?` · přeskočeno ${skipped.length} (už mají záznam)`:''}`,'silent')}
+ else toast(`Přidáno: ${added} ${pl(added,'den','dny','dní')}${skipped.length?` · přeskočeno ${skipped.length} (už mají záznam)`:''}`);
 }
 const quickBtn=(act,icon,title,sub,dates)=>`<button class="qbtn" data-act="${act}" data-dates="${dates.join(',')}"><span class="qi">${icon}</span><span><b>${title}</b><small>${sub}</small></span></button>`;
 function quickButtons(dates){
@@ -1170,7 +1342,7 @@ const jobVals=()=>{const v={};$$('[data-j]').forEach(i=>v[i.dataset.j]=i.value);
 function refreshJob(){const v=jobVals(),e=makeJob(v),c=calc(e),{errs,warns,infos}=validate(e);if(!v.start||!v.end)errs.unshift('Vyplň čas od–do.');
  $('#jcalc').innerHTML=`${fmtH(e.totalHours)} h (zakázka ${fmtH(e.jobHours)} + základ ${fmtH(e.baseHours)}${e.overtime?`, přesčas ${fmtH(e.overtime)}`:''}) · výdělek <b>${cash(c.work)}</b> · stravné <b>${cash(c.diet)}</b> · celkem <b>${cash(c.all)}</b>`;
  $('#jmsgs').innerHTML=errs.map(x=>`<div class="msg err">✖ ${x}</div>`).join('')+warns.map(x=>`<div class="msg warn">⚠ ${x}</div>`).join('')+infos.map(x=>x.startsWith('🎉')?`<div class="msg hol">${x}</div>`:`<div class="msg info">ℹ ${x}</div>`).join('');return{e,errs}}
-function saveJob(){const{e,errs}=refreshJob();if(errs.length)return;if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?`))return;state.entries.push(e);saveData();$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();toast('Uloženo')}
+function saveJob(){const{e,errs}=refreshJob();if(errs.length)return;if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?`))return;state.entries.push(e);saveData();$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();celebrateSave(e);toast('Uloženo','silent')}
 
 /* ---------- formulář ---------- */
 let editing=null,manual=new Set();
@@ -1280,7 +1452,7 @@ function saveForm(){
  const e=buildEntry(false);
  if(!editing&&state.entries.some(x=>x.date===e.date)&&!confirm('V tento den už záznam existuje. Opravdu přidat další?'))return;
  if(editing){const i=state.entries.findIndex(x=>x.id===editing.id);state.entries[i]=e}else state.entries.push(e);
- saveData();stitekSaved(e);const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();$('#dlg').close();render();toast('Uloženo');
+ saveData();stitekSaved(e);const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();$('#dlg').close();render();celebrateSave(e);toast('Uloženo','silent');
 }
 function delEntry(id){const e=state.entries.find(x=>x.id===id);if(!e)return;if(!confirm(`Smazat záznam ${fmtDate(e.date)}${entryLabel(e)?' – '+entryLabel(e):''}?`))return;state.entries=state.entries.filter(x=>x.id!==id);saveData();if($('#dlg').open)$('#dlg').close();render();toast('Smazáno')}
 
@@ -1379,6 +1551,7 @@ $('#today').onclick=()=>{const t=new Date();Y=t.getFullYear();M=t.getMonth();sel
 $('#addBtn').onclick=()=>openQuick([iso(Y,M,sel)]);
 $('#eye').onclick=()=>{ui.hide=!ui.hide;saveUi();render()};
 $('#mode').onchange=e=>{ui.mode=e.target.value;saveUi();render()};
+document.addEventListener('change',ev=>{const el=ev.target;if(!el||!el.dataset||!el.dataset.sound)return;readSoundControls();writeSoundToProfile();saveUi();saveData();});
 window.addEventListener('storage',e=>{if(e.key===LS_DATA){loadData();render()}});
 
 if(IS_IOS)$('#fileIn').removeAttribute('accept'); // iOS Files picker greys out .json with some accept values
@@ -1387,8 +1560,8 @@ if(window.APP_PWA&&'serviceWorker'in navigator&&location.protocol==='https:'){
  navigator.serviceWorker.register('sw.js').then(reg=>{reg.update();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update()})}).catch(e=>console.warn('SW',e));
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadCtrl)return;const b=document.createElement('div');b.className='backup-banner';b.style.cssText='position:fixed;left:12px;right:12px;top:max(12px,env(safe-area-inset-top));z-index:100';b.innerHTML='<span>🔄 Je k dispozici nová verze aplikace.</span><button class="btn small">Načíst znovu</button>';b.querySelector('button').onclick=()=>location.reload();document.body.appendChild(b)});
 }
-const loaded=loadData();initialMonth();render();
-window.__app={get state(){return state},calc,balances,dietInfo,holidays,summary,entryCustomer,entryPlace,entryLabel,reducePHV,dpnThresholds,phv,netRatio,toNet,dpnHourlyGross,dpnCalendarDay,leaveAmounts,payslipFor,latestPayslip,loaded,save:()=>{saveData();render()}};
+const loaded=loadData();syncSoundFromProfile();initialMonth();render();
+window.__app={get state(){return state},calc,balances,dietInfo,holidays,summary,entryCustomer,entryPlace,entryLabel,reducePHV,dpnThresholds,phv,netRatio,toNet,dpnHourlyGross,dpnCalendarDay,leaveAmounts,payslipFor,latestPayslip,loaded,celebrateSave,save:()=>{saveData();render()},get ui(){return ui}};
 /* ================= Výplatnice UI ================= */
 let slipPhotos=[],editingSlip=null;
 const SLIP_F=[['period','Období','month'],['avgGross','Použitý průměr Kč/h','number'],['gross','Hrubá mzda','number'],['net','Čistá mzda','number'],['hours','Odpracováno h','number'],['vacRemain','Zbývající dovolená h','number'],['travel','Cest. náhrady','number'],['payout','Vyúčtování','number']];
@@ -1499,6 +1672,7 @@ function applyDoc(doc){
  const strip=e=>{const c=Object.assign({},e);delete c.updatedAt;return c};
  state={version:3,entries:(doc.entries||[]).map(strip),rates:doc.rates||clone(DEF_RATES),profile:doc.profile||{},travelOrders:doc.travelOrders||{}};
  if(doc.templates){tpl=Object.assign(clone(DEF_TPL),doc.templates,{depo:Object.assign({},DEF_TPL.depo,doc.templates.depo||{})});saveTpl()}
+ try{typeof syncSoundFromProfile==='function'&&syncSoundFromProfile()}catch(e){}
  meta.stamps={};meta.h={};for(const e of doc.entries||[]){meta.stamps[e.id]=+e.updatedAt||1;meta.h[e.id]=hsh(canon(strip(e)))}
  meta.tomb={};for(const x of doc.deleted||[])meta.tomb[x.id]=+x.deletedAt||1;
  meta.sec=Object.assign({},doc.sectionsUpdatedAt||{});meta.sh={};for(const k of SECTIONS)meta.sh[k]=hsh(canon(secVal(k)));
