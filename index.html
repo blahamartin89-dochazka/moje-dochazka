@@ -48,10 +48,13 @@ header{padding-top:calc(12px + constant(safe-area-inset-top));padding-top:calc(1
 .crop-dlg,.photo-view{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#111;color:#fff}
 .crop-dlg[open]{display:flex;flex-direction:column}.crop-head{padding:calc(10px + env(safe-area-inset-top)) 14px 8px;display:flex;flex-direction:column;gap:2px}.crop-head .muted{color:#bbb}
 .crop-stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;
-  padding:max(32px, calc(28px + env(safe-area-inset-left))) max(32px, calc(28px + env(safe-area-inset-right))) max(32px, calc(28px + env(safe-area-inset-bottom))) max(32px, calc(28px + env(safe-area-inset-left)))}
-.crop-stage canvas#cropCv{display:block;max-width:100%;max-height:100%}.crop-stage svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);touch-action:none;overflow:visible}
+  padding:max(32px, calc(28px + env(safe-area-inset-top))) max(32px, calc(28px + env(safe-area-inset-right))) max(32px, calc(28px + env(safe-area-inset-bottom))) max(32px, calc(28px + env(safe-area-inset-left)))}
+.crop-wrap{position:relative;flex:0 0 auto;line-height:0;max-width:100%;max-height:100%}
+.crop-wrap canvas#cropCv{display:block;max-width:none;max-height:none}
+.crop-wrap svg{position:absolute;left:0;top:0;touch-action:none;overflow:visible}
 .crop-poly{fill:rgba(0,97,164,.18);stroke:#4fc3f7;stroke-width:2;pointer-events:none}
-.crop-h{cursor:grab;touch-action:none}.crop-hit{fill:rgba(79,195,247,.01);stroke:none}.crop-dot{fill:#4fc3f7;stroke:#fff;stroke-width:3}
+.crop-h,.crop-e{cursor:grab;touch-action:none}.crop-hit{fill:rgba(79,195,247,.01);stroke:none}.crop-dot{fill:#4fc3f7;stroke:#fff;stroke-width:3}
+.crop-e-hit{fill:rgba(79,195,247,.01);stroke:none}.crop-e-pill{fill:#4fc3f7;stroke:#fff;stroke-width:2}
 .crop-loupe{position:absolute;width:120px;height:120px;border-radius:50%;pointer-events:none;z-index:5;box-shadow:0 4px 16px rgba(0,0,0,.45)}
 .crop-foot{display:flex;flex-direction:column;gap:10px;padding:10px 14px calc(12px + env(safe-area-inset-bottom));background:#1b1b1b}
 .crop-tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
@@ -204,7 +207,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.7";
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.8";
 /* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
 const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
 const PHOTO_CLOUD=window.APP_PHOTO_CLOUD!==false; // bucket "stazky" existuje; vypnout lze v config.js: window.APP_PHOTO_CLOUD=false
@@ -292,8 +295,10 @@ function stitekDetailHTML(e){if(!isJobDay(e))return'';const ps=e.photos||[];
 
 /* ---------- ořez ---------- */
 let crop=null;
-function loadImg(blob){return new Promise((res,rej)=>{const u=URL.createObjectURL(blob),im=new Image();im.onload=()=>{URL.revokeObjectURL(u);res(im)};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Obrázek nejde načíst'))};im.src=u})}
-function toCanvas(src,maxSide,rot){const s=Math.min(1,maxSide/Math.max(src.width,src.height)),w=Math.round(src.width*s),h=Math.round(src.height*s),c=document.createElement('canvas');const r=((rot||0)%4+4)%4;c.width=r%2?h:w;c.height=r%2?w:h;const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(r*Math.PI/2);x.drawImage(src,-w/2,-h/2,w,h);return c}
+async function loadImg(blob){
+ try{if(typeof createImageBitmap==='function'){const bmp=await createImageBitmap(blob,{imageOrientation:'from-image'});const c=document.createElement('canvas');c.width=bmp.width;c.height=bmp.height;c.getContext('2d').drawImage(bmp,0,0);try{bmp.close()}catch(e){}return c}}catch(e){}
+ return new Promise((res,rej)=>{const u=URL.createObjectURL(blob),im=new Image();im.onload=()=>{URL.revokeObjectURL(u);res(im)};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Obrázek nejde načíst'))};im.src=u})}
+function toCanvas(src,maxSide,rot){const sw=src.width||src.videoWidth,sh=src.height||src.videoHeight;const s=Math.min(1,maxSide/Math.max(sw,sh)),w=Math.round(sw*s),h=Math.round(sh*s),c=document.createElement('canvas');const r=((rot||0)%4+4)%4;c.width=r%2?h:w;c.height=r%2?w:h;const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(r*Math.PI/2);x.drawImage(src,-w/2,-h/2,w,h);return c}
 /* Auto-ořez: downscale → grayscale → blur → Otsu (světlý papír) → největší komponenta → convex hull → 4 rohy (farthest-point) → lokální dohledání hrany. Nízká jistota → inset obdélník. */
 function autoQuad(cv){
  const S=320,sc=S/Math.max(cv.width,cv.height),w=Math.max(1,Math.round(cv.width*sc)),h=Math.max(1,Math.round(cv.height*sc));
@@ -381,7 +386,7 @@ function autoQuad(cv){
 }
 /* homografie: jednotkový čtverec → čtyřúhelník */
 function sq2quad(q){const[[x0,y0],[x1,y1],[x2,y2],[x3,y3]]=q,dx1=x1-x2,dx2=x3-x2,dy1=y1-y2,dy2=y3-y2,sx=x0-x1+x2-x3,sy=y0-y1+y2-y3;let g=0,hh=0;
- if(Math.abs(sx)>1e-9||Math.abs(sy)>1e-9){const den=dx1*dy2-dx2*dy1;g=(sx*dy2-dx2*sy)/den;hh=(dx1*sy-sx*dy1)/den}
+ if(Math.abs(sx)>1e-9||Math.abs(sy)>1e-9){const den=dx1*dy2-dx2*dy1;if(Math.abs(den)>1e-12){g=(sx*dy2-dx2*sy)/den;hh=(dx1*sy-sx*dy1)/den}}
  return[x1-x0+g*x1,x3-x0+hh*x3,x0,y1-y0+g*y1,y3-y0+hh*y3,y0,g,hh]}
 function warp(src,q,maxSide){const[a,b,c,d,e,f,g,h]=sq2quad(q),dist=(p,r)=>Math.hypot(p[0]-r[0],p[1]-r[1]);
  let W=(dist(q[0],q[1])+dist(q[3],q[2]))/2,H=(dist(q[0],q[3])+dist(q[1],q[2]))/2;const s=Math.min(1,maxSide/Math.max(W,H))||1;W=Math.max(1,Math.round(W*s));H=Math.max(1,Math.round(H*s));
@@ -394,40 +399,53 @@ const toJpeg=cv=>new Promise(r=>cv.toBlob(b=>r(b),'image/jpeg',.8));
 async function openCrop(file,target){let im;try{im=await loadImg(file)}catch(e){return toast(e.message)}
  crop={im,rot:0,target,q:null,cv:null,loupe:false};cropSetup();
  let d=$('#cropDlg');if(!d){d=document.createElement('dialog');d.id='cropDlg';d.className='crop-dlg';document.body.appendChild(d)}
- d.innerHTML=`<div class="crop-head"><b>Oříznout štítek</b><span class="muted">Posuň rohy na rohy papíru</span></div>
- <div class="crop-stage" id="cropStage"><canvas id="cropCv"></canvas><svg id="cropSvg"></svg><canvas id="cropLoupe" class="crop-loupe" hidden></canvas></div>
+ d.innerHTML=`<div class="crop-head"><b>Oříznout štítek</b><span class="muted">Rohy nebo celou hranu posuň na okraj papíru</span></div>
+ <div class="crop-stage" id="cropStage"><div class="crop-wrap" id="cropWrap"><canvas id="cropCv"></canvas><svg id="cropSvg"></svg><canvas id="cropLoupe" class="crop-loupe" hidden></canvas></div></div>
  <div class="crop-foot">
   <div class="crop-tools"><button type="button" class="btn sec small" data-st-act="cropRot">⟳ Otočit</button><button type="button" class="btn sec small" data-st-act="cropAuto">Auto</button><button type="button" class="btn sec small" data-st-act="cropFull">Celé</button></div>
   <div class="crop-actions"><button type="button" class="btn sec" data-st-act="cropCancel">Zrušit</button><button type="button" class="btn crop-ok" data-st-act="cropOk">Hotovo</button></div>
  </div>`;
  if(!d.open)d.showModal();requestAnimationFrame(()=>cropDraw())}
 function cropSetup(){crop.cv=toCanvas(crop.im,2400,crop.rot);crop.q=autoQuad(crop.cv)}
-function cropPad(){const st=$('#cropStage');if(!st)return 32;const cs=getComputedStyle(st);return Math.max(28,parseFloat(cs.paddingLeft)||32)}
-function cropDraw(){const st=$('#cropStage'),cv=$('#cropCv'),svg=$('#cropSvg');if(!st||!crop)return;
- const pad=cropPad();const W=Math.max(40,(st.clientWidth||340)-pad*2),H=Math.max(40,(st.clientHeight||460)-pad*2);
- const s=Math.min(W/crop.cv.width,H/crop.cv.height);const w=Math.round(crop.cv.width*s),h=Math.round(crop.cv.height*s);
+function cropStageBox(){const st=$('#cropStage');if(!st)return{W:340,H:460};const cs=getComputedStyle(st);
+ const pl=parseFloat(cs.paddingLeft)||0,pr=parseFloat(cs.paddingRight)||0,pt=parseFloat(cs.paddingTop)||0,pb=parseFloat(cs.paddingBottom)||0;
+ return{W:Math.max(40,st.clientWidth-pl-pr),H:Math.max(40,st.clientHeight-pt-pb)}}
+function cropNorm(clientX,clientY){const wrap=$('#cropWrap')||$('#cropSvg');const r=wrap.getBoundingClientRect();
+ return[Math.min(1,Math.max(0,r.width?((clientX-r.left)/r.width):0)),Math.min(1,Math.max(0,r.height?((clientY-r.top)/r.height):0))]}
+function cropDraw(){const st=$('#cropStage'),wrap=$('#cropWrap'),cv=$('#cropCv'),svg=$('#cropSvg');if(!st||!crop||!wrap)return;
+ const{W,H}=cropStageBox();const s=Math.min(W/crop.cv.width,H/crop.cv.height);const w=Math.max(1,Math.round(crop.cv.width*s)),h=Math.max(1,Math.round(crop.cv.height*s));
+ wrap.style.width=w+'px';wrap.style.height=h+'px';
  cv.width=w;cv.height=h;cv.style.width=w+'px';cv.style.height=h+'px';cv.getContext('2d').drawImage(crop.cv,0,0,w,h);
- svg.setAttribute('width',w);svg.setAttribute('height',h);svg.style.width=w+'px';svg.style.height=h+'px';crop.disp={w,h,pad};
+ svg.setAttribute('width',w);svg.setAttribute('height',h);svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.style.width=w+'px';svg.style.height=h+'px';crop.disp={w,h};
  const P=crop.q.map(([x,y])=>[x*w,y*h]);
- svg.innerHTML=`<polygon points="${P.map(p=>p.join(',')).join(' ')}" class="crop-poly"/>`+
+ const edges=[0,1,2,3].map(i=>{const a=P[i],b=P[(i+1)%4],mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2,ang=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI;
+  return`<g class="crop-e" data-e="${i}" transform="translate(${mx},${my}) rotate(${ang})"><rect class="crop-e-hit" x="-22" y="-22" width="44" height="44" rx="12"/><rect class="crop-e-pill" x="-18" y="-6" width="36" height="12" rx="6"/></g>`}).join('');
+ svg.innerHTML=`<polygon points="${P.map(p=>p.join(',')).join(' ')}" class="crop-poly"/>`+edges+
   P.map((p,i)=>`<g class="crop-h" data-i="${i}" transform="translate(${p[0]},${p[1]})"><circle r="22" class="crop-hit"/><circle r="7" class="crop-dot"/></g>`).join('');
  if(crop.loupe)cropLoupeDraw()}
-function cropLoupeDraw(){const lp=$('#cropLoupe'),svg=$('#cropSvg');if(!lp||!crop||dragI<0){if(lp)lp.hidden=true;return}
- const w=crop.disp.w,h=crop.disp.h,[qx,qy]=crop.q[dragI];
+function cropLoupePt(){if(dragI>=0)return crop.q[dragI];if(dragE>=0){const a=crop.q[dragE],b=crop.q[(dragE+1)%4];return[(a[0]+b[0])/2,(a[1]+b[1])/2]}return null}
+function cropLoupeDraw(){const lp=$('#cropLoupe'),wrap=$('#cropWrap');const pt=cropLoupePt();if(!lp||!crop||!pt){if(lp)lp.hidden=true;return}
+ const w=crop.disp.w,h=crop.disp.h,[qx,qy]=pt;
  const srcX=qx*crop.cv.width,srcY=qy*crop.cv.height,zoom=2.2,side=120,half=side/(2*zoom);
  lp.width=side;lp.height=side;lp.hidden=false;
  const lx=Math.min(w-side-4,Math.max(4,qx*w-side/2)),ly=Math.max(4,qy*h-side-36);
- lp.style.left=((svg.offsetLeft||0)+lx)+'px';lp.style.top=((svg.offsetTop||0)+ly)+'px';
+ lp.style.left=lx+'px';lp.style.top=ly+'px';
  const x=lp.getContext('2d');x.save();x.beginPath();x.arc(side/2,side/2,side/2-1,0,Math.PI*2);x.clip();
  x.fillStyle='#111';x.fillRect(0,0,side,side);
  x.drawImage(crop.cv,srcX-half,srcY-half,half*2,half*2,0,0,side,side);
  x.restore();x.strokeStyle='#3b82f6';x.lineWidth=2;x.beginPath();x.arc(side/2,side/2,side/2-1,0,Math.PI*2);x.stroke();
  x.strokeStyle='#fff';x.beginPath();x.moveTo(side/2-8,side/2);x.lineTo(side/2+8,side/2);x.moveTo(side/2,side/2-8);x.lineTo(side/2,side/2+8);x.stroke()}
-let dragI=-1;
-document.addEventListener('pointerdown',ev=>{const c=ev.target.closest&&ev.target.closest('.crop-h');if(!c)return;dragI=+c.dataset.i;if(crop)crop.loupe=true;ev.preventDefault();try{c.setPointerCapture(ev.pointerId)}catch(e){}});
-document.addEventListener('pointermove',ev=>{if(dragI<0||!crop)return;const r=$('#cropSvg').getBoundingClientRect();
- crop.q[dragI]=[Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height))];cropDraw()});
-document.addEventListener('pointerup',()=>{dragI=-1;if(crop){crop.loupe=false;const lp=$('#cropLoupe');if(lp)lp.hidden=true}});
+let dragI=-1,dragE=-1;
+function cropClampDelta(i,j,dx,dy){let dx1=dx,dy1=dy;for(const p of[crop.q[i],crop.q[j]]){if(p[0]+dx1<0)dx1=-p[0];if(p[0]+dx1>1)dx1=1-p[0];if(p[1]+dy1<0)dy1=-p[1];if(p[1]+dy1>1)dy1=1-p[1]}return[dx1,dy1]}
+document.addEventListener('pointerdown',ev=>{if(!crop)return;const h=ev.target.closest&&ev.target.closest('.crop-h');const e=ev.target.closest&&ev.target.closest('.crop-e');
+ if(h){dragI=+h.dataset.i;dragE=-1;crop.loupe=true;ev.preventDefault();try{h.setPointerCapture(ev.pointerId)}catch(x){}}
+ else if(e){dragE=+e.dataset.e;dragI=-1;crop.loupe=true;ev.preventDefault();try{e.setPointerCapture(ev.pointerId)}catch(x){}}});
+document.addEventListener('pointermove',ev=>{if(!crop||(dragI<0&&dragE<0))return;const[nx,ny]=cropNorm(ev.clientX,ev.clientY);
+ if(dragI>=0){crop.q[dragI]=[nx,ny]}
+ else if(dragE>=0){const i=dragE,j=(i+1)%4,mx=(crop.q[i][0]+crop.q[j][0])/2,my=(crop.q[i][1]+crop.q[j][1])/2;const[dx,dy]=cropClampDelta(i,j,nx-mx,ny-my);crop.q[i]=[crop.q[i][0]+dx,crop.q[i][1]+dy];crop.q[j]=[crop.q[j][0]+dx,crop.q[j][1]+dy]}
+ cropDraw()});
+document.addEventListener('pointerup',()=>{dragI=-1;dragE=-1;if(crop){crop.loupe=false;const lp=$('#cropLoupe');if(lp)lp.hidden=true}});
+document.addEventListener('pointercancel',()=>{dragI=-1;dragE=-1;if(crop){crop.loupe=false;const lp=$('#cropLoupe');if(lp)lp.hidden=true}});
 async function cropFinish(){const q=crop.q.map(([x,y])=>[x*crop.cv.width,y*crop.cv.height]),out=warp(crop.cv,q,1600),blob=await toJpeg(out);
  const id='ph-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),meta={id,w:out.width,h:out.height,ts:new Date().toISOString()};
  try{await pPut(id,blob)}catch(e){toast('Fotku nejde uložit: '+e.message);return}
