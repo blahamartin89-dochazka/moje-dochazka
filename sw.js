@@ -1,4 +1,4 @@
-const CACHE='moje-dochazka-2026-11-05.13-825f7744b2';const ASSETS=['./','index.html','manifest.json','apple-touch-icon.png','icon-192.png','icon-512.png','icon-maskable-512.png','config.js','vendor/supabase.js','vendor/jspdf.umd.min.js','vendor/pdf-assets.js'];
+const CACHE='moje-dochazka-2026-11-05.14-cff4670df1';const ASSETS=['./','index.html','manifest.json','apple-touch-icon.png','icon-192.png','icon-512.png','icon-maskable-512.png','config.js','vendor/supabase.js','vendor/jspdf.umd.min.js','vendor/pdf-assets.js'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{const r=e.request;if(r.method!=='GET'||new URL(r.url).origin!==location.origin)return;
