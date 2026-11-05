@@ -70,7 +70,7 @@ header{padding-top:calc(12px + constant(safe-area-inset-top));padding-top:calc(1
  main{padding-bottom:12px}
  nav.tabs{display:none!important}
  /* na mobilu u jiných pohledů než kalendář skrýt úvod a souhrn, ať je obsah hned vidět */
- body[data-view]:not([data-view="calendar"]) .intro,body[data-view]:not([data-view="calendar"]) #stats{display:none!important}
+ body[data-view]:not([data-view="calendar"]):not([data-view="charts"]) .intro{display:none!important}
 }
 /* v12 cesťák – horní lišta s tiskem */
 .order-actions{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px -4px 12px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid #dfe7f4;border-radius:12px;box-shadow:0 2px 10px rgba(18,75,146,.08)}
@@ -84,7 +84,7 @@ body[data-view]:not([data-view="calendar"]) #detail{display:none!important}
 #detail{margin:0 0 16px}
 #calendarView .layout{grid-template-columns:1fr}
 #stats{margin-top:16px}
-@media(max-width:700px){body[data-view]:not([data-view="calendar"]) #stats{display:none!important}}
+
 @media(max-width:700px){.intro p{display:none}.intro h1{font-size:22px;margin:4px 0 0}}
 /* v16 Dnes */
 body[data-view="dnes"] #addBtn,body[data-view="dnes"] .intro p{display:none}
@@ -137,6 +137,33 @@ body[data-view="dnes"] #addBtn,body[data-view="dnes"] .intro p{display:none}
 /* v17 safe-area overlays */
 @media(max-width:700px){dialog.qdlg .dlg-head{padding-top:calc(12px + env(safe-area-inset-top,0px))}dialog{max-height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 8px);max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 8px)}dialog.qdlg{max-height:100%;height:100%;padding:0}html{background:#124b92}}
 
+/* v18 Výdělky vs Kalendář */
+body[data-view="calendar"] #stats,body[data-view="calendar"] #chartPanel{display:none!important}
+body[data-view="charts"] #calendarView,body[data-view="charts"] #detail,body[data-view="charts"] #monthcontrol,body[data-view="charts"] #stats,body[data-view="charts"] #chartPanel,body[data-view="charts"] #addBtn{display:none!important}
+body[data-view="charts"] .intro p{display:none}
+#pay{max-width:640px;margin:0 auto}
+.pay-top{background:#124b92;color:#fff;border-radius:18px;padding:16px;margin:0 0 12px}
+.pay-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pay-nav h2{margin:0;font-size:20px;color:#fff;text-align:center;flex:1}
+.pay-nav button{width:40px;height:40px;border-radius:12px;border:0;background:#ffffff22;color:#fff;font-size:22px}
+.pay-total small{opacity:.85;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+.pay-total strong{display:block;font-size:34px;letter-spacing:-.5px;margin:2px 0}
+.pay-total em{display:block;font-style:normal;opacity:.9;font-size:13px}
+.pay-cmp{margin-top:10px;font-size:13px;opacity:.95}.pay-cmp .up{color:#b6f5c8}.pay-cmp .dn{color:#ffd0d0}
+.pay-top .linkbtn{color:#dbe8ff}
+.pay-box{background:#fff;border-radius:16px;padding:14px 16px;margin:0 0 12px;box-shadow:0 1px 3px #0b254a14}
+.pay-box h3,.pay-h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:#5a6b85}
+.pay-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #eef2f7;font-size:14px}
+.pay-row i{font-style:normal;color:#6b7a90;font-size:12.5px}.pay-row.total{border:0;font-size:16px;padding-top:10px}
+.pay-bal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pay-bal-grid small{display:block;color:#6b7a90;font-size:12px}.pay-bal-grid b{font-size:22px;color:#124b92}.pay-bal-grid i{display:block;font-style:normal;color:#6b7a90;font-size:12px;margin-top:2px}
+.pay-day{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;border:0;border-bottom:1px solid #eef2f7;background:#fff;padding:11px 0;font:inherit;color:#14233b;cursor:pointer}
+.pay-day:last-child{border:0}.pay-day small{display:block;color:#6b7a90;margin-top:2px;font-size:12.5px}
+.pay-day-r{text-align:right;white-space:nowrap}.pay-day-r b{display:block;color:#124b92}.pay-day-r small{color:#6b7a90}
+body[data-view="charts"] .history-grid{display:grid;grid-template-columns:1fr;gap:8px}
+@media(min-width:701px){body[data-view="charts"] .history-grid{grid-template-columns:1fr 1fr}}
+
+.pay-actions{margin:0 0 8px;display:flex;justify-content:flex-end}
+
 header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.brand .brandname{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#c0d9fa;margin-top:6px}
 .day.selected{border-color:#124b92}.dot{background:#124b92}.bar{background:#7fa6d6}.bar.selected{background:#124b92}.bar:hover{background:#24558a}.history-meter i{background:#124b92}.qbtn:hover,.qbtn:active{border-color:#124b92}.linkbtn{color:#124b92}
 .auth-logo{display:block;height:44px;width:auto;margin-bottom:12px}
@@ -152,11 +179,11 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <section id="dnesView" class="hidden"></section>
 <section id="calendarView"><div class="layout"><div class="panel"><div class="week"><span>PO</span><span>ÚT</span><span>ST</span><span>ČT</span><span>PÁ</span><span>SO</span><span>NE</span></div><div class="calendar" id="calendar"></div><div class="legend"><span><i class="dot" style="background:#3b7be0"></i>Zakázka</span><span><i class="dot" style="background:#2e9e5b"></i>Depo</span><span><i class="dot" style="background:#e0b000"></i>Dovolená</span><span><i class="dot" style="background:#9d83b5"></i>Nemoc</span><span><i class="dot" style="background:#e05555"></i>Svátek</span><span><i class="dot" style="background:#b8bec8"></i>Víkend</span><span style="color:#c0392b;font-weight:700">! nezapsáno</span></div></div></div></section>
 <div class="stats" id="stats"></div>
-<section id="chartsView" class="hidden"><div class="panel" id="chartDetail"></div></section>
+<section id="chartsView" class="hidden"><div id="pay"></div><div id="history" class="history-grid" style="margin-top:16px"></div></section>
 <section id="ordersView" class="hidden"><div class="panel" id="orders"></div></section>
 <section id="settingsView" class="hidden"><div id="settings"></div></section>
 <section class="panel chart-panel" id="chartPanel"><div class="chart-head"><div><h2>Výdělek po dnech</h2><p class="muted">Klepni na sloupec pro detail dne</p></div><select id="mode" aria-label="Co zobrazit"><option value="work">Výdělek bez diet a náhrad</option><option value="all">Celkem včetně diet a náhrad</option></select></div><div id="chartSummary" class="muted"></div><div class="chart-scroll"><div class="chart" id="chart"></div></div><p class="chart-note">Výška sloupce odpovídá částce. Dny bez záznamu jsou prázdné.</p></section>
-<section id="historyView" class="hidden"><h2 class="viewtitle">Historie · měsíc vedle měsíce</h2><div class="history-grid" id="history"></div></section>
+<section id="historyView" class="hidden"></section>
 <p class="footnote">Data se ukládají v zařízení a synchronizují s tvým účtem (bez přihlášení zůstávají jen v zařízení). Částky jsou čisté: hodiny × tvoje sazby z Nastavení. Stravné podle zákoníku práce a vyhl. 573/2025 Sb. (5–12 h / nad 12–18 h / nad 18 h).</p>
 </main>
 <nav class="bottom" aria-label="Hlavní navigace"><button type="button" data-view="dnes" aria-label="Dnes"><span class="ico" aria-hidden="true">☀</span><span class="lbl">Dnes</span></button><button type="button" data-view="calendar" aria-label="Kalendář"><span class="ico" aria-hidden="true">▦</span><span class="lbl">Kalendář</span></button><button type="button" data-view="charts" aria-label="Výdělky"><span class="ico" aria-hidden="true">▥</span><span class="lbl">Výdělky</span></button><button type="button" data-view="orders" aria-label="Cesťák"><span class="ico" aria-hidden="true">✈︎</span><span class="lbl">Cesťák</span></button><button type="button" data-view="settings" aria-label="Nastavení"><span class="ico" aria-hidden="true">⚙︎</span><span class="lbl">Nastavení</span></button></nav>
@@ -164,7 +191,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.1";
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.2";
 /* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
 const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
 const PHOTO_CLOUD=window.APP_PHOTO_CLOUD!==false; // bucket "stazky" existuje; vypnout lze v config.js: window.APP_PHOTO_CLOUD=false
@@ -683,18 +710,18 @@ function render(){
   const td=todayISO(),tc=es.length?(es.some(e=>num(e.jobHours)>0)?'t-job':es.some(e=>num(e.totalHours)>0)?'t-depo':es.some(e=>num(e.vacationHours)>0)?'t-vac':'t-sick'):(k<td&&!isWeekend(k)&&!hol?'t-miss':'');
   html+=`<button class="day ${tc} ${isWeekend(k)?'weekend':''} ${(multi?multi.has(k):d===sel)?'selected':''} ${multi&&multi.has(k)?'multi':''} ${hol?'holiday':''}" data-day="${d}" title="${esc(hol)}" aria-label="${d}. ${MONTHS_GEN[M]}${hol?', '+esc(hol):''}, ${es.length?cash(v):'bez záznamu'}"><span class="num">${d}</span>${es.some(e=>e.photos&&e.photos.length)?'<span class="clip" aria-label="štítek">📎</span>':''}<span class="money ${ty==='Dovolená'?'leave':(ty==='Nemoc'||ty==='Lékař')?'sick':''}">${es.length?(ui.hide?'••••':Math.abs(v)>=10000?(v/1000).toLocaleString('cs-CZ',{maximumFractionDigits:1})+'k':cash(v).replace(' Kč','')):'—'}</span><span class="hours">${es.length?(h>0?fmtH(h)+' h':ty):''}${es.length>1?' ×'+es.length:''}</span></button>`}
  $('#calendar').innerHTML=html;
- const det=details();$('#detail').innerHTML=det;$('#chartDetail').innerHTML=det;
+ const det=details();$('#detail').innerHTML=det;
  const vals=Array.from({length:days},(_,i)=>(bd[iso(Y,M,i+1)]||[]).reduce((t,e)=>t+value(e),0));const max=Math.max(1,...vals);
  $('#chart').innerHTML=vals.map((v,i)=>{const d=i+1,has=!!bd[iso(Y,M,d)];return `<div class="bar-wrap"><button class="bar ${d===sel?'selected':''}" data-day="${d}" aria-label="${d}. ${MONTHS_GEN[M]}: ${cash(v)}" title="${d}.: ${cash(v)}" style="height:${ui.hide?4:Math.max(3,v/max*170)}px;opacity:${has?1:.18}"></button><small>${d}</small></div>`}).join('');
  const total=vals.reduce((a,b)=>a+b,0);
  $('#chartSummary').textContent=ui.hide?'Částky a výšky sloupců jsou skryté.':`Součet: ${cash(total)} · Nejvyšší den: ${cash(Math.max(0,...vals))} · ${ui.mode==='work'?'Kalendář ukazuje výdělek bez diet a náhrad.':'Kalendář ukazuje celkovou částku od firmy.'}`;
  $('#mode').value=ui.mode;
- if(view==='dnes')renderDnes();if(view==='history'||view==='charts')renderHistory();if(view==='orders')renderOrders();if(view==='settings')renderSettings();
- ['dnes','calendar','charts','history','orders','settings'].forEach(v=>$('#'+v+'View').classList.toggle('hidden',!(v===view||(v==='history'&&view==='charts'))));
- $('#chartPanel').classList.toggle('hidden',!['calendar','charts'].includes(view));
- $('#monthcontrol').classList.toggle('hidden',['dnes','history','settings'].includes(view));
- $('#stats').classList.toggle('hidden',['settings','dnes'].includes(view));
- $$('nav [data-view]').forEach(b=>{const on=b.dataset.view===view||(view==='history'&&b.dataset.view==='charts');b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')});document.body.dataset.view=view;
+ if(view==='dnes')renderDnes();if(view==='charts'){renderPay();renderHistory()}if(view==='orders')renderOrders();if(view==='settings')renderSettings();
+ ['dnes','calendar','charts','history','orders','settings'].forEach(v=>$('#'+v+'View').classList.toggle('hidden',v!==view));
+ $('#chartPanel').classList.add('hidden');
+ $('#monthcontrol').classList.toggle('hidden',view!=='calendar');
+ $('#stats').classList.add('hidden');
+ $$('nav [data-view]').forEach(b=>{const on=b.dataset.view===view;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')});document.body.dataset.view=view;
  $('#eye').textContent=ui.hide?'◉ Zobrazit částky':'◉ Skrýt částky';
  renderBanner();renderMultiBar();
 }
@@ -731,8 +758,37 @@ function details(){
  return h+`<div class="btnrow no-print"><button class="btn small" data-act="add" data-date="${k}">+ Další záznam v tento den</button></div>`;
 }
 function monthRange(){const ks=state.entries.map(e=>e.date?.slice(0,7)).filter(Boolean).concat(Object.keys(state.travelOrders||{})).sort();const t=new Date(),cur=`${t.getFullYear()}-${pad(t.getMonth()+1)}`;if(!ks.length)return[cur];let a=ks[0],b=ks[ks.length-1]>cur?ks[ks.length-1]:cur;const out=[];let[y,m]=a.split('-').map(Number);while(`${y}-${pad(m)}`<=b){out.push(`${y}-${pad(m)}`);m++;if(m>12){m=1;y++}}return out.slice(-24).reverse()}
+
+function monthPayParts(y,m){
+ const a=monthEntries(y,m),rt=R(),out={jobH:0,alvH:0,comH:0,otH:0,wkH:0,vacH:0,sickH:0,docH:0,jobK:0,alvK:0,comK:0,otK:0,wkK:0,vacK:0,holK:0,dietK:0,costK:0,workK:0,allK:0,h:0,days:0};
+ const wd=new Set();
+ for(const e of a){const c=calc(e),com=Math.min(num(e.commuteHours),num(e.baseHours)),al=r2(num(e.baseHours)-com);
+  out.jobH+=num(e.jobHours);out.alvH+=al;out.comH+=com;out.otH+=num(e.overtime);out.wkH+=num(e.weekendHours);
+  out.vacH+=num(e.vacationHours);out.sickH+=num(e.sickHours);out.docH+=num(e.doctorHours);out.h+=num(e.totalHours);
+  out.jobK+=c.job;out.alvK+=al*num(rt.base);out.comK+=com*num(rt.base);out.otK+=c.ot;out.wkK+=c.wk;out.vacK+=c.vac;out.holK+=c.holx;out.dietK+=c.diet;out.costK+=c.c.sum;out.workK+=c.work;out.allK+=c.all;
+  if(num(e.totalHours)>0)wd.add(e.date)}
+ out.days=wd.size;for(const k of Object.keys(out))if(typeof out[k]==='number')out[k]=r2(out[k]);return out}
+function renderPay(){
+ const s=monthPayParts(Y,M),rt=R(),pm=M?M-1:11,py=M?Y:Y-1,ps=monthPayParts(py,pm),b=balances(),title=MONTHS[M][0].toUpperCase()+MONTHS[M].slice(1)+' '+Y;
+ const diff=s.allK-ps.allK,diffTxt=ps.allK?(diff>=0?'+':'')+cash(diff).replace(' Kč','')+' Kč':'—';
+ const row=(l,h,rate,k)=>!h&&!k?'':`<div class="pay-row"><span>${l}${h?` <i>${fmtH(h)} h${rate!=null?` × ${rate}`:''}</i>`:''}</span><b>${cash(k)}</b></div>`;
+ const days=monthEntries(Y,M).map(e=>{const c=calc(e),ty=dayType(e),place=[e.customer||'',e.travel?.to||'',e.note||''].filter(Boolean);const label=[...new Set(place.map(x=>x).filter((x,i,a)=>!a.some((y,j)=>j!==i&&y.includes(x))))].slice(0,2).join(' · ')||ty;
+  const hrs=num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.doctorHours);
+  return `<button class="pay-day" data-act="goDay" data-date="${e.date}"><span><b>${DOW[parseISO(e.date).getDay()]} ${dm(e.date)}</b><small>${esc(label)}${e.startTime?` · ${hm(e.startTime)}–${hm(e.endTime)}`:''}</small></span><span class="pay-day-r"><b>${cash(c.all)}</b><small>${fmtH(hrs)} h</small></span></button>`}).join('')||'<p class="muted">V tomto měsíci zatím nic.</p>';
+ $('#pay').innerHTML=`<div class="pay-top"><div class="pay-nav"><button type="button" data-act="payPrev" aria-label="Předchozí měsíc">‹</button><h2>${title}</h2><button type="button" data-act="payNext" aria-label="Další měsíc">›</button></div><div class="pay-actions"><button type="button" class="btn small" id="dochPdfPay" data-act="dochPdf" style="background:#fff;color:#124b92">📄 Docházka PDF</button></div>
+ <div class="pay-total"><small>Celkem od firmy</small><strong>${cash(s.allK)}</strong><em>výdělek ${cash(s.workK)} + diety a náhrady ${cash(s.allK-s.workK)}</em>
+ <div class="pay-cmp">${MONTHS[pm][0].toUpperCase()+MONTHS[pm].slice(1)} ${py}: <b>${cash(ps.allK)}</b> · rozdíl <b class="${diff>=0?'up':'dn'}">${diffTxt}</b></div>
+ <button type="button" class="linkbtn" data-act="eyeT" style="padding:8px 0 0">${ui.hide?'◉ Zobrazit částky':'◉ Skrýt částky'}</button></div></div>
+ <div class="pay-box"><h3>Rozklad</h3>${row('Zákazník',s.jobH,rt.job,s.jobK)}${row('Alvian / Depo',s.alvH,rt.base,s.alvK)}${row('Dojíždění',s.comH,rt.base,s.comK)}${row('Příplatek přesčas',s.otH,rt.ot,s.otK)}${row('Příplatek víkend',s.wkH,rt.weekend,s.wkK)}${row('Příplatek svátek',0,null,s.holK)}${row('Dovolená',s.vacH,null,s.vacK)}${s.sickH?`<div class="pay-row"><span>Nemoc <i>${fmtH(s.sickH)} h</i></span><b>—</b></div>`:''}${row('Stravné (diety)',0,null,s.dietK)}${row('Náhrady (jízdné, ubyt.)',0,null,s.costK)}
+ <div class="pay-row total"><span>Celkem</span><b>${cash(s.allK)}</b></div>
+ <p class="muted" style="margin:8px 0 0">${fmtH(s.h)} h práce · ${s.days} ${pl(s.days,'směna','směny','směn')} · přesčas ${fmtH(s.otH)} h</p></div>
+ <div class="pay-box pay-bal"><h3>Zůstatky ${b.year}</h3><div class="pay-bal-grid"><div><small>Dovolená</small><b>${fmtH(b.vac)} h</b><i>${fmtH(b.old)} stará · ${fmtH(b.nw)} nová</i></div><div><small>Sick days</small><b>${b.sick} ${pl(b.sick,'den','dny','dní')}</b><i>zbývá z ${b.sickAnnual}</i></div></div></div>
+ <div class="pay-box"><h3>Po dnech</h3><div class="pay-days">${days}</div></div>
+ <p class="muted" style="margin:8px 12px">Historie měsíců je níže – klepni na měsíc.</p>`;
+}
+
 function renderHistory(){const ks=monthRange();const sums=ks.map(k=>summary(+k.slice(0,4),+k.slice(5)-1));const vs=sums.map(s=>ui.mode==='work'?s.work:s.all);const mx=Math.max(1,...vs);const cur=todayISO().slice(0,7);
- $('#history').innerHTML=ks.map((k,i)=>{const s=sums[i],m=+k.slice(5)-1;return `<button class="history-card" data-month="${k}"><span>${MONTHS[m][0].toUpperCase()+MONTHS[m].slice(1)} ${k.slice(0,4)} ${k===cur?'· rozpracováno':''}</span><strong>${cash(vs[i])}</strong><p>${fmtH(s.h)} h práce · ${s.days} ${pl(s.days,'směna','směny','směn')} · přesčas ${fmtH(s.ot)} h</p><p>${ui.mode==='work'?'Bez diet a náhrad':'Včetně diet a náhrad'} · diety ${cash(s.diet)}</p><div class="history-meter"><i style="width:${ui.hide?0:vs[i]/mx*100}%"></i></div><p>Zobrazit měsíc →</p></button>`}).join('')}
+ $('#history').innerHTML='<h3 class="pay-h3">Historie · měsíc vedle měsíce</h3>'+ks.map((k,i)=>{const s=sums[i],m=+k.slice(5)-1;return `<button class="history-card" data-month="${k}"><span>${MONTHS[m][0].toUpperCase()+MONTHS[m].slice(1)} ${k.slice(0,4)} ${k===cur?'· rozpracováno':''}</span><strong>${cash(vs[i])}</strong><p>${fmtH(s.h)} h práce · ${s.days} ${pl(s.days,'směna','směny','směn')} · přesčas ${fmtH(s.ot)} h</p><p>${ui.mode==='work'?'Bez diet a náhrad':'Včetně diet a náhrad'} · diety ${cash(s.diet)}</p><div class="history-meter"><i style="width:${ui.hide?0:vs[i]/mx*100}%"></i></div><p>Zobrazit měsíc →</p></button>`}).join('')}
 
 /* ---------- cestovní příkaz ---------- */
 const tripEntries=(y,m)=>monthEntries(y,m).filter(e=>!e.noTravelOrder&&(num(e.tripHours)>0||e.travel?.to));
@@ -1018,13 +1074,17 @@ document.addEventListener('click',ev=>{
   if(act==='csv')return exportCSV();
   if(act==='saveSettings')return saveSettings();
   if(act==='print')return cestakPrint(ev.target.closest('[data-act]'));
+  if(act==='payPrev'){go(-1);return}
+  if(act==='payNext'){go(1);return}
+  if(act==='dochPdf'){dochazkaPrint(a);return}
+  if(act==='goDay'){const d=parseISO(a.dataset.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();view='calendar';render();window.scrollTo(0,0);return}
   if(act==='impMerge')return doImport(false);
   if(act==='impReplace')return doImport(true);
  }
  const rs=ev.target.closest('[data-reset]');if(rs){manual.delete(rs.dataset.reset);refreshForm();return}
  const d=ev.target.closest('[data-day]'),v=ev.target.closest('[data-view]'),m=ev.target.closest('[data-month]');
  if(d&&multi&&d.closest('#calendar')){const k=iso(Y,M,+d.dataset.day);multi.has(k)?multi.delete(k):multi.add(k);sel=+d.dataset.day;render();return}
- if(d){sel=+d.dataset.day;render();if(view==='charts')$('#chartDetail').scrollIntoView({behavior:'smooth',block:'nearest'});else if(innerWidth<=700)$('#detail').scrollIntoView({behavior:'smooth',block:'start'})}
+ if(d){sel=+d.dataset.day;render();if(view==='calendar'&&innerWidth<=700)$('#detail').scrollIntoView({behavior:'smooth',block:'start'})}
  if(v){view=v.dataset.view;render();window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0}
  if(m){Y=+m.dataset.month.slice(0,4);M=+m.dataset.month.slice(5)-1;const es=monthEntries(Y,M);sel=es.length?+es[0].date.slice(8):1;view='calendar';render();window.scrollTo({top:0,behavior:'smooth'})}
 });
