@@ -1,0 +1,17 @@
+Cash-register ka-ching used as the day-save sound (ka-ching.wav).
+
+Title: cash register chching
+Author: disman (Freesound)
+Source page: https://freesound.org/s/728224/
+Direct file used: https://cdn.freesound.org/previews/728/728224_15719741-hq.mp3
+License: CC0 1.0 Universal (public domain dedication)
+License text: https://creativecommons.org/publicdomain/zero/1.0/
+Verified on the Freesound page (2026-11-05): the license link is
+http://creativecommons.org/publicdomain/zero/1.0/ labeled "Creative Commons 0",
+with the statement "You can copy, modify, distribute and perform the sound,
+even for commercial purposes, all without the need of asking permission to the author."
+Attribution is not required. This note is kept so the source stays traceable.
+
+The file in this app is that recording converted to mono 44.1 kHz PCM,
+trimmed to about 1.24 s (leading silence and the dead tail removed, the
+drawer hit and bell kept), with a short fade and the peak set to -3 dBFS.

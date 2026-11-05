@@ -243,7 +243,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.14";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.15";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -288,6 +288,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
    try{const p=c.resume();if(p&&p.catch)p.catch(()=>{})}catch(e){}
    primeSilent(c);
   }
+  decodeChime(c).catch(()=>{});
   return c}
  /* Run fn once the context is actually running. Listener is attached
     before resume(), so a suspended iOS context still gets the chime
@@ -323,52 +324,41 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
  let tapCount=0,chimeCount=0,chimeSkippedMute=0,lastChimeAt=0;
  const oscLog=[];
  const CHIME_GAP=350;
+ const CHIME_URL='ka-ching.wav';
+ /* CC0 1.0 recording, not synthesized notes.
+    "cash register chching" by disman, https://freesound.org/s/728224/
+    https://creativecommons.org/publicdomain/zero/1.0/ */
+ let chimeAb=null,chimeBuf=null,chimeLoading=null;
  const SAVE_ACTS=new Set(['qSave','saveForm','jobSave','qDepo','qVac','qSick','qDpn']);
+ function preloadChime(){
+  if(chimeAb)return Promise.resolve(chimeAb);
+  if(chimeLoading)return chimeLoading;
+  chimeLoading=fetch(CHIME_URL).then(r=>{if(!r.ok)throw new Error('ka-ching '+r.status);return r.arrayBuffer()}).then(ab=>{chimeAb=ab;chimeLoading=null;const c=ctx;if(c)decodeChime(c).catch(()=>{});return ab}).catch(e=>{chimeLoading=null;throw e});
+  return chimeLoading;
+ }
+ function decodeChime(c){
+  if(chimeBuf)return Promise.resolve(chimeBuf);
+  if(!chimeAb||!c||!c.decodeAudioData)return Promise.resolve(null);
+  return c.decodeAudioData(chimeAb.slice(0)).then(buf=>{chimeBuf=buf;return buf}).catch(()=>null);
+ }
+ try{preloadChime()}catch(e){}
  function playTap(){tapCount++;beep({type:'triangle',freq:920,freq2:640,dur:.035,gain:.14,lp:2800})}
  function playDing(){beep({type:'sine',freq:880,dur:.05,gain:.2,lp:5000});setTimeout(()=>beep({type:'sine',freq:1174,dur:.12,gain:.18,lp:5000}),55)}
  function playError(){beep({type:'sawtooth',freq:220,freq2:140,dur:.16,gain:.12,lp:900})}
- /* One coin: bright inharmonic sines (not square beeps) + a 12 ms metal tick. */
- function coinHit(c,t,f0,vol){
-  const ratios=[[1,.5],[2.37,.26],[3.71,.14],[5.09,.07],[6.83,.035]];
-  for(const [ratio,amp] of ratios){
-   const o=c.createOscillator(),g=c.createGain(),fl=c.createBiquadFilter();
-   o.type='sine';oscLog.push('sine');
-   o.frequency.setValueAtTime(Math.max(40,f0*ratio),t);
-   fl.type='highpass';fl.frequency.value=1200;
-   g.gain.setValueAtTime(0,t);
-   g.gain.linearRampToValueAtTime(amp*.62*vol,t+.002);
-   g.gain.exponentialRampToValueAtTime(.0008,t+.17);
-   o.connect(fl);fl.connect(g);g.connect(master);
-   o.start(t);o.stop(t+.19);
-  }
-  const n=c.createBufferSource(),sr=c.sampleRate||44100,len=Math.max(8,Math.floor(sr*.012));
-  const buf=c.createBuffer(1,len,sr),d=buf.getChannelData(0);
-  for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3);
-  const gn=c.createGain(),fn=c.createBiquadFilter();
-  fn.type='bandpass';fn.frequency.value=Math.min(8000,f0);fn.Q.value=2.4;
-  gn.gain.setValueAtTime(.42*vol,t);gn.gain.exponentialRampToValueAtTime(.0008,t+.028);
-  n.buffer=buf;n.connect(fn);fn.connect(gn);gn.connect(master);n.start(t);n.stop(t+.035);
- }
- function emitCoins(c,vol){
-  if(!prefs().fx)return;
+ function emitChime(c){
+  if(!prefs().fx||!chimeBuf)return;
   chimeCount++;
-  const t0=(c.currentTime||0)+.012;
-  /* Four coins into a tray, then a short bright "ching". */
-  [[0,3480],[.062,4210],[.128,2860],[.198,4680]].forEach(([dt,f])=>coinHit(c,t0+dt,f,vol));
-  const o=c.createOscillator(),g=c.createGain();
-  o.type='sine';oscLog.push('sine');
-  o.frequency.setValueAtTime(2093,t0+.05);
-  g.gain.setValueAtTime(0,t0+.05);
-  g.gain.linearRampToValueAtTime(.22*vol,t0+.06);
-  g.gain.exponentialRampToValueAtTime(.0008,t0+.34);
-  o.connect(g);g.connect(master);o.start(t0+.05);o.stop(t0+.36);
-  const n=c.createBufferSource(),sr=c.sampleRate||44100,len=Math.max(8,Math.floor(sr*.05));
-  const buf=c.createBuffer(1,len,sr),d=buf.getChannelData(0);
-  for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2);
-  const gn=c.createGain(),fn=c.createBiquadFilter();
-  fn.type='bandpass';fn.frequency.value=1800;fn.Q.value=.7;
-  gn.gain.setValueAtTime(.16*vol,t0);gn.gain.exponentialRampToValueAtTime(.0008,t0+.07);
-  n.buffer=buf;n.connect(fn);fn.connect(gn);gn.connect(master);n.start(t0);n.stop(t0+.08);
+  const src=c.createBufferSource();src.buffer=chimeBuf;
+  const g=c.createGain();g.gain.setValueAtTime(1,c.currentTime||0);
+  src.connect(g);g.connect(master);
+  const t=(c.currentTime||0)+.01;src.start(t);
+ }
+ function playRecordedChime(){
+  whenRunning(c=>{
+   const go=()=>{if(prefs().fx)try{emitChime(c)}catch(e){}};
+   if(chimeBuf){go();return}
+   preloadChime().then(()=>decodeChime(c)).then(buf=>{if(buf)whenRunning(go)}).catch(()=>{});
+  });
  }
  function playChaChing(){
   const p=prefs();
@@ -376,8 +366,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
   const now=performance.now();
   if(now-lastChimeAt<CHIME_GAP)return;
   lastChimeAt=now;
-  const vol=p.vol;
-  whenRunning(c=>{try{emitCoins(c,vol)}catch(e){}});
+  try{playRecordedChime()}catch(e){}
  }
  function playShutter(){
   const c=ensure();if(!c||!master||!prefs().fx)return;
@@ -486,9 +475,10 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
   if(master&&ctx&&ctx.destination&&master.connect&&comp===master){try{master.connect(ctx.destination)}catch(e){}}
  }
  function resetChimeCount(){chimeCount=0;chimeSkippedMute=0;lastChimeAt=0;oscLog.length=0}
- window.__sounds={unlock,playTap,playDing,playError,playShutter,playChaChing,startMusic,pauseMusic,applyPrefs,prefs,ensure,installCtx,
+ window.__sounds={unlock,playTap,playDing,playError,playShutter,playChaChing,startMusic,pauseMusic,applyPrefs,prefs,ensure,installCtx,preloadChime,
   get ctx(){return ctx}, get tapCount(){return tapCount}, resetTapCount(){tapCount=0},
   get chimeCount(){return chimeCount}, get chimeSkippedMute(){return chimeSkippedMute},
+  get chimeBuffer(){return chimeBuf}, get chimeUrl(){return CHIME_URL},
   get oscLog(){return oscLog.slice()}, resetChimeCount, get musicPlaying(){return musicOn},
   DEF, OLD_DEF_VOL};
 })();
