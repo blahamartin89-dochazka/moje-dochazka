@@ -47,13 +47,21 @@ header{padding-top:calc(12px + constant(safe-area-inset-top));padding-top:calc(1
 #f_place{resize:vertical;min-height:38px;font:inherit}
 .crop-dlg,.photo-view{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#111;color:#fff}
 .crop-dlg[open]{display:flex;flex-direction:column}.crop-head{padding:calc(10px + env(safe-area-inset-top)) 14px 8px;display:flex;flex-direction:column;gap:2px}.crop-head .muted{color:#bbb}
-.crop-stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;padding:16px}
-.crop-stage canvas{display:block}.crop-stage svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);touch-action:none}
-.crop-poly{fill:rgba(0,97,164,.18);stroke:#4fc3f7;stroke-width:2}.crop-h{fill:rgba(79,195,247,.35);stroke:#fff;stroke-width:3;cursor:grab}
-.crop-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px calc(12px + env(safe-area-inset-bottom));background:#1b1b1b}
+.crop-stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;
+  padding:max(32px, calc(28px + env(safe-area-inset-left))) max(32px, calc(28px + env(safe-area-inset-right))) max(32px, calc(28px + env(safe-area-inset-bottom))) max(32px, calc(28px + env(safe-area-inset-left)))}
+.crop-stage canvas#cropCv{display:block;max-width:100%;max-height:100%}.crop-stage svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);touch-action:none;overflow:visible}
+.crop-poly{fill:rgba(0,97,164,.18);stroke:#4fc3f7;stroke-width:2;pointer-events:none}
+.crop-h{cursor:grab;touch-action:none}.crop-hit{fill:rgba(79,195,247,.01);stroke:none}.crop-dot{fill:#4fc3f7;stroke:#fff;stroke-width:3}
+.crop-loupe{position:absolute;width:120px;height:120px;border-radius:50%;pointer-events:none;z-index:5;box-shadow:0 4px 16px rgba(0,0,0,.45)}
+.crop-foot{display:flex;flex-direction:column;gap:10px;padding:10px 14px calc(12px + env(safe-area-inset-bottom));background:#1b1b1b}
+.crop-tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.crop-actions{display:flex;gap:10px;align-items:stretch}
+.crop-actions .btn{flex:1;min-height:48px;padding:12px 14px}.crop-actions .crop-ok{flex:1.6;font-weight:700}
+.crop-foot .btn.small{padding:8px 12px;min-height:40px}
 .photo-view[open]{display:flex;align-items:center;justify-content:center}.photo-view img{max-width:100%;max-height:100%;object-fit:contain}
 .pv-x{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.2);color:#fff;font-size:20px;z-index:2}
-.crop-foot .btn{padding:8px 12px;min-height:40px}.crop-foot{flex-wrap:nowrap}
+.st-preview{margin:0 0 10px;padding:10px 12px;background:#eef4fb;border-radius:10px;font-size:14px;line-height:1.35}
+#noteWrap .linkbtn{text-align:left;width:auto}
 /* v11 – spodní lišta (tab bar) */
 @media (max-width:700px){
  nav.bottom{display:flex!important;position:fixed;left:0;right:0;bottom:0;width:100%;z-index:50;justify-content:stretch;align-items:stretch;gap:0;
@@ -191,7 +199,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.2";
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.4";
 /* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
 const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
 const PHOTO_CLOUD=window.APP_PHOTO_CLOUD!==false; // bucket "stazky" existuje; vypnout lze v config.js: window.APP_PHOTO_CLOUD=false
@@ -242,26 +250,33 @@ setTimeout(()=>{photoCleanup().catch(()=>{})},0);
 
 /* ---------- popisek pro WhatsApp ---------- */
 function stCaption(e){const d=e.date?`${+e.date.slice(8)}.${+e.date.slice(5,7)}.${e.date.slice(0,4)}`:'';
- return [d,e.place,e.customer,e.machine].map(x=>String(x||'').trim()).filter(Boolean).join('\n')}
+ return [d,entryPlace(e),entryCustomer(e),e.machine].map(x=>String(x||'').trim()).filter(Boolean).join('\n')}
 const isJobDay=e=>num(e.jobHours)>0||(e.photos&&e.photos.length>0);
 
 /* ---------- formulář dne ---------- */
 let formPhotos=[];
 function stitekFormHTML(e){formPhotos=(e.photos||[]).map(p=>Object.assign({},p));
  const lastM=(()=>{try{return localStorage.getItem(LS_MACHINE)||''}catch(x){return''}})();
- const machines=[...new Set(state.entries.map(x=>x.machine).filter(Boolean))].slice(-20),custs=[...new Set(state.entries.map(x=>x.customer).filter(Boolean))].slice(-40);
- return `<fieldset id="stitekSet"><legend>Štítek (záznam o provozu stroje)</legend><datalist id="dl_mach">${machines.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_cust">${custs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
- <div class="grid"><div class="f"><label for="f_place">Místo</label><textarea id="f_place" data-st="place" rows="2" placeholder="např. Trutnov">${esc(e.place??(e.travel&&e.travel.to)??'')}</textarea></div><div class="f"><label for="f_customer">Zákazník</label><input id="f_customer" data-st="customer" list="dl_cust" autocapitalize="characters" placeholder="např. METROSTAV" value="${esc(e.customer||'')}"></div><div class="f wide"><label for="f_machine">Stroj (typ + SPZ)</label><input id="f_machine" data-st="machine" list="dl_mach" placeholder="např. AC40   U01 3139" value="${esc(e.machine??lastM)}"></div></div>
+ const machines=[...new Set(state.entries.map(x=>x.machine).filter(Boolean))].slice(-20);
+ return `<fieldset id="stitekSet"><legend>Štítek (záznam o provozu stroje)</legend><datalist id="dl_mach">${machines.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+ <p class="muted st-preview" id="stPreview"></p>
+ <div class="grid"><div class="f wide"><label for="f_machine">Stroj (typ + SPZ)</label><input id="f_machine" data-st="machine" list="dl_mach" placeholder="např. AC40   U01 3139" value="${esc(e.machine||lastM)}"></div></div>
  <div class="st-photos" id="stFormPhotos"></div>
  <div class="btnrow"><label class="btn sec st-file">📷 Vyfotit / nahrát štítek<input type="file" accept="image/*" capture="environment" data-st-file="form" hidden></label><label class="btn sec st-file">🖼 Z galerie<input type="file" accept="image/*" multiple data-st-file="form" hidden></label></div>
  <p class="muted st-note">Fotky se ukládají do tvého účtu${PHOTO_CLOUD?'':' (cloud vypnut – jen v zařízení)'} a v zařízení pro offline. ${PHOTO_NOTE}</p></fieldset>`}
 function renderFormPhotos(){const b=$('#stFormPhotos');if(!b)return;b.innerHTML=formPhotos.map(p=>`<div class="st-th"><img data-photo="${esc(p.id)}" alt="štítek" data-st-act="view" data-id="${esc(p.id)}"><button type="button" class="st-x" data-st-act="formDel" data-id="${esc(p.id)}" aria-label="Odebrat">✕</button></div>`).join('');hydrateThumbs(b)}
-function stitekFormInit(){renderFormPhotos();stitekToggle()}
-function stitekToggle(){const s=$('#stitekSet');if(!s)return;const j=num(formVal('jobHours'));s.hidden=!(j>0||formPhotos.length)}
-function stitekBuild(e,src){for(const k of['place','customer','machine']){const el=$(`[data-st="${k}"]`);if(!el)continue;const v=el.value.trim();if(k in src||(v&&(num(e.jobHours)>0||formPhotos.length)))e[k]=v}
+function stitekFormInit(){renderFormPhotos();stitekToggle();stitekPreviewUpdate()}
+function stitekToggle(){const s=$('#stitekSet');if(!s)return;const j=num(formVal('jobHours'));s.hidden=!(j>0||formPhotos.length);stitekPreviewUpdate()}
+function stitekBuild(e,src){
+ const cust=(formVal('customer')??'').trim(),plc=(formVal('place')??'').trim();
+ if(cust||('customer'in src)||num(e.jobHours)>0||formPhotos.length)e.customer=cust;
+ if(plc||('place'in src)||num(e.jobHours)>0||formPhotos.length)e.place=plc;
+ const mel=$('[data-st="machine"]');if(mel){const v=mel.value.trim();if('machine'in src||(v&&(num(e.jobHours)>0||formPhotos.length)))e.machine=v}
  if(formPhotos.length||'photos'in src)e.photos=formPhotos.map(p=>Object.assign({},p));
  if(!e.photos||!e.photos.length){if(!('photos'in src))delete e.photos}
  return e}
+function stitekPreviewUpdate(){const p=$('#stPreview');if(!p)return;const c=(formVal('customer')||'').trim(),pl=(formVal('place')||'').trim(),m=($('[data-st="machine"]')||{}).value||'';
+ p.innerHTML=!c&&!pl?'<span class="muted">Zákazník a místo beru ze sekce Směna výše.</span>':`📋 Ze Směny: <b>${esc(c||'—')}</b> · <b>${esc(pl||'—')}</b>${m?` · stroj se doplní níž`:''}`}
 function stitekSaved(e){if(e.machine)try{localStorage.setItem(LS_MACHINE,e.machine)}catch(x){}photoCloudQueue()}
 
 /* ---------- detail dne ---------- */
@@ -272,19 +287,93 @@ function stitekDetailHTML(e){if(!isJobDay(e))return'';const ps=e.photos||[];
 
 /* ---------- ořez ---------- */
 let crop=null;
-function loadImg(blob){return new Promise((res,rej)=>{const u=URL.createObjectURL(blob),im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('Obrázek nejde načíst'));im.src=u})}
+function loadImg(blob){return new Promise((res,rej)=>{const u=URL.createObjectURL(blob),im=new Image();im.onload=()=>{URL.revokeObjectURL(u);res(im)};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Obrázek nejde načíst'))};im.src=u})}
 function toCanvas(src,maxSide,rot){const s=Math.min(1,maxSide/Math.max(src.width,src.height)),w=Math.round(src.width*s),h=Math.round(src.height*s),c=document.createElement('canvas');const r=((rot||0)%4+4)%4;c.width=r%2?h:w;c.height=r%2?w:h;const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(r*Math.PI/2);x.drawImage(src,-w/2,-h/2,w,h);return c}
-/* Návrh ořezu: světlý papír na tmavším pozadí (Otsu práh + řádky/sloupce s převahou světlých pixelů). */
-function autoQuad(cv){const S=160,sc=S/Math.max(cv.width,cv.height),w=Math.max(1,Math.round(cv.width*sc)),h=Math.max(1,Math.round(cv.height*sc));const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.drawImage(cv,0,0,w,h);const d=x.getImageData(0,0,w,h).data,L=new Float32Array(w*h),hist=new Array(256).fill(0);
- for(let i=0;i<w*h;i++){const l=(d[i*4]*.299+d[i*4+1]*.587+d[i*4+2]*.114)|0;L[i]=l;hist[l]++}
- let sum=0;for(let i=0;i<256;i++)sum+=i*hist[i];let sB=0,wB=0,best=0,th=128;for(let t=0;t<256;t++){wB+=hist[t];if(!wB)continue;const wF=w*h-wB;if(!wF)break;sB+=t*hist[t];const mB=sB/wB,mF=(sum-sB)/wF,v=wB*wF*(mB-mF)**2;if(v>best){best=v;th=t}}
- const rows=[],cols=new Array(w).fill(0);for(let y=0;y<h;y++){let n=0;for(let xx=0;xx<w;xx++)if(L[y*w+xx]>th){n++;cols[xx]++}rows.push(n/w)}
- const rng=(a,lim)=>{let s=a.findIndex(v=>v>lim),e=a.length-1-[...a].reverse().findIndex(v=>v>lim);return s<0?null:[s,e]};
- const ry=rng(rows,.45),rx=rng(cols.map(v=>v/h),.45);
- if(!ry||!rx||(ry[1]-ry[0])<h*.2||(rx[1]-rx[0])<w*.2)return[[.04,.04],[.96,.04],[.96,.96],[.04,.96]];
- // pro každý roh najdi nejbližší světlý pixel k rohu obdélníku (zachytí mírně šikmý papír)
- const box=[[rx[0],ry[0]],[rx[1],ry[0]],[rx[1],ry[1]],[rx[0],ry[1]]],cx=(rx[0]+rx[1])/2,cy=(ry[0]+ry[1])/2;
- return box.map(([bx,by])=>{let bp=[bx,by],bd=-1;for(let y=Math.max(0,by-8);y<=Math.min(h-1,by+8);y++)for(let xx=Math.max(0,bx-8);xx<=Math.min(w-1,bx+8);xx++)if(L[y*w+xx]>th){const dd=Math.hypot(xx-cx,y-cy);if(dd>bd){bd=dd;bp=[xx,y]}}return[bp[0]/w,bp[1]/h]})}
+/* Auto-ořez: downscale → grayscale → blur → Otsu (světlý papír) → největší komponenta → convex hull → 4 rohy (farthest-point) → lokální dohledání hrany. Nízká jistota → inset obdélník. */
+function autoQuad(cv){
+ const S=320,sc=S/Math.max(cv.width,cv.height),w=Math.max(1,Math.round(cv.width*sc)),h=Math.max(1,Math.round(cv.height*sc));
+ const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(cv,0,0,w,h);
+ const raw=x.getImageData(0,0,w,h).data,N=w*h,L=new Float32Array(N);
+ for(let i=0;i<N;i++)L[i]=raw[i*4]*.299+raw[i*4+1]*.587+raw[i*4+2]*.114;
+ // box blur 5×5
+ const B=new Float32Array(N),tmp=new Float32Array(N),R=2;
+ for(let y=0;y<h;y++){let run=0,cnt=0;for(let xx=-R;xx<w;xx++){if(xx+R<w){run+=L[y*w+(xx+R)];cnt++}if(xx-R-1>=0){run-=L[y*w+(xx-R-1)];cnt--}if(xx>=0)tmp[y*w+xx]=run/cnt}}
+ for(let xx=0;xx<w;xx++){let run=0,cnt=0;for(let y=-R;y<h;y++){if(y+R<h){run+=tmp[(y+R)*w+xx];cnt++}if(y-R-1>=0){run-=tmp[(y-R-1)*w+xx];cnt--}if(y>=0)B[y*w+xx]=run/cnt}}
+ // Otsu
+ const hist=new Array(256).fill(0);for(let i=0;i<N;i++)hist[Math.min(255,B[i]|0)]++;
+ let sum=0;for(let i=0;i<256;i++)sum+=i*hist[i];let sB=0,wB=0,best=0,th=140;
+ for(let t=0;t<256;t++){wB+=hist[t];if(!wB)continue;const wF=N-wB;if(!wF)break;sB+=t*hist[t];const mB=sB/wB,mF=(sum-sB)/wF,v=wB*wF*(mB-mF)*(mB-mF);if(v>best){best=v;th=t}}
+ // prefer brighter class as paper: if mean above th is brighter, mask = >th
+ let sumHi=0,nHi=0,sumLo=0,nLo=0;for(let i=0;i<N;i++){if(B[i]>th){sumHi+=B[i];nHi++}else{sumLo+=B[i];nLo++}}
+ const paperBright=(nHi&&nLo)?(sumHi/nHi>sumLo/nLo):true;
+ if(paperBright&&nHi){const meanHi=sumHi/nHi;th=Math.max(th, Math.min(200, (th+meanHi)/2|0)); if(meanHi-th<25)th=Math.max(th,(meanHi-30)|0)}
+ const mask=new Uint8Array(N);for(let i=0;i<N;i++)mask[i]=(paperBright?(B[i]>th):(B[i]<th))?1:0;
+ // largest 4-connected component (skip border-touching noise lightly by preferring area)
+ const seen=new Uint8Array(N);let bestArea=0,bestSeed=-1;
+ const qx=new Int32Array(N),qy=new Int32Array(N);
+ for(let i=0;i<N;i++){if(!mask[i]||seen[i])continue;let hd=0,tl=0,area=0;qx[tl]=i%w;qy[tl]=i/w|0;tl++;seen[i]=1;
+  while(hd<tl){const cx=qx[hd],cy=qy[hd];hd++;area++;
+   for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=w||ny>=h)continue;const j=ny*w+nx;if(!mask[j]||seen[j])continue;seen[j]=1;qx[tl]=nx;qy[tl]=ny;tl++}}
+  if(area>bestArea){bestArea=area;bestSeed=i}}
+ const fallback=()=>[[.06,.06],[.94,.06],[.94,.94],[.06,.94]];
+ if(bestSeed<0||bestArea<N*.05)return fallback();
+ // collect component points + rebuild mask of only best
+ const comp=new Uint8Array(N);seen.fill(0);
+ {let hd=0,tl=0;qx[tl]=bestSeed%w;qy[tl]=bestSeed/w|0;tl++;seen[bestSeed]=1;comp[bestSeed]=1;
+  while(hd<tl){const cx=qx[hd],cy=qy[hd];hd++;
+   for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=w||ny>=h)continue;const j=ny*w+nx;if(!mask[j]||seen[j])continue;seen[j]=1;comp[j]=1;qx[tl]=nx;qy[tl]=ny;tl++}}}
+ // erode 2× to drop thin overlays / handle dots, then take border of eroded mask
+ const er=new Uint8Array(comp);
+ for(let pass=0;pass<2;pass++){const n=new Uint8Array(er);
+  for(let y=1;y<h-1;y++)for(let xx=1;xx<w-1;xx++){const j=y*w+xx;if(!er[j])continue;
+   if(!er[j-1]||!er[j+1]||!er[j-w]||!er[j+w])n[j]=0;else n[j]=1}
+  er.set(n)}
+ let erArea=0;for(let i=0;i<N;i++)erArea+=er[i];
+ const use=erArea>N*.04?er:comp;
+ // border pixels → contour
+ const pts=[];
+ for(let y=0;y<h;y++)for(let xx=0;xx<w;xx++){const j=y*w+xx;if(!use[j])continue;
+  if(xx===0||y===0||xx===w-1||y===h-1||!use[j-1]||!use[j+1]||!use[j-w]||!use[j+w])pts.push([xx,y])}
+ if(pts.length<4)return fallback();
+ // convex hull (Andrew)
+ pts.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+ const cross=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+ const lower=[];for(const p of pts){while(lower.length>=2&&cross(lower[lower.length-2],lower[lower.length-1],p)<=0)lower.pop();lower.push(p)}
+ const upper=[];for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(upper.length>=2&&cross(upper[upper.length-2],upper[upper.length-1],p)<=0)upper.pop();upper.push(p)}
+ upper.pop();lower.pop();const hull=lower.concat(upper);if(hull.length<4)return fallback();
+ // 4 corners via extremes: TL min(x+y), TR max(x-y), BR max(x+y), BL min(x-y)
+ let tl=hull[0],tr=hull[0],br=hull[0],bl=hull[0];
+ for(const p of hull){
+  if(p[0]+p[1]<tl[0]+tl[1])tl=p;
+  if(p[0]-p[1]>tr[0]-tr[1])tr=p;
+  if(p[0]+p[1]>br[0]+br[1])br=p;
+  if(p[0]-p[1]<bl[0]-bl[1])bl=p}
+ // if extremes collapsed/crossed (skewed blob), fall back to axis bbox corners of hull
+ const crossed=!(tl[0]<=tr[0]&&tl[0]<=bl[0]&&tr[1]<=br[1]&&tl[1]<=bl[1]&&bl[0]<=br[0]);
+ if(crossed||(tl===br)||(tr===bl)){
+  let minx=1e9,maxx=-1,miny=1e9,maxy=-1;for(const p of hull){minx=Math.min(minx,p[0]);maxx=Math.max(maxx,p[0]);miny=Math.min(miny,p[1]);maxy=Math.max(maxy,p[1])}
+  const near=(x,y)=>{let bp=hull[0],bd=1e99;for(const p of hull){const d=(p[0]-x)**2+(p[1]-y)**2;if(d<bd){bd=d;bp=p}}return bp};
+  tl=near(minx,miny);tr=near(maxx,miny);br=near(maxx,maxy);bl=near(minx,maxy)}
+ let corners=[tl,tr,br,bl];
+ const cx=(tl[0]+tr[0]+br[0]+bl[0])/4,cy=(tl[1]+tr[1]+br[1]+bl[1])/4;
+ // local refine: polish extreme corner on sobel along radial (prefer staying near hull extreme)
+ const sob=(xx,yy)=>{xx=Math.max(1,Math.min(w-2,xx|0));yy=Math.max(1,Math.min(h-2,yy|0));
+  const gx=B[yy*w+xx+1]-B[yy*w+xx-1],gy=B[(yy+1)*w+xx]-B[(yy-1)*w+xx];return Math.hypot(gx,gy)};
+ corners=corners.map(([px,py])=>{
+  const vx=px-cx,vy=py-cy,L=Math.hypot(vx,vy)||1,ux=vx/L,uy=vy/L;
+  let bestP=[px,py],bestE=sob(px,py);
+  for(let t=-8;t<=8;t++){const xx=px+ux*t,yy=py+uy*t;if(xx<1||yy<1||xx>=w-1||yy>=h-1)continue;
+   const e=sob(xx,yy); if(e>bestE){bestE=e;bestP=[xx,yy]}}
+  return bestP});
+ // confidence: area fraction + corners not near image border too much + quad not tiny
+ const area=Math.abs((corners[0][0]*corners[1][1]+corners[1][0]*corners[2][1]+corners[2][0]*corners[3][1]+corners[3][0]*corners[0][1])-(corners[1][0]*corners[0][1]+corners[2][0]*corners[1][1]+corners[3][0]*corners[2][1]+corners[0][0]*corners[3][1]))/2;
+ const frac=area/(w*h);
+ const nearBorder=corners.some(([px,py])=>px<2||py<2||px>w-3||py>h-3);
+ if(frac<.06||frac>.98)return fallback();
+ // duplicate corners → bad
+ const uniq=new Set(corners.map(p=>p[0]+","+p[1])); if(uniq.size<4)return fallback();
+ return corners.map(([px,py])=>[Math.min(.985,Math.max(.015,px/w)),Math.min(.985,Math.max(.015,py/h))]);
+}
 /* homografie: jednotkový čtverec → čtyřúhelník */
 function sq2quad(q){const[[x0,y0],[x1,y1],[x2,y2],[x3,y3]]=q,dx1=x1-x2,dx2=x3-x2,dy1=y1-y2,dy2=y3-y2,sx=x0-x1+x2-x3,sy=y0-y1+y2-y3;let g=0,hh=0;
  if(Math.abs(sx)>1e-9||Math.abs(sy)>1e-9){const den=dx1*dy2-dx2*dy1;g=(sx*dy2-dx2*sy)/den;hh=(dx1*sy-sx*dy1)/den}
@@ -298,19 +387,42 @@ function warp(src,q,maxSide){const[a,b,c,d,e,f,g,h]=sq2quad(q),dist=(p,r)=>Math.
  ox.putImageData(od,0,0);return out}
 const toJpeg=cv=>new Promise(r=>cv.toBlob(b=>r(b),'image/jpeg',.8));
 async function openCrop(file,target){let im;try{im=await loadImg(file)}catch(e){return toast(e.message)}
- crop={im,rot:0,target,q:null,cv:null};cropSetup();
+ crop={im,rot:0,target,q:null,cv:null,loupe:false};cropSetup();
  let d=$('#cropDlg');if(!d){d=document.createElement('dialog');d.id='cropDlg';d.className='crop-dlg';document.body.appendChild(d)}
- d.innerHTML=`<div class="crop-head"><b>Oříznout štítek</b><span class="muted">Posuň rohy na rohy papíru</span></div><div class="crop-stage" id="cropStage"><canvas id="cropCv"></canvas><svg id="cropSvg"></svg></div>
- <div class="crop-foot"><button type="button" class="btn sec small" data-st-act="cropRot">⟳ Otočit</button><button type="button" class="btn sec small" data-st-act="cropAuto">Auto</button><button type="button" class="btn sec small" data-st-act="cropFull">Celé</button><span style="flex:1"></span><button type="button" class="btn sec" data-st-act="cropCancel">Zrušit</button><button type="button" class="btn" data-st-act="cropOk">Hotovo</button></div>`;
- if(!d.open)d.showModal();cropDraw()}
+ d.innerHTML=`<div class="crop-head"><b>Oříznout štítek</b><span class="muted">Posuň rohy na rohy papíru</span></div>
+ <div class="crop-stage" id="cropStage"><canvas id="cropCv"></canvas><svg id="cropSvg"></svg><canvas id="cropLoupe" class="crop-loupe" hidden></canvas></div>
+ <div class="crop-foot">
+  <div class="crop-tools"><button type="button" class="btn sec small" data-st-act="cropRot">⟳ Otočit</button><button type="button" class="btn sec small" data-st-act="cropAuto">Auto</button><button type="button" class="btn sec small" data-st-act="cropFull">Celé</button></div>
+  <div class="crop-actions"><button type="button" class="btn sec" data-st-act="cropCancel">Zrušit</button><button type="button" class="btn crop-ok" data-st-act="cropOk">Hotovo</button></div>
+ </div>`;
+ if(!d.open)d.showModal();requestAnimationFrame(()=>cropDraw())}
 function cropSetup(){crop.cv=toCanvas(crop.im,2400,crop.rot);crop.q=autoQuad(crop.cv)}
-function cropDraw(){const st=$('#cropStage'),cv=$('#cropCv'),svg=$('#cropSvg');if(!st||!crop)return;const W=st.clientWidth||340,H=st.clientHeight||460,s=Math.min(W/crop.cv.width,H/crop.cv.height);const w=Math.round(crop.cv.width*s),h=Math.round(crop.cv.height*s);
- cv.width=w;cv.height=h;cv.style.width=w+'px';cv.style.height=h+'px';cv.getContext('2d').drawImage(crop.cv,0,0,w,h);svg.setAttribute('width',w);svg.setAttribute('height',h);svg.style.width=w+'px';svg.style.height=h+'px';crop.disp={w,h};
- const P=crop.q.map(([x,y])=>[x*w,y*h]);svg.innerHTML=`<polygon points="${P.map(p=>p.join(',')).join(' ')}" class="crop-poly"/>`+P.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="16" class="crop-h" data-i="${i}"/>`).join('')}
+function cropPad(){const st=$('#cropStage');if(!st)return 32;const cs=getComputedStyle(st);return Math.max(28,parseFloat(cs.paddingLeft)||32)}
+function cropDraw(){const st=$('#cropStage'),cv=$('#cropCv'),svg=$('#cropSvg');if(!st||!crop)return;
+ const pad=cropPad();const W=Math.max(40,(st.clientWidth||340)-pad*2),H=Math.max(40,(st.clientHeight||460)-pad*2);
+ const s=Math.min(W/crop.cv.width,H/crop.cv.height);const w=Math.round(crop.cv.width*s),h=Math.round(crop.cv.height*s);
+ cv.width=w;cv.height=h;cv.style.width=w+'px';cv.style.height=h+'px';cv.getContext('2d').drawImage(crop.cv,0,0,w,h);
+ svg.setAttribute('width',w);svg.setAttribute('height',h);svg.style.width=w+'px';svg.style.height=h+'px';crop.disp={w,h,pad};
+ const P=crop.q.map(([x,y])=>[x*w,y*h]);
+ svg.innerHTML=`<polygon points="${P.map(p=>p.join(',')).join(' ')}" class="crop-poly"/>`+
+  P.map((p,i)=>`<g class="crop-h" data-i="${i}" transform="translate(${p[0]},${p[1]})"><circle r="22" class="crop-hit"/><circle r="7" class="crop-dot"/></g>`).join('');
+ if(crop.loupe)cropLoupeDraw()}
+function cropLoupeDraw(){const lp=$('#cropLoupe'),svg=$('#cropSvg');if(!lp||!crop||dragI<0){if(lp)lp.hidden=true;return}
+ const w=crop.disp.w,h=crop.disp.h,[qx,qy]=crop.q[dragI];
+ const srcX=qx*crop.cv.width,srcY=qy*crop.cv.height,zoom=2.2,side=120,half=side/(2*zoom);
+ lp.width=side;lp.height=side;lp.hidden=false;
+ const lx=Math.min(w-side-4,Math.max(4,qx*w-side/2)),ly=Math.max(4,qy*h-side-36);
+ lp.style.left=((svg.offsetLeft||0)+lx)+'px';lp.style.top=((svg.offsetTop||0)+ly)+'px';
+ const x=lp.getContext('2d');x.save();x.beginPath();x.arc(side/2,side/2,side/2-1,0,Math.PI*2);x.clip();
+ x.fillStyle='#111';x.fillRect(0,0,side,side);
+ x.drawImage(crop.cv,srcX-half,srcY-half,half*2,half*2,0,0,side,side);
+ x.restore();x.strokeStyle='#3b82f6';x.lineWidth=2;x.beginPath();x.arc(side/2,side/2,side/2-1,0,Math.PI*2);x.stroke();
+ x.strokeStyle='#fff';x.beginPath();x.moveTo(side/2-8,side/2);x.lineTo(side/2+8,side/2);x.moveTo(side/2,side/2-8);x.lineTo(side/2,side/2+8);x.stroke()}
 let dragI=-1;
-document.addEventListener('pointerdown',ev=>{const c=ev.target.closest&&ev.target.closest('.crop-h');if(!c)return;dragI=+c.dataset.i;ev.preventDefault();try{c.setPointerCapture(ev.pointerId)}catch(e){}});
-document.addEventListener('pointermove',ev=>{if(dragI<0||!crop)return;const r=$('#cropSvg').getBoundingClientRect();crop.q[dragI]=[Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height))];cropDraw()});
-document.addEventListener('pointerup',()=>{dragI=-1});
+document.addEventListener('pointerdown',ev=>{const c=ev.target.closest&&ev.target.closest('.crop-h');if(!c)return;dragI=+c.dataset.i;if(crop)crop.loupe=true;ev.preventDefault();try{c.setPointerCapture(ev.pointerId)}catch(e){}});
+document.addEventListener('pointermove',ev=>{if(dragI<0||!crop)return;const r=$('#cropSvg').getBoundingClientRect();
+ crop.q[dragI]=[Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height))];cropDraw()});
+document.addEventListener('pointerup',()=>{dragI=-1;if(crop){crop.loupe=false;const lp=$('#cropLoupe');if(lp)lp.hidden=true}});
 async function cropFinish(){const q=crop.q.map(([x,y])=>[x*crop.cv.width,y*crop.cv.height]),out=warp(crop.cv,q,1600),blob=await toJpeg(out);
  const id='ph-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),meta={id,w:out.width,h:out.height,ts:new Date().toISOString()};
  try{await pPut(id,blob)}catch(e){toast('Fotku nejde uložit: '+e.message);return}
@@ -503,9 +615,15 @@ const dnesDay=()=>dnesDate||todayISO();
 const workedBefore=(date,pred)=>{const a=state.entries.filter(e=>e.date&&e.date<date&&pred(e)).sort((x,y)=>x.date.localeCompare(y.date)||String(x.startTime).localeCompare(String(y.startTime)));return a[a.length-1]||null};
 const tplCopySrc=date=>workedBefore(date,e=>num(e.totalHours)>0);
 const tplJobSrc=date=>workedBefore(date,e=>num(e.jobHours)>0);
-const custOf=e=>e.customer||e.note||'';
+const custOf=e=>typeof entryCustomer==='function'?entryCustomer(e):(e.customer||e.note||'');
+const placeOf=e=>typeof entryPlace==='function'?entryPlace(e):(e.place||e.travel?.to||'');
 const hm=t=>String(t||'').replace(/^0(\d)/,'$1');
-function tplPreview(e,short){if(!e)return'';const t=e.travel||{};const parts=[custOf(e)];if(t.to&&!custOf(e).includes(t.to))parts.push(t.to);if(e.machine&&!custOf(e).includes(e.machine))parts.push(e.machine);parts.push(`${hm(e.startTime)}–${hm(e.endTime)}`);if(!short&&num(e.commuteHours))parts.push(fmtH(num(e.commuteHours))+' h cesta');return parts.filter(Boolean).join(' · ')}
+function tplPreview(e,short){if(!e)return'';const t=e.travel||{};
+ const head=(typeof entryLabel==='function'&&entryLabel(e))||[custOf(e),placeOf(e)].filter(Boolean).filter((x,i,a)=>!a.slice(0,i).some(y=>y.includes(x)||x.includes(y))).join(' · ');
+ const parts=[head];if(e.machine&&!(head||'').includes(e.machine))parts.push(e.machine);
+ parts.push(`${hm(e.startTime)}–${hm(e.endTime)}`);
+ if(!short&&num(e.commuteHours))parts.push(fmtH(num(e.commuteHours))+' h cesta');
+ return parts.filter(Boolean).join(' · ')}
 function dayState(k,today){const es=byDate()[k]||[];
  if(es.length){const job=es.some(e=>num(e.jobHours)>0),ph=es.some(e=>e.photos&&e.photos.length);return{es,mark:job&&!ph?'📎?':'✓',cls:job&&!ph?'warn':'ok'}}
  if(k<today&&!isWeekend(k)&&!holidayName(k))return{es,mark:'!',cls:'miss'};return{es,mark:'',cls:''}}
@@ -543,7 +661,7 @@ function openTpl(kind,date){
  if(kind==='new')return openForm(null,date);
  const src=kind==='depo'?makeDepo(date):kind==='copy'?tplCopySrc(date):tplJobSrc(date);if(!src)return openForm(null,date);
  const label={depo:'🏭 Depo',copy:'🔁 Jako včera',job:'🏗️ Poslední zakázka'}[kind];
- qs={date,kind,label,src:clone(src),start:src.startTime||'07:00',end:src.endTime||'15:30',lunch:num(src.lunchHours),commute:num(src.commuteHours),place:src.travel?.to||'',customer:custOf(src),machine:src.machine||''};
+ qs={date,kind,label,src:clone(src),start:src.startTime||'07:00',end:src.endTime||'15:30',lunch:num(src.lunchHours),commute:num(src.commuteHours),place:(src.place||src.travel?.to||''),customer:custOf(src),machine:src.machine||''};
  if(typeof formPhotos!=='undefined')formPhotos=[];
  const places=[...new Set(state.entries.flatMap(x=>[x.travel?.to]).filter(Boolean))],custs=[...new Set(state.entries.map(custOf).filter(Boolean))].slice(-40),machs=[...new Set(state.entries.map(x=>x.machine).filter(Boolean))].slice(-20);
  const isJob=num(src.jobHours)>0,d=parseISO(date);
@@ -675,6 +793,10 @@ function calc(e){
  return{job,base,ot,wk,vac,holx,holPct,diet:d.v,dietWhy:d.why,c,work,all:r2(work+d.v+c.sum),hol:holidayName(e.date)}
 }
 function dayType(e){if(num(e.totalHours)>0)return'Práce';if(num(e.vacationHours)>0)return'Dovolená';if(num(e.sickHours)>0)return'Nemoc';if(num(e.doctorHours)>0)return'Lékař';return'Záznam'}
+const LEAVE_NOTES=new Set(['Depo','Dovolená','Nemoc / sick day','Nemoc']);
+function entryCustomer(e){const c=String(e?.customer||'').trim();if(c)return c;const n=String(e?.note||'').trim();return n&&!LEAVE_NOTES.has(n)?n:''}
+function entryPlace(e){return String(e?.place||e?.travel?.to||'').trim()}
+function entryLabel(e){const a=[entryCustomer(e),entryPlace(e)].filter(Boolean);const uniq=[];for(const x of a)if(!uniq.some(y=>y.includes(x)||x.includes(y)))uniq.push(x);return uniq.join(' · ')||(LEAVE_NOTES.has(String(e?.note||'').trim())?e.note:'')||dayType(e)}
 const byDate=()=>{const m={};for(const e of state.entries)(m[e.date]=m[e.date]||[]).push(e);return m};
 const monthEntries=(y,m)=>state.entries.filter(e=>e.date&&e.date.startsWith(`${y}-${pad(m+1)}-`)).sort((a,b)=>a.date.localeCompare(b.date)||String(a.startTime).localeCompare(String(b.startTime)));
 function summary(y,m){
@@ -754,7 +876,7 @@ function details(){
   rows.push(`<div class="row total"><span>Celkem od firmy</span><b>${cash(c.all)}</b></div>`);
   const chips=[];if(c.hol&&num(e.totalHours))chips.push(`<span class="chip">Práce ve svátek ${fmtH(num(e.totalHours))} h</span>`);if(num(e.overtime))chips.push(`<span class="chip blue">přesčas ${fmtH(num(e.overtime))} h</span>`);if(num(e.tripHours))chips.push(`<span class="chip blue">cesta ${fmtH(num(e.tripHours))} h</span>`);if(num(e.commuteHours))chips.push(`<span class="chip blue">dojíždění ${fmtH(num(e.commuteHours))} h</span>`);if(num(e.doctorHours))chips.push(`<span class="chip warn">lékař ${fmtH(num(e.doctorHours))} h</span>`);if(num(e.sickHours))chips.push(`<span class="chip warn">nemoc ${fmtH(num(e.sickHours))} h</span>`);if(e.noTravelOrder)chips.push(`<span class="chip warn">bez cestovního příkazu</span>`);
   const route=t.from||t.to?`${esc(t.from)} ${esc(t.start)} → ${esc(t.to)} ${esc(t.arrival)}${t.returnStart||t.returnArrival?` · zpět ${esc(t.returnFrom)} ${esc(t.returnStart)} → ${esc(t.returnTo)} ${esc(t.returnArrival)}`:''}${t.transport?' · '+esc(t.transport):''}`:'';
-  h+=`<div class="entry-card"><span class="tag">${ty} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.doctorHours))} h${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)}`:''}${num(e.lunchHours)?` · pauza ${fmtH(num(e.lunchHours))} h`:''}</span><div style="margin-top:8px">${chips.join('')}</div><div class="detail-total">${cash(ty==='Práce'||ty==='Dovolená'?c.work:c.all)}</div><div class="muted">${ty==='Dovolená'?'Náhrada mzdy (průměrný výdělek)':'Výdělek včetně příplatků'}</div><div class="rows">${rows.join('')}</div>${e.note||route?`<div class="job">${esc(e.note)}${route?'<br>'+route:''}</div>`:''}${stitekDetailHTML(e)}<div class="btnrow no-print"><button class="btn sec small" data-act="edit" data-id="${esc(e.id)}">✎ Upravit</button><button class="btn danger small" data-act="del" data-id="${esc(e.id)}">Smazat</button></div></div>`}
+  h+=`<div class="entry-card"><span class="tag">${ty} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.doctorHours))} h${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)}`:''}${num(e.lunchHours)?` · pauza ${fmtH(num(e.lunchHours))} h`:''}</span><div style="margin-top:8px">${chips.join('')}</div><div class="detail-total">${cash(ty==='Práce'||ty==='Dovolená'?c.work:c.all)}</div><div class="muted">${ty==='Dovolená'?'Náhrada mzdy (průměrný výdělek)':'Výdělek včetně příplatků'}</div><div class="rows">${rows.join('')}</div>${(entryLabel(e)||e.note||route)?`<div class="job">${esc(entryLabel(e)||e.note||"")}${route?"<br>"+route:""}</div>`:""}${stitekDetailHTML(e)}<div class="btnrow no-print"><button class="btn sec small" data-act="edit" data-id="${esc(e.id)}">✎ Upravit</button><button class="btn danger small" data-act="del" data-id="${esc(e.id)}">Smazat</button></div></div>`}
  return h+`<div class="btnrow no-print"><button class="btn small" data-act="add" data-date="${k}">+ Další záznam v tento den</button></div>`;
 }
 function monthRange(){const ks=state.entries.map(e=>e.date?.slice(0,7)).filter(Boolean).concat(Object.keys(state.travelOrders||{})).sort();const t=new Date(),cur=`${t.getFullYear()}-${pad(t.getMonth()+1)}`;if(!ks.length)return[cur];let a=ks[0],b=ks[ks.length-1]>cur?ks[ks.length-1]:cur;const out=[];let[y,m]=a.split('-').map(Number);while(`${y}-${pad(m)}`<=b){out.push(`${y}-${pad(m)}`);m++;if(m>12){m=1;y++}}return out.slice(-24).reverse()}
@@ -772,7 +894,7 @@ function renderPay(){
  const s=monthPayParts(Y,M),rt=R(),pm=M?M-1:11,py=M?Y:Y-1,ps=monthPayParts(py,pm),b=balances(),title=MONTHS[M][0].toUpperCase()+MONTHS[M].slice(1)+' '+Y;
  const diff=s.allK-ps.allK,diffTxt=ps.allK?(diff>=0?'+':'')+cash(diff).replace(' Kč','')+' Kč':'—';
  const row=(l,h,rate,k)=>!h&&!k?'':`<div class="pay-row"><span>${l}${h?` <i>${fmtH(h)} h${rate!=null?` × ${rate}`:''}</i>`:''}</span><b>${cash(k)}</b></div>`;
- const days=monthEntries(Y,M).map(e=>{const c=calc(e),ty=dayType(e),place=[e.customer||'',e.travel?.to||'',e.note||''].filter(Boolean);const label=[...new Set(place.map(x=>x).filter((x,i,a)=>!a.some((y,j)=>j!==i&&y.includes(x))))].slice(0,2).join(' · ')||ty;
+ const days=monthEntries(Y,M).map(e=>{const c=calc(e),ty=dayType(e),label=entryLabel(e)||ty;
   const hrs=num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.doctorHours);
   return `<button class="pay-day" data-act="goDay" data-date="${e.date}"><span><b>${DOW[parseISO(e.date).getDay()]} ${dm(e.date)}</b><small>${esc(label)}${e.startTime?` · ${hm(e.startTime)}–${hm(e.endTime)}`:''}</small></span><span class="pay-day-r"><b>${cash(c.all)}</b><small>${fmtH(hrs)} h</small></span></button>`}).join('')||'<p class="muted">V tomto měsíci zatím nic.</p>';
  $('#pay').innerHTML=`<div class="pay-top"><div class="pay-nav"><button type="button" data-act="payPrev" aria-label="Předchozí měsíc">‹</button><h2>${title}</h2><button type="button" data-act="payNext" aria-label="Další měsíc">›</button></div><div class="pay-actions"><button type="button" class="btn small" id="dochPdfPay" data-act="dochPdf" style="background:#fff;color:#124b92">📄 Docházka PDF</button></div>
@@ -861,7 +983,7 @@ function makeDepo(date){const t=tpl.depo,total=depoHours();return{id:newId(),dat
 function makeLeave(date,kind){const h=num(kind==='vac'?tpl.vacHours:tpl.sickHours)||8;return{id:newId(),date,startTime:'',endTime:'',lunchHours:0,totalHours:0,note:kind==='vac'?'Dovolená':'Nemoc / sick day',jobHours:0,baseHours:0,overtime:0,commuteHours:0,weekendHours:0,noTravelOrder:true,tripHours:0,vacationHours:kind==='vac'?h:0,doctorHours:0,sickHours:kind==='sick'?h:0,travel:blankTravel(homeFrom())}}
 function makeJob(v){
  const span=spanH(v.start,v.end)??0,total=Math.max(0,r2(span-num(v.lunch))),com=Math.min(num(v.commute),total),half=com*30;
- return{id:newId(),date:v.date,startTime:v.start,endTime:v.end,lunchHours:num(v.lunch),totalHours:total,note:v.note||'',jobHours:r2(total-com),baseHours:r2(com),overtime:r2(Math.max(0,total-8-com)),commuteHours:r2(com),weekendHours:isWeekend(v.date)?total:0,noTravelOrder:false,tripHours:r2(span),vacationHours:0,doctorHours:0,sickHours:0,
+ return{id:newId(),date:v.date,startTime:v.start,endTime:v.end,lunchHours:num(v.lunch),totalHours:total,note:v.note||'',customer:(v.customer||v.note||'').trim(),place:(v.place||v.to||'').trim(),jobHours:r2(total-com),baseHours:r2(com),overtime:r2(Math.max(0,total-8-com)),commuteHours:r2(com),weekendHours:isWeekend(v.date)?total:0,noTravelOrder:false,tripHours:r2(span),vacationHours:0,doctorHours:0,sickHours:0,
   travel:Object.assign(blankTravel(v.from),{start:v.start,to:v.to||'',arrival:addMin(v.start,half),returnFrom:v.to||'',returnStart:addMin(v.end,-half),returnTo:v.from||'',returnArrival:v.end})}
 }
 function quickAdd(kind,dates){
@@ -889,12 +1011,12 @@ function renderMultiBar(){let b=$('#multiBar');if(!multi){if(b)b.remove();return
  const ds=[...multi].sort();b.innerHTML=`<span>Vybráno <b>${ds.length}</b> ${pl(ds.length,'den','dny','dní')} – klepej na dny v kalendáři</span><span style="display:flex;gap:6px"><button class="btn small" data-act="multiAdd" ${ds.length?'':'disabled'}>Přidat…</button><button class="btn sec small" data-act="multiCancel">Zrušit</button></span>`}
 function openJobQuick(date){
  const lt=lastTrip(),tv=lt?.travel||{};
- const v={date,start:lt?.startTime||'06:00',end:lt?.endTime||'16:00',lunch:lt?num(lt.lunchHours):0,note:lt?.note||'',from:tv.from||homeFrom(),to:tv.to||'',commute:lt?num(lt.commuteHours):0};
- const places=[...new Set(state.entries.flatMap(x=>[x.travel?.from,x.travel?.to]).filter(Boolean))],notes=[...new Set(state.entries.map(x=>x.note).filter(Boolean))].slice(-40);
+ const v={date,start:lt?.startTime||'06:00',end:lt?.endTime||'16:00',lunch:lt?num(lt.lunchHours):0,note:lt?.note||'',customer:lt?entryCustomer(lt):'',place:lt?entryPlace(lt):(tv.to||''),from:tv.from||homeFrom(),to:tv.to||'',commute:lt?num(lt.commuteHours):0};
+ const places=[...new Set(state.entries.flatMap(x=>[x.place,x.travel?.from,x.travel?.to]).filter(Boolean))],custs=[...new Set(state.entries.map(entryCustomer).filter(Boolean))].slice(-40),notes=[...new Set(state.entries.map(x=>x.note).filter(Boolean))].slice(-40);
  $('#dlg').innerHTML=`<form id="jform" novalidate><div class="dlg-head"><h2>Zakázka · ${fmtDate(date)}</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body">
- <datalist id="dl_places">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_notes">${notes.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+ <datalist id="dl_places">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_cust">${custs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_notes">${notes.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
  <div class="grid"><div class="f"><label>Datum</label><input type="date" data-j="date" value="${esc(v.date)}"></div><div class="f"><label>Od</label><input type="time" data-j="start" value="${esc(v.start)}"></div><div class="f"><label>Do</label><input type="time" data-j="end" value="${esc(v.end)}"></div><div class="f"><label>Pauza (h)</label><input inputmode="decimal" data-j="lunch" value="${esc(v.lunch)}"></div>
- <div class="f wide"><label>Zakázka / poznámka</label><input data-j="note" list="dl_notes" value="${esc(v.note)}"></div><div class="f"><label>Odkud</label><input data-j="from" list="dl_places" value="${esc(v.from)}"></div><div class="f"><label>Kam</label><input data-j="to" list="dl_places" value="${esc(v.to)}"></div><div class="f"><label>Dojíždění tam+zpět (h)</label><input inputmode="decimal" data-j="commute" value="${esc(v.commute)}"></div></div>
+ <div class="f"><label>Zákazník</label><input data-j="customer" list="dl_cust" value="${esc(v.customer)}"></div><div class="f"><label>Místo</label><input data-j="place" list="dl_places" value="${esc(v.place)}"></div><div class="f"><label>Odkud</label><input data-j="from" list="dl_places" value="${esc(v.from)}"></div><div class="f"><label>Kam</label><input data-j="to" list="dl_places" value="${esc(v.to||v.place)}"></div><div class="f"><label>Dojíždění tam+zpět (h)</label><input inputmode="decimal" data-j="commute" value="${esc(v.commute)}"></div><div class="f wide"><label>Poznámka</label><input data-j="note" list="dl_notes" value="${esc(v.note&&v.note!==v.customer?v.note:'')}"></div></div>
  <p class="muted">Dojíždění se počítá jako základ, zbytek jako práce na zakázce; časy cesty se dopočítají.</p><div class="calc" id="jcalc"></div><div class="msgs" id="jmsgs"></div></div>
  <div class="dlg-foot"><button type="button" class="btn sec" data-act="jobFull" style="margin-right:auto">Plný formulář</button><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="jobSave">Uložit</button></div></form>`;
  if(!$('#dlg').open)$('#dlg').showModal();refreshJob();
@@ -909,7 +1031,7 @@ function saveJob(){const{e,errs}=refreshJob();if(errs.length)return;if(state.ent
 let editing=null,manual=new Set();
 const TRAVEL_KEYS=['freeBoard','from','start','to','arrival','returnFrom','returnStart','returnTo','returnArrival','purpose','transport','km','fare','lodging','other','dietOverride','freeMeals','freeLodging','reducedTicket'];
 const fld=(k,l,o={})=>`<div class="f ${o.wide?'wide':''}"><label for="f_${k}">${l}</label>${o.auto?`<div class="auto"><input id="f_${k}" data-k="${k}" inputmode="decimal"><button type="button" data-reset="${k}" title="Vrátit automatický výpočet">↺ auto</button></div>`:o.sel?`<select id="f_${k}" data-k="${k}">${o.sel.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select>`:`<input id="f_${k}" data-k="${k}" ${o.type?`type="${o.type}"`:''} ${o.num?'inputmode="decimal"':''} ${o.list?`list="${o.list}"`:''}>`}</div>`;
-let fstate={pair:null,jobV:0,baseV:0,retFollow:true,startFollow:true,arrFollow:true};
+let fstate={pair:null,jobV:0,baseV:0,retFollow:true,startFollow:true,arrFollow:true,placeFollow:true};
 const LUNCH_OPTS=[['0','0 minut · bez oběda'],['0.25','15 minut'],['0.5','30 minut'],['0.75','45 minut'],['1','1 hodina'],['1.5','1,5 hodiny'],['2','2 hodiny']];
 const COMMUTE_OPTS=Array.from({length:13},(_,i)=>[String(i/2),i?fmtH(i/2)+' h':'0 h · bez dojíždění']);
 function ensureOpt(k,v,list){v=String(num(v));if(!list.some(o=>o[0]===v)){const s=$('#f_'+k);if(s)s.add(new Option(fmtH(num(v))+' h',v))}}
@@ -919,21 +1041,26 @@ const chk=(k,l)=>`<label class="chk"><input type="checkbox" id="f_${k}" data-k="
 function openForm(entry,date,draft){
  editing=entry||null;manual=new Set();
  const e=entry?clone(entry):draft?clone(draft):{date:date||iso(Y,M,sel),startTime:'',endTime:'',lunchHours:0,note:'',jobHours:0,baseHours:0,commuteHours:0,vacationHours:0,doctorHours:0,sickHours:0,travel:{transport:'AUS',purpose:'Služební cesta',from:homePlace(),returnTo:homePlace(),dietOverride:null,freeMeals:false}};
- const places=[...new Set(state.entries.flatMap(x=>[x.travel?.from,x.travel?.to,x.travel?.returnFrom,x.travel?.returnTo]).filter(Boolean))];
+ const places=[...new Set(state.entries.flatMap(x=>[x.place,x.travel?.from,x.travel?.to,x.travel?.returnFrom,x.travel?.returnTo]).filter(Boolean))];
+ const custs=[...new Set(state.entries.map(x=>entryCustomer(x)).filter(Boolean))].slice(-40);
  const notes=[...new Set(state.entries.map(x=>x.note).filter(Boolean))].slice(-40);
  $('#dlg').innerHTML=`<form method="dialog" id="eform" novalidate><div class="dlg-head"><h2>${entry?'Upravit záznam':'Nový záznam'}</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body">
- <datalist id="dl_places">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_notes">${notes.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
- <fieldset><legend>Směna</legend><div class="grid">${fld('date','Datum',{type:'date'})}${fld('startTime','Začátek',{type:'time'})}${fld('endTime','Konec',{type:'time'})}${fld('lunchHours','Oběd',{sel:LUNCH_OPTS})}${fld('note','Poznámka / zakázka',{wide:1,list:'dl_notes'})}</div></fieldset>
+ <datalist id="dl_places">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_cust">${custs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_notes">${notes.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+ <fieldset><legend>Směna</legend><div class="grid">${fld('date','Datum',{type:'date'})}${fld('startTime','Začátek',{type:'time'})}${fld('endTime','Konec',{type:'time'})}${fld('lunchHours','Oběd',{sel:LUNCH_OPTS})}${fld('customer','Zákazník',{list:'dl_cust'})}${fld('place','Místo',{list:'dl_places'})}<div class="f wide" id="noteWrap"><button type="button" class="linkbtn" id="noteToggle" data-act="noteToggle" style="padding:0">+ poznámka</button><div id="noteBox" hidden>${fld('note','Poznámka',{wide:1,list:'dl_notes'})}</div></div></div></fieldset>
  <fieldset><legend>Hodiny</legend><div class="grid">${fld('totalHours','Celkem · h',{auto:1})}${fld('overtime','Přesčas · h',{auto:1})}${fld('commuteHours','Dojíždění dům–stavba celkem · h',{sel:COMMUTE_OPTS,wide:1})}<p class="muted hint wide">Vyber součet jízdy autem tam i zpět. Zůstane v hodinách Alvianu, odečte se jen od přesčasu.</p>${fld('jobHours','Zákazník · hodiny',{sel:[['0','0 h']]})}${fld('baseHours','Alvian · hodiny',{sel:[['0','0 h']]})}<p class="muted hint wide">Vyber hodiny zákazníka; Alvian se dopočítá ze zbytku. Nebo vyber hodiny Alvianu; zákazník se dopočítá ze zbytku.</p>${fld('weekendHours','Víkend h',{auto:1})}${fld('vacationHours','Dovolená h',{num:1})}${fld('doctorHours','Lékař h',{num:1})}${fld('sickHours','Nemoc / sick day h',{num:1})}</div></fieldset>
  ${stitekFormHTML(e)}<fieldset><legend>Pracovní cesta</legend><div style="margin-bottom:10px">${chk('noTravelOrder','Bez cestovního příkazu (žádné stravné)')}</div><div class="grid">${fld('t.from','Odjezd odkud',{list:'dl_places'})}${fld('t.start','Odjezd',{type:'time'})}${fld('t.to','Kam (místo jednání)',{list:'dl_places'})}${fld('t.arrival','Příjezd',{type:'time'})}${fld('t.returnFrom','Zpět odkud',{list:'dl_places'})}${fld('t.returnStart','Odjezd zpět',{type:'time'})}${fld('t.returnTo','Zpět kam',{list:'dl_places'})}${fld('t.returnArrival','Příjezd zpět',{type:'time'})}${fld('tripHours','Doba cesty h',{auto:1})}${fld('t.purpose','Účel')}${fld('t.transport','Doprava',{sel:[['AUS','AUS – služební auto'],['AUV','AUV – vlastní auto'],['VLAK','Vlak'],['BUS','Autobus'],['MHD','MHD'],['JINE','Jiné']]})}${fld('t.km','Km (vlastní auto)',{num:1})}${fld('t.fare','Jízdné Kč',{num:1})}${fld('t.lodging','Ubytování Kč',{num:1})}${fld('t.other','Ostatní Kč',{num:1})}${fld('t.dietOverride','Stravné ručně Kč (prázdné = auto)',{num:1})}${fld('t.freeMeals','Jídla zdarma',{sel:[['0','žádné'],['1','1 jídlo'],['2','2 jídla'],['3','3 jídla']]})}</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">${chk('t.freeBoard','Bezplatné stravování')}${chk('t.freeLodging','Bezplatné ubytování')}${chk('t.reducedTicket','Snížená jízdenka')}</div><p class="muted hint" id="freeBoardHint" hidden>Při bezplatném stravování uprav stravné: vyber „Jídla zdarma“ nebo zadej „Stravné ručně“.</p></fieldset>
  <div class="calc" id="fcalc"></div><div class="msgs" id="fmsgs"></div></div>
  <div class="dlg-foot">${entry?'<button type="button" class="btn danger" data-act="delForm" style="margin-right:auto">Smazat</button>':''}<button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="saveForm">Uložit</button></div></form>`;
  const set=(k,v)=>{const el=$('#f_'+k.replace('.','\\.'));if(!el)return;if(el.type==='checkbox')el.checked=!!v;else el.value=v??''};
+ const custShow=e.customer||((!entry&&!draft)?'':(entryCustomer(e)));
+ set('customer',custShow);set('place',e.place||e.travel?.to||'');
  for(const k of['date','startTime','endTime','lunchHours','note','totalHours','jobHours','baseHours','commuteHours','overtime','weekendHours','vacationHours','doctorHours','sickHours','tripHours'])set(k,e[k]??'');
+ if(String(e.note||'').trim()){const nb=$('#noteBox'),nt=$('#noteToggle');if(nb)nb.hidden=false;if(nt)nt.hidden=true}
  set('noTravelOrder',e.noTravelOrder);const t=e.travel||{};
  for(const k of TRAVEL_KEYS)set('t.'+k,k==='freeMeals'?String(mealsCount(t)):k==='transport'?(t[k]||'AUS'):t[k]);
  ensureOpt('lunchHours',e.lunchHours,LUNCH_OPTS);ensureOpt('commuteHours',e.commuteHours,COMMUTE_OPTS);set('lunchHours',String(num(e.lunchHours)));set('commuteHours',String(num(e.commuteHours)));set('t.freeBoard',!!t.freeBoard);
- fstate={pair:null,jobV:num(e.jobHours),baseV:num(e.baseHours),retFollow:entry?(!!t.to&&t.returnFrom===t.to):(!t.returnFrom||t.returnFrom===t.to),startFollow:!entry&&!t.start,arrFollow:!entry&&!t.returnArrival};
+ const initPlace=e.place||e.travel?.to||'';
+ fstate={pair:null,jobV:num(e.jobHours),baseV:num(e.baseHours),retFollow:entry?(!!t.to&&t.returnFrom===t.to):(!t.returnFrom||t.returnFrom===t.to),startFollow:!entry&&!t.start,arrFollow:!entry&&!t.returnArrival,placeFollow:!entry?true:(!t.to||t.to===initPlace)};
  if(t.transport&&!['AUS','AUV','VLAK','BUS','MHD','JINE'].includes(t.transport)){const s=$('#f_t\\.transport');s.add(new Option(t.transport,t.transport,true,true))}
  if(entry||draft){const a=autoCalc(e);const cmp=(k,v)=>{if(Math.abs(num(e[k])-v)>0.001)manual.add(k)};cmp('totalHours',a.total);cmp('overtime',r2(Math.max(0,num(e.totalHours)-8-num(e.commuteHours))));cmp('weekendHours',isWeekend(e.date)?num(e.totalHours):0);cmp('tripHours',a.trip);}
  stitekFormInit();refreshForm();$('#dlg').showModal();
@@ -945,7 +1072,8 @@ function refreshForm(){
  const a=autoCalc(tmp);setAuto('totalHours',a.total);const total=num(g('totalHours'));
  {if(fstate.pair==='job')fstate.baseV=r2(Math.max(0,total-fstate.jobV));else if(fstate.pair==='base')fstate.jobV=r2(Math.max(0,total-fstate.baseV));else if(fstate.pair==='total'){fstate.jobV=Math.min(fstate.jobV,total);fstate.baseV=r2(Math.max(0,total-fstate.jobV))}
   hourOpts('jobHours',total,fstate.jobV);hourOpts('baseHours',total,fstate.baseV)}
- {const tf=$('#f_t\\.returnFrom'),tt=g('t.to');if(fstate.retFollow&&tf)tf.value=tt||'';const ts=$('#f_t\\.start');if(fstate.startFollow&&ts)ts.value=g('startTime')||'';const ta=$('#f_t\\.returnArrival');if(fstate.arrFollow&&ta)ta.value=g('endTime')||'';
+ {const plc=g('place')||'';const toEl=$('#f_t\\.to');if(fstate.placeFollow&&toEl)toEl.value=plc;
+  const tf=$('#f_t\\.returnFrom'),tt=g('t.to');if(fstate.retFollow&&tf)tf.value=tt||'';const ts=$('#f_t\\.start');if(fstate.startFollow&&ts)ts.value=g('startTime')||'';const ta=$('#f_t\\.returnArrival');if(fstate.arrFollow&&ta)ta.value=g('endTime')||'';
   const fh=$('#freeBoardHint');if(fh)fh.hidden=!g('t.freeBoard')}
  stitekToggle();
  setAuto('overtime',r2(Math.max(0,total-8-num(g('commuteHours')))));
@@ -960,7 +1088,9 @@ function buildEntry(preview){
  const g=formVal,src=editing?clone(editing):{};
  const e=editing?src:{id:(crypto.randomUUID?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(16).slice(2))};
  const put=(k,v)=>{e[k]=v};
- put('date',g('date'));put('startTime',g('startTime'));put('endTime',g('endTime'));put('lunchHours',num(g('lunchHours')));put('totalHours',num(g('totalHours')));put('note',g('note'));
+ put('date',g('date'));put('startTime',g('startTime'));put('endTime',g('endTime'));put('lunchHours',num(g('lunchHours')));put('totalHours',num(g('totalHours')));
+ put('customer',(g('customer')||'').trim());put('place',(g('place')||'').trim());
+ const noteV=(g('note')||'').trim();if(noteV||('note'in src))put('note',noteV);
  put('jobHours',num(g('jobHours')));put('baseHours',num(g('baseHours')));put('overtime',num(g('overtime')));put('commuteHours',num(g('commuteHours')));put('weekendHours',num(g('weekendHours')));put('tripHours',num(g('tripHours')));
  put('vacationHours',num(g('vacationHours')));put('doctorHours',num(g('doctorHours')));put('sickHours',num(g('sickHours')));
  const t=Object.assign({},src.travel||{}),old=src.travel||{};
@@ -1009,7 +1139,7 @@ function saveForm(){
  if(editing){const i=state.entries.findIndex(x=>x.id===editing.id);state.entries[i]=e}else state.entries.push(e);
  saveData();stitekSaved(e);const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();$('#dlg').close();render();toast('Uloženo');
 }
-function delEntry(id){const e=state.entries.find(x=>x.id===id);if(!e)return;if(!confirm(`Smazat záznam ${fmtDate(e.date)}${e.note?' – '+e.note:''}?`))return;state.entries=state.entries.filter(x=>x.id!==id);saveData();if($('#dlg').open)$('#dlg').close();render();toast('Smazáno')}
+function delEntry(id){const e=state.entries.find(x=>x.id===id);if(!e)return;if(!confirm(`Smazat záznam ${fmtDate(e.date)}${entryLabel(e)?' – '+entryLabel(e):''}?`))return;state.entries=state.entries.filter(x=>x.id!==id);saveData();if($('#dlg').open)$('#dlg').close();render();toast('Smazáno')}
 
 /* ---------- import / export ---------- */
 async function download(name,text,type){
@@ -1019,8 +1149,8 @@ function dl(name,text,type){const a=document.createElement('a');a.href=URL.creat
 async function exportJSON(){const okk=await download(`moje-dochazka-zaloha-${todayISO()}.json`,JSON.stringify(state,null,2),'application/json');if(okk===false)return;bk.last=new Date().toISOString();bk.dirty=0;saveBk();render();toast('Záloha stažena')}
 function exportCSV(){
  const f=v=>{let s=typeof v==='number'?String(r2(v)).replace('.',','):String(v??'');return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
- const head=['Datum','Den','Začátek','Konec','Pauza h','Celkem h','Zakázka h','Základ h','Přesčas h','Dojíždění h','Víkend h','Svátek','Cesta h','Dovolená h','Lékař h','Nemoc h','Poznámka','Odkud','Kam','Doprava','Bez CP','Výdělek Kč','Stravné Kč','Náhrady Kč','Celkem Kč'];
- const rows=monthEntries(Y,M).map(e=>{const c=calc(e),t=e.travel||{};return[e.date,DOW[parseISO(e.date).getDay()],e.startTime,e.endTime,num(e.lunchHours),num(e.totalHours),num(e.jobHours),num(e.baseHours),num(e.overtime),num(e.commuteHours),num(e.weekendHours),c.hol,num(e.tripHours),num(e.vacationHours),num(e.doctorHours),num(e.sickHours),e.note,t.from,t.to,t.transport,e.noTravelOrder?'ano':'',c.work,c.diet,c.c.sum,c.all]});
+ const head=['Datum','Den','Začátek','Konec','Pauza h','Celkem h','Zakázka h','Základ h','Přesčas h','Dojíždění h','Víkend h','Svátek','Cesta h','Dovolená h','Lékař h','Nemoc h','Zákazník','Místo','Poznámka','Odkud','Kam','Doprava','Bez CP','Výdělek Kč','Stravné Kč','Náhrady Kč','Celkem Kč'];
+ const rows=monthEntries(Y,M).map(e=>{const c=calc(e),t=e.travel||{};return[e.date,DOW[parseISO(e.date).getDay()],e.startTime,e.endTime,num(e.lunchHours),num(e.totalHours),num(e.jobHours),num(e.baseHours),num(e.overtime),num(e.commuteHours),num(e.weekendHours),c.hol,num(e.tripHours),num(e.vacationHours),num(e.doctorHours),num(e.sickHours),entryCustomer(e),entryPlace(e),e.note,t.from,t.to,t.transport,e.noTravelOrder?'ano':'',c.work,c.diet,c.c.sum,c.all]});
  const s=summary(Y,M);rows.push(['CELKEM','','','','',s.h,'','',s.ot,'',s.wk,'',s.trip,s.vac,s.doc,s.sick,'','','','','',s.work,s.diet,s.cost,s.all]);
  download(`moje-dochazka-${Y}-${pad(M+1)}.csv`,'\ufeff'+[head,...rows].map(r=>r.map(f).join(';')).join('\r\n'),'text/csv;charset=utf-8')}
 function validateImport(d){
@@ -1068,6 +1198,7 @@ document.addEventListener('click',ev=>{
   if(act==='del')return delEntry(a.dataset.id);
   if(act==='delForm')return delEntry(editing.id);
   if(act==='close')return $('#dlg').close();
+  if(act==='noteToggle'){const b=$('#noteBox'),t=$('#noteToggle');if(b)b.hidden=false;if(t)t.hidden=true;$('#f_note')?.focus();return}
   if(act==='saveForm')return saveForm();
   if(act==='export')return exportJSON();
   if(act==='import')return $('#fileIn').click();
@@ -1092,7 +1223,7 @@ document.addEventListener('input',ev=>{const el=ev.target;
  if(el.closest('#jform')){refreshJob();return}
  if(el.closest('#eform')){const k=el.dataset.k;if(['totalHours','overtime','weekendHours','tripHours'].includes(k))manual.add(k);
   if(k==='jobHours'){fstate.pair='job';fstate.jobV=num(el.value)}else if(k==='baseHours'){fstate.pair='base';fstate.baseV=num(el.value)}else if(['startTime','endTime','lunchHours','totalHours'].includes(k)&&!fstate.pair)fstate.pair='total';
-  if(k==='t.returnFrom')fstate.retFollow=false;if(k==='t.start')fstate.startFollow=false;if(k==='t.returnArrival')fstate.arrFollow=false;refreshForm()}
+  if(k==='t.returnFrom')fstate.retFollow=false;if(k==='t.start')fstate.startFollow=false;if(k==='t.returnArrival')fstate.arrFollow=false;if(k==='t.to')fstate.placeFollow=false;if(k==='place'&&fstate.placeFollow){const to=$('#f_t\\.to');if(to)to.value=el.value}refreshForm()}
 });
 document.addEventListener('change',ev=>{const el=ev.target;if(el.dataset.to){setOrderField(el.dataset.to,el.value);renderOrders();renderBanner()}});
 $('#fileIn').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importFile(f)};
@@ -1111,7 +1242,7 @@ if(window.APP_PWA&&'serviceWorker'in navigator&&location.protocol==='https:'){
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadCtrl)return;const b=document.createElement('div');b.className='backup-banner';b.style.cssText='position:fixed;left:12px;right:12px;top:max(12px,env(safe-area-inset-top));z-index:100';b.innerHTML='<span>🔄 Je k dispozici nová verze aplikace.</span><button class="btn small">Načíst znovu</button>';b.querySelector('button').onclick=()=>location.reload();document.body.appendChild(b)});
 }
 const loaded=loadData();initialMonth();render();
-window.__app={get state(){return state},calc,balances,dietInfo,holidays,summary,loaded,save:()=>{saveData();render()}};
+window.__app={get state(){return state},calc,balances,dietInfo,holidays,summary,entryCustomer,entryPlace,entryLabel,loaded,save:()=>{saveData();render()}};
 
 /* ================= Cloud sync (Supabase) – jen ve veřejné verzi ================= */
 const CFG=window.APP_CONFIG||{};
