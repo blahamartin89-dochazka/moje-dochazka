@@ -133,7 +133,7 @@ body[data-view="dnes"] #addBtn,body[data-view="dnes"] .intro p{display:none}
 .qsum{text-align:center;margin:10px 0 0;font-size:16px}
 .qrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #e3e9f3}.qrow span{white-space:nowrap;color:#5a6b85}
 .qrow input,.qrow select{border:0;background:transparent;font:inherit;font-weight:700;color:#14233b;text-align:right;min-width:0;flex:1;padding:6px 0}
-.qphoto{width:100%;justify-content:center}
+.qphoto{width:100%;justify-content:center}.st-qphoto{margin-top:8px}.st-qphoto .st-file{flex:1;justify-content:center;text-align:center}
 .qfoot{position:sticky;bottom:0;padding:10px 16px calc(14px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #e3e9f3}
 .qsave{width:100%;font-size:19px;padding:14px;display:flex;flex-direction:column;align-items:center}.qsave small{font-size:12px;font-weight:400;opacity:.85}
 @media(max-width:700px){dialog.qdlg{width:100vw;max-width:100vw;height:100%;max-height:100%;border-radius:0;margin:0}dialog.qdlg .qe{display:flex;flex-direction:column;min-height:100%}dialog.qdlg .dlg-body{flex:1}}
@@ -207,7 +207,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.9";
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.10";
 /* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
 const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
 const PHOTO_CLOUD=window.APP_PHOTO_CLOUD!==false; // bucket "stazky" existuje; vypnout lze v config.js: window.APP_PHOTO_CLOUD=false
@@ -261,6 +261,13 @@ function stCaption(e){const d=e.date?`${+e.date.slice(8)}.${+e.date.slice(5,7)}.
  return [d,entryPlace(e),entryCustomer(e),e.machine].map(x=>String(x||'').trim()).filter(Boolean).join('\n')}
 const isJobDay=e=>num(e.jobHours)>0||(e.photos&&e.photos.length>0);
 
+/* ---------- photo inputs (camera vs gallery; iOS capture forces camera) ---------- */
+function stPhotoBtns(target,opt){
+ opt=opt||{};const small=opt.small?' small':'';
+ const cam=opt.cam||'📷 Vyfotit',gal=opt.gal||'🖼️ Z galerie';
+ const row=opt.rowClass!=null?opt.rowClass:'btnrow';
+ return `<div class="${row}"><label class="btn sec${small} st-file">${cam}<input type="file" accept="image/*" capture="environment" data-st-file="${esc(target)}" data-st-src="camera" hidden></label>`+
+  `<label class="btn sec${small} st-file">${gal}<input type="file" accept="image/*" multiple data-st-file="${esc(target)}" data-st-src="gallery" hidden></label></div>`}
 /* ---------- formulář dne ---------- */
 let formPhotos=[];
 function stitekFormHTML(e){formPhotos=(e.photos||[]).map(p=>Object.assign({},p));
@@ -270,7 +277,7 @@ function stitekFormHTML(e){formPhotos=(e.photos||[]).map(p=>Object.assign({},p))
  <p class="muted st-preview" id="stPreview"></p>
  <div class="grid"><div class="f wide"><label for="f_machine">Stroj (typ + SPZ)</label><input id="f_machine" data-st="machine" list="dl_mach" placeholder="např. AC40   U01 3139" value="${esc(e.machine||lastM)}"></div></div>
  <div class="st-photos" id="stFormPhotos"></div>
- <div class="btnrow"><label class="btn sec st-file">📷 Vyfotit / nahrát štítek<input type="file" accept="image/*" capture="environment" data-st-file="form" hidden></label><label class="btn sec st-file">🖼 Z galerie<input type="file" accept="image/*" multiple data-st-file="form" hidden></label></div>
+ ${stPhotoBtns("form",{cam:"📷 Vyfotit",gal:"🖼️ Z galerie"})}
  <p class="muted st-note">Fotky se ukládají do tvého účtu${PHOTO_CLOUD?'':' (cloud vypnut – jen v zařízení)'} a v zařízení pro offline. ${PHOTO_NOTE}</p></fieldset>`}
 function renderFormPhotos(){const b=$('#stFormPhotos');if(!b)return;b.innerHTML=formPhotos.map(p=>`<div class="st-th"><img data-photo="${esc(p.id)}" alt="štítek" data-st-act="view" data-id="${esc(p.id)}"><button type="button" class="st-x" data-st-act="formDel" data-id="${esc(p.id)}" aria-label="Odebrat">✕</button></div>`).join('');hydrateThumbs(b)}
 function stitekFormInit(){renderFormPhotos();stitekToggle();stitekPreviewUpdate()}
@@ -291,7 +298,7 @@ function stitekSaved(e){if(e.machine)try{localStorage.setItem(LS_MACHINE,e.machi
 function stitekDetailHTML(e){if(!isJobDay(e))return'';const ps=e.photos||[];
  return `<div class="st-box no-print"><div class="detail-label">ŠTÍTEK</div><p class="muted st-note">${PHOTO_NOTE}</p>${ps.length?`<div class="st-photos">${ps.map(p=>`<div class="st-th"><img data-photo="${esc(p.id)}" alt="štítek" data-st-act="view" data-id="${esc(p.id)}"></div>`).join('')}</div>`:'<p class="muted">Zatím bez fotky štítku.</p>'}
  ${stCaption(e).includes('\n')?`<pre class="st-cap">${esc(stCaption(e))}</pre>`:''}
- <div class="btnrow"><label class="btn sec small st-file">📷 Přidat štítek<input type="file" accept="image/*" capture="environment" data-st-file="${esc(e.id)}" hidden></label>${ps.length?`<button class="btn small" data-st-act="share" data-id="${esc(e.id)}">Poslat do WhatsAppu</button>`:''}<button class="btn sec small" data-st-act="copy" data-id="${esc(e.id)}">Kopírovat popisek</button></div></div>`}
+ ${stPhotoBtns(e.id,{small:true,cam:"📷 Vyfotit",gal:"🖼️ Z galerie"})}${ps.length?`<div class="btnrow"><button class="btn small" data-st-act="share" data-id="${esc(e.id)}">Poslat do WhatsAppu</button><button class="btn sec small" data-st-act="copy" data-id="${esc(e.id)}">Kopírovat popisek</button></div>`:`<div class="btnrow"><button class="btn sec small" data-st-act="copy" data-id="${esc(e.id)}">Kopírovat popisek</button></div>`}</div>`}
 
 /* ---------- ořez ---------- */
 let crop=null;
@@ -482,8 +489,19 @@ async function stShare(e){const cap=stCaption(e),fs=await stFiles(e);if(!fs.leng
 function stView(id){let d=$('#photoView');if(!d){d=document.createElement('dialog');d.id='photoView';d.className='photo-view';document.body.appendChild(d)}
  d.innerHTML=`<button type="button" class="pv-x" data-st-act="viewClose" aria-label="Zavřít">✕</button><img data-photo="${esc(id)}" alt="štítek">`;d.showModal();hydrateThumbs(d)}
 
-document.addEventListener('change',ev=>{const el=ev.target;if(!el.dataset||!el.dataset.stFile)return;const fs=[...el.files];el.value='';
- (async()=>{for(const f of fs){await openCrop(f,el.dataset.stFile);await new Promise(r=>{const d=$('#cropDlg');const t=setInterval(()=>{if(!d.open){clearInterval(t);r()}},150)})}})()});
+let _cropBusy=Promise.resolve();
+function enqueueCrops(files,target){
+ const list=[...files];
+ _cropBusy=_cropBusy.then(async()=>{
+  for(const f of list){
+   try{await openCrop(f,target)}catch(e){continue}
+   const d=$('#cropDlg');if(!d||!d.open)continue; // load fail / cancelled before open
+   await new Promise(r=>{const t=setInterval(()=>{if(!d.open){clearInterval(t);r()}},80)})
+  }
+ });
+ return _cropBusy}
+document.addEventListener('change',ev=>{const el=ev.target;if(!el.dataset||!el.dataset.stFile)return;const fs=[...el.files];const target=el.dataset.stFile;el.value='';
+ if(fs.length)enqueueCrops(fs,target)});
 document.addEventListener('input',ev=>{if(ev.target.id==='f_jobHours')stitekToggle()});
 document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('[data-st-act]');if(!a)return;const k=a.dataset.stAct,ent=()=>state.entries.find(x=>x.id===a.dataset.id);
  if(k==='cropRot'){crop.rot++;cropSetup();cropDraw()}else if(k==='cropAuto'){crop.q=autoQuad(crop.cv);cropDraw()}else if(k==='cropFull'){crop.q=[[0,0],[1,0],[1,1],[0,1]];cropDraw()}
@@ -492,7 +510,7 @@ document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.clos
  else if(k==='view')stView(a.dataset.id);else if(k==='viewClose')$('#photoView').close();
  else if(k==='share'){const e=ent();if(e)stShare(e)}else if(k==='copy'){const e=ent();if(e)copyText(stCaption(e)).then(ok=>toast(ok?'Popisek zkopírován':'Kopírování se nepovedlo'))}});
 window.addEventListener('resize',()=>{if(crop)cropDraw()});
-window.__stitek={photoCleanup,photoCutoff,photoCloudQueue,stCaption,autoQuad,warp,mildSharpen,toCanvas,toJpeg,pPut,pGet,stShare,cropFinish,openCrop,CROP_FULL_MAX,CROP_PREV_MAX,CROP_JPEG_Q,get crop(){return crop},get formPhotos(){return formPhotos}};
+window.__stitek={photoCleanup,photoCutoff,photoCloudQueue,stCaption,autoQuad,warp,mildSharpen,toCanvas,toJpeg,pPut,pGet,stShare,cropFinish,openCrop,stPhotoBtns,enqueueCrops,CROP_FULL_MAX,CROP_PREV_MAX,CROP_JPEG_Q,get crop(){return crop},get formPhotos(){return formPhotos}};
 
 const _stRender=render;render=function(){_stRender.apply(this,arguments);hydrateThumbs()};
 
@@ -718,7 +736,7 @@ function openTpl(kind,date){
  <div class="qcard"><h3>${kind==='manual'?'Zápis':'Šablona'}</h3><b class="qtpl">${label}</b><div class="muted">${kind==='manual'?'doplň zákazníka a místo, uprav časy':'vše vyplněno – zkontroluj jen časy'}</div></div>
  <div class="qcard"><h3>Čas práce</h3><div class="qtimes"><div class="qt"><label class="qtv"><span id="qv_start"></span><input type="time" data-q="start" value="${esc(qs.start)}" aria-label="Začátek"></label><div><button type="button" data-act="qShift" data-f="start" data-m="-30">−30 min</button><button type="button" data-act="qShift" data-f="start" data-m="30">+30 min</button></div></div><span class="qdash">–</span><div class="qt"><label class="qtv"><span id="qv_end"></span><input type="time" data-q="end" value="${esc(qs.end)}" aria-label="Konec"></label><div><button type="button" data-act="qShift" data-f="end" data-m="-30">−30 min</button><button type="button" data-act="qShift" data-f="end" data-m="30">+30 min</button></div></div></div><p class="qsum" id="qsum"></p></div>
  <div class="qcard"><h3>Předvyplněno</h3>${isJob?row('🏗️','Zákazník',`<input data-q="customer" list="dl_qc" value="${esc(qs.customer)}">`)+row('📍','Místo',`<input data-q="place" list="dl_qp" value="${esc(qs.place)}">`)+row('🚛','Stroj',`<input data-q="machine" list="dl_qm" placeholder="např. AC40" value="${esc(qs.machine)}">`)+row('🚗','Dojíždění',sel('commute',COMMUTE_OPTS,qs.commute)):''}${row('🍽️','Oběd',sel('lunch',LUNCH_OPTS,qs.lunch))}<p class="muted">Klepni na řádek pro změnu</p></div>
- ${isJob?`<div class="qcard"><div class="st-photos" id="stFormPhotos"></div><label class="btn sec st-file qphoto">📷 Vyfotit štítek (volitelné)<input type="file" accept="image/*" capture="environment" data-st-file="form" hidden></label></div>`:''}
+ ${isJob?`<div class="qcard"><div class="st-photos" id="stFormPhotos"></div>${stPhotoBtns("form",{cam:"📷 Vyfotit",gal:"🖼️ Z galerie",rowClass:"btnrow st-qphoto"})}</div>`:''}
  <div class="msgs" id="qmsgs"></div><button type="button" class="linkbtn" data-act="qFull">Více údajů</button></div>
  <div class="qfoot"><button type="button" class="btn qsave" data-act="qSave" id="qSaveBtn"></button></div></div>`;
  $('#dlg').classList.add('qdlg');if(!$('#dlg').open)$('#dlg').showModal();qRefresh();
@@ -1357,8 +1375,7 @@ function openSlipForm(slip){
  $('#dlg').innerHTML=`<div class="qe"><div class="dlg-head"><h2>${slip?'Upravit':'Nová'} výplatnice</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div>
   <div class="dlg-body"><div class="grid">${fields}</div>
   <div class="st-photos" id="slipPhotos"></div>
-  <div class="btnrow"><label class="btn sec st-file">📷 Fotka výplatnice<input type="file" accept="image/*" capture="environment" data-st-file="slipForm" hidden></label>
-  <label class="btn sec st-file">🖼 Galerie<input type="file" accept="image/*" data-st-file="slipForm" hidden></label></div>
+  ${stPhotoBtns("slipForm",{cam:"📷 Vyfotit",gal:"🖼️ Z galerie"})}
   <p class="muted">Opsat z pásky: průměr, hrubá, čistá, hodiny, zbývající dovolená, cest. náhrady, vyúčtování. Období např. září 2026.</p></div>
   <div class="qfoot"><button type="button" class="btn qsave" data-act="slipSave">✓ Uložit výplatnici</button></div></div>`;
  if(!$('#dlg').open)$('#dlg').showModal();renderSlipPhotos();
