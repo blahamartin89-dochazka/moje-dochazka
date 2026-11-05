@@ -207,7 +207,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.8";
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.9";
 /* ================= Štítky (štazky) – fotky záznamu o provozu stroje ================= */
 const PHOTO_DB='mojeDochazkaPhotos',PHOTO_STORE='p',LS_MACHINE='mojeDochazka.lastMachine';
 const PHOTO_CLOUD=window.APP_PHOTO_CLOUD!==false; // bucket "stazky" existuje; vypnout lze v config.js: window.APP_PHOTO_CLOUD=false
@@ -388,14 +388,22 @@ function autoQuad(cv){
 function sq2quad(q){const[[x0,y0],[x1,y1],[x2,y2],[x3,y3]]=q,dx1=x1-x2,dx2=x3-x2,dy1=y1-y2,dy2=y3-y2,sx=x0-x1+x2-x3,sy=y0-y1+y2-y3;let g=0,hh=0;
  if(Math.abs(sx)>1e-9||Math.abs(sy)>1e-9){const den=dx1*dy2-dx2*dy1;if(Math.abs(den)>1e-12){g=(sx*dy2-dx2*sy)/den;hh=(dx1*sy-sx*dy1)/den}}
  return[x1-x0+g*x1,x3-x0+hh*x3,x0,y1-y0+g*y1,y3-y0+hh*y3,y0,g,hh]}
+const CROP_FULL_MAX=3000,CROP_PREV_MAX=1600,CROP_JPEG_Q=.92;
 function warp(src,q,maxSide){const[a,b,c,d,e,f,g,h]=sq2quad(q),dist=(p,r)=>Math.hypot(p[0]-r[0],p[1]-r[1]);
- let W=(dist(q[0],q[1])+dist(q[3],q[2]))/2,H=(dist(q[0],q[3])+dist(q[1],q[2]))/2;const s=Math.min(1,maxSide/Math.max(W,H))||1;W=Math.max(1,Math.round(W*s));H=Math.max(1,Math.round(H*s));
- const sd=src.getContext('2d').getImageData(0,0,src.width,src.height),sp=sd.data,sw=src.width,sh=src.height,out=document.createElement('canvas');out.width=W;out.height=H;const ox=out.getContext('2d'),od=ox.createImageData(W,H),dp=od.data;
+ let W=(dist(q[0],q[1])+dist(q[3],q[2]))/2,H=(dist(q[0],q[3])+dist(q[1],q[2]))/2;const s=Math.min(1,(maxSide||CROP_FULL_MAX)/Math.max(W,H))||1;W=Math.max(1,Math.round(W*s));H=Math.max(1,Math.round(H*s));
+ const sd=src.getContext('2d',{willReadFrequently:true}).getImageData(0,0,src.width,src.height),sp=sd.data,sw=src.width,sh=src.height,out=document.createElement('canvas');out.width=W;out.height=H;const ox=out.getContext('2d'),od=ox.createImageData(W,H),dp=od.data;
  for(let y=0;y<H;y++){const v=(y+.5)/H;for(let x=0;x<W;x++){const u=(x+.5)/W,z=g*u+h*v+1,px=(a*u+b*v+c)/z,py=(d*u+e*v+f)/z;
   let ix=px|0,iy=py|0;if(ix<0)ix=0;else if(ix>sw-2)ix=sw-2;if(iy<0)iy=0;else if(iy>sh-2)iy=sh-2;const fx=Math.min(1,Math.max(0,px-ix)),fy=Math.min(1,Math.max(0,py-iy)),i0=(iy*sw+ix)*4,i1=i0+4,i2=i0+sw*4,i3=i2+4,o=(y*W+x)*4;
   for(let k=0;k<3;k++)dp[o+k]=(sp[i0+k]*(1-fx)+sp[i1+k]*fx)*(1-fy)+(sp[i2+k]*(1-fx)+sp[i3+k]*fx)*fy;dp[o+3]=255}}
  ox.putImageData(od,0,0);return out}
-const toJpeg=cv=>new Promise(r=>cv.toBlob(b=>r(b),'image/jpeg',.8));
+/* jemný unsharp — čitelnější text, barvy zůstávají přirozené */
+function mildSharpen(cv){const w=cv.width,h=cv.height,x=cv.getContext('2d',{willReadFrequently:true}),src=x.getImageData(0,0,w,h),out=x.createImageData(w,h),s=src.data,d=out.data,A=.32;
+ for(let i=0;i<s.length;i++)d[i]=s[i];
+ for(let y=1;y<h-1;y++)for(let xx=1;xx<w-1;xx++){const i=(y*w+xx)*4;
+  for(let k=0;k<3;k++){const c=s[i+k]*5-s[i+k-4]-s[i+k+4]-s[i+k-w*4]-s[i+k+w*4];const v=s[i+k]+A*(c-s[i+k]);d[i+k]=v<0?0:v>255?255:v|0}
+  d[i+3]=255}
+ x.putImageData(out,0,0);return cv}
+const toJpeg=(cv,q)=>new Promise(r=>cv.toBlob(b=>r(b),'image/jpeg',q==null?CROP_JPEG_Q:q));
 async function openCrop(file,target){let im;try{im=await loadImg(file)}catch(e){return toast(e.message)}
  crop={im,rot:0,target,q:null,cv:null,loupe:false};cropSetup();
  let d=$('#cropDlg');if(!d){d=document.createElement('dialog');d.id='cropDlg';d.className='crop-dlg';document.body.appendChild(d)}
@@ -406,7 +414,11 @@ async function openCrop(file,target){let im;try{im=await loadImg(file)}catch(e){
   <div class="crop-actions"><button type="button" class="btn sec" data-st-act="cropCancel">Zrušit</button><button type="button" class="btn crop-ok" data-st-act="cropOk">Hotovo</button></div>
  </div>`;
  if(!d.open)d.showModal();requestAnimationFrame(()=>cropDraw())}
-function cropSetup(){crop.cv=toCanvas(crop.im,2400,crop.rot);crop.q=autoQuad(crop.cv)}
+function cropSetup(){
+ /* full = zdroj pro warp (max ~3000), cv = rychlý náhled + autoQuad; q je normalizované 0–1 pro oba */
+ crop.full=toCanvas(crop.im,CROP_FULL_MAX,crop.rot);
+ crop.cv=toCanvas(crop.full,CROP_PREV_MAX,0);
+ crop.q=autoQuad(crop.cv)}
 function cropStageBox(){const st=$('#cropStage');if(!st)return{W:340,H:460};const cs=getComputedStyle(st);
  const pl=parseFloat(cs.paddingLeft)||0,pr=parseFloat(cs.paddingRight)||0,pt=parseFloat(cs.paddingTop)||0,pb=parseFloat(cs.paddingBottom)||0;
  return{W:Math.max(40,st.clientWidth-pl-pr),H:Math.max(40,st.clientHeight-pt-pb)}}
@@ -414,9 +426,11 @@ function cropNorm(clientX,clientY){const wrap=$('#cropWrap')||$('#cropSvg');cons
  return[Math.min(1,Math.max(0,r.width?((clientX-r.left)/r.width):0)),Math.min(1,Math.max(0,r.height?((clientY-r.top)/r.height):0))]}
 function cropDraw(){const st=$('#cropStage'),wrap=$('#cropWrap'),cv=$('#cropCv'),svg=$('#cropSvg');if(!st||!crop||!wrap)return;
  const{W,H}=cropStageBox();const s=Math.min(W/crop.cv.width,H/crop.cv.height);const w=Math.max(1,Math.round(crop.cv.width*s)),h=Math.max(1,Math.round(crop.cv.height*s));
+ const dpr=Math.min(3,window.devicePixelRatio||1);
  wrap.style.width=w+'px';wrap.style.height=h+'px';
- cv.width=w;cv.height=h;cv.style.width=w+'px';cv.style.height=h+'px';cv.getContext('2d').drawImage(crop.cv,0,0,w,h);
- svg.setAttribute('width',w);svg.setAttribute('height',h);svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.style.width=w+'px';svg.style.height=h+'px';crop.disp={w,h};
+ cv.width=Math.max(1,Math.round(w*dpr));cv.height=Math.max(1,Math.round(h*dpr));cv.style.width=w+'px';cv.style.height=h+'px';
+ {const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(crop.cv,0,0,w,h)}
+ svg.setAttribute('width',w);svg.setAttribute('height',h);svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.style.width=w+'px';svg.style.height=h+'px';crop.disp={w,h,dpr};
  const P=crop.q.map(([x,y])=>[x*w,y*h]);
  const edges=[0,1,2,3].map(i=>{const a=P[i],b=P[(i+1)%4],mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2,ang=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI;
   return`<g class="crop-e" data-e="${i}" transform="translate(${mx},${my}) rotate(${ang})"><rect class="crop-e-hit" x="-22" y="-22" width="44" height="44" rx="12"/><rect class="crop-e-pill" x="-18" y="-6" width="36" height="12" rx="6"/></g>`}).join('');
@@ -426,13 +440,15 @@ function cropDraw(){const st=$('#cropStage'),wrap=$('#cropWrap'),cv=$('#cropCv')
 function cropLoupePt(){if(dragI>=0)return crop.q[dragI];if(dragE>=0){const a=crop.q[dragE],b=crop.q[(dragE+1)%4];return[(a[0]+b[0])/2,(a[1]+b[1])/2]}return null}
 function cropLoupeDraw(){const lp=$('#cropLoupe'),wrap=$('#cropWrap');const pt=cropLoupePt();if(!lp||!crop||!pt){if(lp)lp.hidden=true;return}
  const w=crop.disp.w,h=crop.disp.h,[qx,qy]=pt;
- const srcX=qx*crop.cv.width,srcY=qy*crop.cv.height,zoom=2.2,side=120,half=side/(2*zoom);
- lp.width=side;lp.height=side;lp.hidden=false;
+ const src=crop.full||crop.cv,dpr=Math.min(2,crop.disp.dpr||1);
+ const srcX=qx*src.width,srcY=qy*src.height,zoom=2.4,side=120,half=(side/dpr)/(2*zoom);
+ lp.width=Math.round(side*dpr);lp.height=Math.round(side*dpr);lp.style.width=side+'px';lp.style.height=side+'px';lp.hidden=false;
  const lx=Math.min(w-side-4,Math.max(4,qx*w-side/2)),ly=Math.max(4,qy*h-side-36);
  lp.style.left=lx+'px';lp.style.top=ly+'px';
- const x=lp.getContext('2d');x.save();x.beginPath();x.arc(side/2,side/2,side/2-1,0,Math.PI*2);x.clip();
+ const x=lp.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.save();x.beginPath();x.arc(side/2,side/2,side/2-1,0,Math.PI*2);x.clip();
  x.fillStyle='#111';x.fillRect(0,0,side,side);
- x.drawImage(crop.cv,srcX-half,srcY-half,half*2,half*2,0,0,side,side);
+ x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
+ x.drawImage(src,srcX-half,srcY-half,half*2,half*2,0,0,side,side);
  x.restore();x.strokeStyle='#3b82f6';x.lineWidth=2;x.beginPath();x.arc(side/2,side/2,side/2-1,0,Math.PI*2);x.stroke();
  x.strokeStyle='#fff';x.beginPath();x.moveTo(side/2-8,side/2);x.lineTo(side/2+8,side/2);x.moveTo(side/2,side/2-8);x.lineTo(side/2,side/2+8);x.stroke()}
 let dragI=-1,dragE=-1;
@@ -446,7 +462,7 @@ document.addEventListener('pointermove',ev=>{if(!crop||(dragI<0&&dragE<0))return
  cropDraw()});
 document.addEventListener('pointerup',()=>{dragI=-1;dragE=-1;if(crop){crop.loupe=false;const lp=$('#cropLoupe');if(lp)lp.hidden=true}});
 document.addEventListener('pointercancel',()=>{dragI=-1;dragE=-1;if(crop){crop.loupe=false;const lp=$('#cropLoupe');if(lp)lp.hidden=true}});
-async function cropFinish(){const q=crop.q.map(([x,y])=>[x*crop.cv.width,y*crop.cv.height]),out=warp(crop.cv,q,1600),blob=await toJpeg(out);
+async function cropFinish(){const src=crop.full||crop.cv;const q=crop.q.map(([x,y])=>[x*src.width,y*src.height]);let out=warp(src,q,CROP_FULL_MAX);try{mildSharpen(out)}catch(e){}const blob=await toJpeg(out,CROP_JPEG_Q);
  const id='ph-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),meta={id,w:out.width,h:out.height,ts:new Date().toISOString()};
  try{await pPut(id,blob)}catch(e){toast('Fotku nejde uložit: '+e.message);return}
  const t=crop.target;crop=null;$('#cropDlg').close();
@@ -476,7 +492,7 @@ document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.clos
  else if(k==='view')stView(a.dataset.id);else if(k==='viewClose')$('#photoView').close();
  else if(k==='share'){const e=ent();if(e)stShare(e)}else if(k==='copy'){const e=ent();if(e)copyText(stCaption(e)).then(ok=>toast(ok?'Popisek zkopírován':'Kopírování se nepovedlo'))}});
 window.addEventListener('resize',()=>{if(crop)cropDraw()});
-window.__stitek={photoCleanup,photoCutoff,photoCloudQueue,stCaption,autoQuad,warp,toCanvas,pPut,pGet,stShare,cropFinish,openCrop,get crop(){return crop},get formPhotos(){return formPhotos}};
+window.__stitek={photoCleanup,photoCutoff,photoCloudQueue,stCaption,autoQuad,warp,mildSharpen,toCanvas,toJpeg,pPut,pGet,stShare,cropFinish,openCrop,CROP_FULL_MAX,CROP_PREV_MAX,CROP_JPEG_Q,get crop(){return crop},get formPhotos(){return formPhotos}};
 
 const _stRender=render;render=function(){_stRender.apply(this,arguments);hydrateThumbs()};
 
