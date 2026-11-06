@@ -43,10 +43,12 @@ header{padding-top:calc(12px + constant(safe-area-inset-top));padding-top:calc(1
 .day{position:relative}.day .clip{position:absolute;top:2px;right:3px;font-size:11px;line-height:1}
 .st-photos{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.st-th{position:relative}.st-th img{width:84px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #cfd8e3;background:#eef2f7;cursor:zoom-in;display:block}
 .st-x{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:#c62828;color:#fff;font-size:12px}
-.st-file{cursor:pointer}.st-box{margin-top:10px;padding-top:8px;border-top:1px dashed #cfd8e3}.st-cap{white-space:pre-wrap;font:inherit;font-size:13px;background:#f4f7fb;padding:6px 8px;border-radius:6px;margin:6px 0}
+.st-file{cursor:pointer;position:relative;overflow:hidden}.st-file input[type=file]{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;font-size:16px;cursor:pointer}
+.st-box{margin-top:10px;padding-top:8px;border-top:1px dashed #cfd8e3}.st-cap{white-space:pre-wrap;font:inherit;font-size:13px;background:#f4f7fb;padding:6px 8px;border-radius:6px;margin:6px 0}
 #f_place{resize:vertical;min-height:38px;font:inherit}
 .crop-dlg,.photo-view{width:100%;height:100dvh;max-width:100%;max-height:none;margin:0;padding:0;border:0;background:#111;color:#fff;inset:0}
-.crop-dlg[open]{display:flex;flex-direction:column}.crop-head{flex:0 0 auto;padding:calc(8px + env(safe-area-inset-top)) 12px 6px;display:flex;flex-direction:column;gap:2px}.crop-head .muted{color:#bbb;font-size:12px}
+.crop-dlg[open],dialog.crop-dlg.crop-force{display:flex;flex-direction:column}
+dialog.crop-dlg.crop-force{position:fixed;z-index:2147483000;width:100%;height:100dvh;max-width:100%;max-height:none;margin:0}.crop-head{flex:0 0 auto;padding:calc(8px + env(safe-area-inset-top)) 12px 6px;display:flex;flex-direction:column;gap:2px}.crop-head .muted{color:#bbb;font-size:12px}
 .crop-stage{flex:1 1 auto;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;padding:6px}
 .crop-wrap{position:relative;flex:0 0 auto;line-height:0;transform-origin:center center;will-change:transform}
 .crop-wrap canvas#cropCv{display:block;max-width:none;max-height:none}
@@ -246,7 +248,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-05.16";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-06.1";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -345,7 +347,33 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
   return c.decodeAudioData(chimeAb.slice(0)).then(buf=>{chimeBuf=buf;return buf}).catch(()=>null);
  }
  try{preloadChime()}catch(e){}
- function playTap(){tapCount++;beep({type:'triangle',freq:920,freq2:640,dur:.035,gain:.14,lp:2800})}
+ /* Soft iPhone-like system tap: a few milliseconds of filtered noise, not a tone. */
+ let tapPlayed=0;
+ function playIosClick(c){
+  const sr=c.sampleRate||44100,n=Math.max(1,Math.floor(sr*0.024)),buf=c.createBuffer(1,n,sr),d=buf.getChannelData(0);
+  let hp=0,lp=0,prev=0;
+  for(let i=0;i<n;i++){
+   const white=Math.random()*2-1;
+   const ah=Math.exp(-2*Math.PI*1800/sr);
+   hp=ah*hp+(1-ah)*(white-prev);prev=white;
+   const al=Math.exp(-2*Math.PI*480/sr);
+   lp=al*lp+(1-al)*white;
+   const t=i/sr;
+   d[i]=hp*Math.exp(-t/0.0015)*1.15+lp*Math.exp(-t/0.004)*0.18;
+  }
+  let peak=0;for(let i=0;i<n;i++)peak=Math.max(peak,Math.abs(d[i]));
+  const s=peak?0.8/peak:0;for(let i=0;i<n;i++)d[i]*=s;
+  const src=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
+  f.type='highpass';f.frequency.value=650;
+  g.gain.setValueAtTime(0.5*prefs().vol,c.currentTime||0);
+  src.buffer=buf;src.connect(f);f.connect(g);g.connect(master);
+  const t0=c.currentTime||0;src.start(t0);src.stop(t0+0.03);
+ }
+ function playTap(){
+  tapCount++;
+  if(!prefs().fx)return;
+  whenRunning(c=>{if(!prefs().fx||!master)return;try{playIosClick(c);tapPlayed++}catch(e){}});
+ }
  function playDing(){beep({type:'sine',freq:880,dur:.05,gain:.2,lp:5000});setTimeout(()=>beep({type:'sine',freq:1174,dur:.12,gain:.18,lp:5000}),55)}
  function playError(){beep({type:'sawtooth',freq:220,freq2:140,dur:.16,gain:.12,lp:900})}
  function emitChime(c){
@@ -479,7 +507,8 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
  }
  function resetChimeCount(){chimeCount=0;chimeSkippedMute=0;lastChimeAt=0;oscLog.length=0}
  window.__sounds={unlock,playTap,playDing,playError,playShutter,playChaChing,startMusic,pauseMusic,applyPrefs,prefs,ensure,installCtx,preloadChime,
-  get ctx(){return ctx}, get tapCount(){return tapCount}, resetTapCount(){tapCount=0},
+  tapStyle:'ios-click',
+  get ctx(){return ctx}, get tapCount(){return tapCount}, get tapPlayed(){return tapPlayed}, resetTapCount(){tapCount=0;tapPlayed=0},
   get chimeCount(){return chimeCount}, get chimeSkippedMute(){return chimeSkippedMute},
   get chimeBuffer(){return chimeBuf}, get chimeUrl(){return CHIME_URL},
   get oscLog(){return oscLog.slice()}, resetChimeCount, get musicPlaying(){return musicOn},
@@ -544,8 +573,8 @@ function stPhotoBtns(target,opt){
  opt=opt||{};const small=opt.small?' small':'';
  const cam=opt.cam||'📷 Vyfotit',gal=opt.gal||'🖼️ Z galerie';
  const row=opt.rowClass!=null?opt.rowClass:'btnrow';
- return `<div class="${row}"><label class="btn sec${small} st-file">${cam}<input type="file" accept="image/*" capture="environment" data-st-file="${esc(target)}" data-st-src="camera" hidden></label>`+
-  `<label class="btn sec${small} st-file">${gal}<input type="file" accept="image/*" multiple data-st-file="${esc(target)}" data-st-src="gallery" hidden></label></div>`}
+ return `<div class="${row}"><label class="btn sec${small} st-file">${cam}<input type="file" accept="image/*" capture="environment" data-st-file="${esc(target)}" data-st-src="camera"></label>`+
+  `<label class="btn sec${small} st-file">${gal}<input type="file" accept="image/*" multiple data-st-file="${esc(target)}" data-st-src="gallery"></label></div>`}
 /* ---------- formulář dne ---------- */
 let formPhotos=[];
 function stitekFormHTML(e){formPhotos=(e.photos||[]).map(p=>Object.assign({},p));
@@ -689,17 +718,48 @@ function mildSharpen(cv){const w=cv.width,h=cv.height,x=cv.getContext('2d',{will
   d[i+3]=255}
  x.putImageData(out,0,0);return cv}
 const toJpeg=(cv,q)=>new Promise(r=>cv.toBlob(b=>r(b),'image/jpeg',q==null?CROP_JPEG_Q:q));
-async function openCrop(file,target){let im;try{im=await loadImg(file)}catch(e){return toast(e.message)}
- crop={im,rot:0,target,q:null,cv:null,full:null,loupe:false,view:{z:1,x:0,y:0}};cropSetup();
- let d=$('#cropDlg');if(!d){d=document.createElement('dialog');d.id='cropDlg';d.className='crop-dlg';document.body.appendChild(d)}
- d.innerHTML=`<div class="crop-head"><b>Oříznout štítek</b><span class="muted">Štípnutím zvětši · rohy/hrany posuň na okraj papíru</span></div>
+let cropParent=null,cropGen=0;
+const cropShell=(msg)=>`<div class="crop-head"><b>Oříznout štítek</b><span class="muted">${msg}</span></div>
  <div class="crop-stage" id="cropStage"><div class="crop-wrap" id="cropWrap"><canvas id="cropCv"></canvas><svg id="cropSvg"></svg><canvas id="cropLoupe" class="crop-loupe" hidden></canvas></div></div>
  <div class="crop-foot">
   <div class="crop-tools"><button type="button" class="btn sec small" data-st-act="cropRot">⟳ Otočit</button><button type="button" class="btn sec small" data-st-act="cropAuto">Auto</button><button type="button" class="btn sec small" data-st-act="cropFull">Celé</button></div>
   <div class="crop-actions"><button type="button" class="btn sec" data-st-act="cropCancel">Zrušit</button><button type="button" class="btn crop-ok" data-st-act="cropOk">Hotovo</button></div>
  </div>`;
- if(!d.open)d.showModal();
- requestAnimationFrame(()=>{cropDraw();cropZoomToQuad();cropDraw()})}
+function ensureCropDlg(){
+ let d=$('#cropDlg');
+ if(!d){d=document.createElement('dialog');d.id='cropDlg';d.className='crop-dlg';document.body.appendChild(d)}
+ if(!d._cropBound){d._cropBound=1;
+  d.addEventListener('close',()=>{cropGen++;cropClearGestures();crop=null;const p=cropParent;if(!p)return;cropParent=null;delete p.dataset.parked;if(!p.open)try{p.showModal()}catch(e){}});
+  d.addEventListener('cancel',()=>{cropClearGestures()});
+ }
+ return d}
+/* iOS neukáže druhý modal nad otevřeným formulářem a showModal po await taky ne.
+   Editor otevři hned v události výběru fotky; formulář jen odlož. */
+function presentCrop(d){
+ const dlg=$('#dlg');
+ if(dlg&&(dlg.open||dlg.dataset.picking==='1')){
+  cropParent=dlg;delete dlg.dataset.picking;
+  if(dlg.open){dlg.dataset.parked='1';try{dlg.close()}catch(e){}}
+ }else cropParent=null;
+ try{if(!d.open)d.showModal()}
+ catch(e){d.classList.add('crop-force');d.setAttribute('open','')}
+}
+function dismissCrop(){
+ const d=$('#cropDlg'),p=cropParent;cropParent=null;
+ if(p)delete p.dataset.parked;
+ if(d){d.classList.remove('crop-force');if(d.open)d.close();else cropGen++}
+ if(p&&!p.open)try{p.showModal()}catch(e){}
+}
+async function openCrop(file,target){
+ const gen=++cropGen,d=ensureCropDlg();
+ if(!d.open){d.innerHTML=cropShell('Načítám fotku…');presentCrop(d)}
+ let im;try{im=await loadImg(file)}catch(e){if(gen===cropGen){dismissCrop();toast(e.message||'Obrázek nejde načíst')}return}
+ if(gen!==cropGen||!d.open)return;
+ crop={im,rot:0,target,q:null,cv:null,full:null,loupe:false,view:{z:1,x:0,y:0}};
+ try{cropSetup()}catch(e){if(gen===cropGen){crop=null;dismissCrop();toast('Ořez se neotevřel')}return}
+ if(gen!==cropGen||!d.open)return;
+ d.innerHTML=cropShell('Štípnutím zvětši · rohy/hrany posuň na okraj papíru');
+ requestAnimationFrame(()=>{if(gen!==cropGen||!crop)return;cropDraw();cropZoomToQuad();cropDraw()})}
 function cropSetup(){
  /* full = zdroj pro warp (max ~3000), cv = rychlý náhled + autoQuad; q je normalizované 0–1 pro oba */
  crop.full=toCanvas(crop.im,CROP_FULL_MAX,crop.rot);
@@ -782,7 +842,7 @@ document.addEventListener('wheel',ev=>{if(!crop)return;const st=$('#cropStage');
 async function cropFinish(){const src=crop.full||crop.cv;const q=crop.q.map(([x,y])=>[x*src.width,y*src.height]);let out=warp(src,q,CROP_FULL_MAX);try{mildSharpen(out)}catch(e){}const blob=await toJpeg(out,CROP_JPEG_Q);
  const id='ph-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),meta={id,w:out.width,h:out.height,ts:new Date().toISOString()};
  try{await pPut(id,blob)}catch(e){toast('Fotku nejde uložit: '+e.message);return}
- const t=crop.target;crop=null;$('#cropDlg').close();
+ const t=crop.target;crop=null;dismissCrop();
  if(t==='form'){formPhotos.push(meta);renderFormPhotos();stitekToggle()}
  else if(t==='slipForm'){slipPhotos.push(meta);renderSlipPhotos()}
  else{const e=state.entries.find(x=>x.id===t);if(e){(e.photos=e.photos||[]).push(meta);saveData();stitekSaved(e);render()}}
@@ -820,20 +880,25 @@ function enqueueCrops(files,target){
  const list=[...files];
  _cropBusy=_cropBusy.then(async()=>{
   for(const f of list){
-   try{await openCrop(f,target)}catch(e){continue}
-   const d=$('#cropDlg');if(!d||!d.open)continue; // load fail / cancelled before open
-   await new Promise(r=>{const t=setInterval(()=>{if(!d.open){clearInterval(t);r()}},80)})
+   try{await openCrop(f,target)}catch(e){console.warn(e);toast('Ořez se neotevřel')}
+   const d=$('#cropDlg');if(!d||!d.open)continue;
+   await new Promise(r=>{const done=()=>{d.removeEventListener('close',done);r()};d.addEventListener('close',done)});
   }
  });
  return _cropBusy}
+document.addEventListener('pointerdown',ev=>{const lab=ev.target.closest&&ev.target.closest('label.st-file,input[data-st-file]');if(!lab)return;const dlg=$('#dlg');if(dlg&&dlg.open)dlg.dataset.picking='1'},true);
+window.addEventListener('focus',()=>{const dlg=$('#dlg');if(!dlg||dlg.dataset.picking!=='1')return;setTimeout(()=>{if(dlg.dataset.picking!=='1')return;delete dlg.dataset.picking;const c=$('#cropDlg');if(!dlg.open&&!(c&&c.open))try{dlg.showModal()}catch(e){}},400)});
 document.addEventListener('change',ev=>{const el=ev.target;if(!el.dataset||!el.dataset.stFile)return;const fs=[...el.files];const target=el.dataset.stFile;el.value='';
- if(fs.length)enqueueCrops(fs,target)});
+ if(!fs.length){const dlg=$('#dlg');if(dlg)delete dlg.dataset.picking;return}
+ const d=ensureCropDlg();if(!d.open){d.innerHTML=cropShell('Načítám fotku…');presentCrop(d)}
+ enqueueCrops(fs,target)});
 document.addEventListener('input',ev=>{if(ev.target.id==='f_jobHours')stitekToggle()});
 document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('[data-st-act]');if(!a)return;const k=a.dataset.stAct,ent=()=>state.entries.find(x=>x.id===a.dataset.id);
+ if(!crop&&(k==='cropRot'||k==='cropAuto'||k==='cropFull'||k==='cropOk'))return;
  if(k==='cropRot'){crop.rot++;cropSetup();cropResetView();cropDraw();cropZoomToQuad();cropDraw()}
  else if(k==='cropAuto'){crop.q=autoQuad(crop.cv);cropZoomToQuad();cropDraw()}
  else if(k==='cropFull'){crop.q=[[0,0],[1,0],[1,1],[0,1]];cropResetView();cropDraw()}
- else if(k==='cropCancel'){cropClearGestures();crop=null;$('#cropDlg').close()}else if(k==='cropOk')cropFinish();
+ else if(k==='cropCancel'){cropClearGestures();crop=null;dismissCrop()}else if(k==='cropOk')cropFinish();
  else if(k==='formDel'){formPhotos=formPhotos.filter(p=>p.id!==a.dataset.id);renderFormPhotos();stitekToggle()}
  else if(k==='view')stView(a.dataset.id);else if(k==='viewClose')$('#photoView').close();
  else if(k==='share'){const e=ent();if(e)stShare(e)}else if(k==='copy'){const e=ent();if(e)copyText(stCaption(e)).then(ok=>toast(ok?'Popisek zkopírován':'Kopírování se nepovedlo'))}});
@@ -1099,7 +1164,12 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
 document.addEventListener('click',ev=>{const el=ev.target.closest('.qtv input');if(el&&el.showPicker)try{el.showPicker()}catch(e){}});
 document.addEventListener('input',ev=>{const el=ev.target;if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
 document.addEventListener('change',ev=>{const el=ev.target;if(el.dataset&&el.dataset.q&&qs){qs[el.dataset.q]=['lunch','commute'].includes(el.dataset.q)?num(el.value):el.value;qRefresh()}});
-document.addEventListener('close',ev=>{if(ev.target.id==='dlg'){ev.target.classList.remove('qdlg');qs=null}},true);
+document.addEventListener('close',ev=>{
+ if(ev.target.id!=='dlg')return;
+ /* Kamera na iPhonu dialog často zavře sama. Parkování kvůli ořezu taky. Formulář necháme. */
+ if(ev.target.dataset.parked||ev.target.dataset.picking)return;
+ ev.target.classList.remove('qdlg');qs=null;
+},true);
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const LS_DATA='mojeDochazka.data.v3',LS_UI='mojeDochazka.ui',LS_BK='mojeDochazka.backup';
