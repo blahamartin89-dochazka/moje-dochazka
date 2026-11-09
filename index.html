@@ -260,7 +260,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.1";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.2";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -338,7 +338,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
   }catch(e){}}
 
  /* ~+6 dB vs v27 (.07/.10/.09) */
- let tapCount=0,chimeCount=0,chimeSkippedMute=0,lastChimeAt=0;
+ let tapCount=0,chimeCount=0,chimeSkippedMute=0,lastChimeAt=-1e9;
  const oscLog=[];
  const CHIME_GAP=350;
  const CHIME_URL='ka-ching.wav';
@@ -409,7 +409,15 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
   const now=performance.now();
   if(now-lastChimeAt<CHIME_GAP)return;
   lastChimeAt=now;
-  try{playRecordedChime()}catch(e){}
+  unlock();
+  const mark=chimeCount;
+  const tryPlay=()=>{
+   if(!prefs().fx||chimeCount>mark)return;
+   const c=ensure(false);if(!c||!chimeBuf)return;
+   whenRunning(cc=>{if(!prefs().fx||chimeCount>mark)return;try{emitChime(cc)}catch(e){}});
+  };
+  try{tryPlay()}catch(e){}
+  if(!chimeBuf)preloadChime().then(()=>{const c=ensure(false);return c?decodeChime(c):null}).then(()=>tryPlay()).catch(()=>{});
  }
  function playShutter(){
   const c=ensure();if(!c||!master||!prefs().fx)return;
@@ -517,7 +525,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
   ctx=next;master=next&&(next._master||next);comp=next&&(next._comp||master);
   if(master&&ctx&&ctx.destination&&master.connect&&comp===master){try{master.connect(ctx.destination)}catch(e){}}
  }
- function resetChimeCount(){chimeCount=0;chimeSkippedMute=0;lastChimeAt=0;oscLog.length=0}
+ function resetChimeCount(){chimeCount=0;chimeSkippedMute=0;lastChimeAt=-1e9;oscLog.length=0}
  window.__sounds={unlock,playTap,playDing,playError,playShutter,playChaChing,startMusic,pauseMusic,applyPrefs,prefs,ensure,installCtx,preloadChime,
   tapStyle:'ios-click',
   get ctx(){return ctx}, get tapCount(){return tapCount}, get tapPlayed(){return tapPlayed}, resetTapCount(){tapCount=0;tapPlayed=0},
