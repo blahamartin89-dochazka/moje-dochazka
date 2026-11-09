@@ -25,7 +25,7 @@ table.t{width:100%;border-collapse:collapse;font-size:12px}table.t th,table.t td
 .print-only{display:none}
 header{padding-top:calc(12px + constant(safe-area-inset-top));padding-top:calc(12px + env(safe-area-inset-top,0px));padding-left:max(20px,constant(safe-area-inset-left),env(safe-area-inset-left,0px),calc((100vw - 1160px)/2));padding-right:max(20px,constant(safe-area-inset-right),env(safe-area-inset-right,0px),calc((100vw - 1160px)/2));padding-bottom:16px}
 @media(max-width:700px){header{padding:calc(12px + constant(safe-area-inset-top)) max(16px,constant(safe-area-inset-right),env(safe-area-inset-right,0px)) 14px max(16px,constant(safe-area-inset-left),env(safe-area-inset-left,0px))!important;padding:calc(12px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 14px max(16px,env(safe-area-inset-left,0px))!important}.settings-grid{grid-template-columns:1fr}.bottom button{padding:6px 4px;font-size:11px}.grid{grid-template-columns:1fr 1fr}.dlg-body{padding:12px}.tabs{display:none}}
-@media print{header,#monthcontrol,.intro,.stats,.tabs,.bottom,#monthcontrol .arrows,.backup-banner,.no-print,.footnote,section:not(#ordersView),#chartPanel{display:none!important}body{background:#fff}main{padding:0}.panel{border:0;padding:0}.print-only{display:block}table.t{font-size:11px}#ordersView{display:block!important}}
+@media print{header,#monthcontrol,.intro,.stats,.tabs,.bottom,#monthcontrol .arrows,.backup-banner,.no-print,.footnote,section:not(#ordersView),#chartPanel{display:none!important}body{background:#fff}main{padding:0}.panel{border:0;padding:0}.print-only{display:block}.print-only.sign-row{display:flex;justify-content:space-between;gap:12px;margin-top:40px}table.t{font-size:11px}#ordersView{display:block!important}}
 .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}.qbtn{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid #d4dff0;background:#f6f9fe;border-radius:14px;padding:14px 12px;color:#1d304b;min-height:64px}.qbtn:hover,.qbtn:active{background:#e5f0ff;border-color:#2472d8}.qbtn .qi{font-size:24px}.qbtn b{display:block;font-size:15px}.qbtn small{display:block;font-size:11px;color:#6b7e98;margin-top:3px}
 .day.multi{background:#d7e7ff}.multibar{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:6;background:#124b92;color:#fff;border-radius:14px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;box-shadow:0 8px 24px #0b254a44}
 @media(min-width:701px){.multibar{bottom:20px;max-width:700px;margin:auto}}@media(max-width:380px){.qgrid{grid-template-columns:1fr}}
@@ -271,7 +271,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.8";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.9";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1214,7 +1214,7 @@ function openTpl(kind,date){
  const row=(ic,l,ctl)=>`<label class="qrow"><span>${ic} ${l}</span>${ctl}</label>`;
  $('#dlg').innerHTML=`<div class="qe"><div class="dlg-head"><h2>Zapsat ${DOW_ACC[d.getDay()]} ${dm(date)}</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body">
  <datalist id="dl_qp">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_qc">${custs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_qm">${machs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
- <div class="qcard"><h3>${kind==='manual'?'Zápis':'Šablona'}</h3><b class="qtpl">${label}</b><div class="muted">${kind==='manual'?'doplň zákazníka a místo, uprav časy':'vše vyplněno – zkontroluj jen časy'}</div></div>
+ <div class="qcard"><h3>${kind==='manual'?'Zápis':'Šablona'}</h3><b class="qtpl">${label}</b><div class="muted">${kind==='manual'?'doplň zákazníka a místo, uprav časy':'vše vyplněno – zkontroluj jen časy'}</div>${(kind==='copy'||kind==='job')&&typeof travelClaim==='function'&&travelClaim(src)?`<p class="muted">Cesťák se zkopíruje: ${esc([src.travel.from,src.travel.to].filter(Boolean).join(' → '))}.</p>`:''}</div>
  <div class="qcard"><h3>Čas práce</h3><div class="qtimes"><div class="qt"><label class="qtv"><span id="qv_start"></span><input type="time" data-q="start" value="${esc(qs.start)}" aria-label="Začátek"></label><div><button type="button" data-act="qShift" data-f="start" data-m="-30">−30 min</button><button type="button" data-act="qShift" data-f="start" data-m="30">+30 min</button></div></div><span class="qdash">–</span><div class="qt"><label class="qtv"><span id="qv_end"></span><input type="time" data-q="end" value="${esc(qs.end)}" aria-label="Konec"></label><div><button type="button" data-act="qShift" data-f="end" data-m="-30">−30 min</button><button type="button" data-act="qShift" data-f="end" data-m="30">+30 min</button></div></div></div><p class="qsum" id="qsum"></p></div>
  <div class="qcard"><h3>Předvyplněno</h3>${isJob?row('🏗️','Zákazník',`<input data-q="customer" list="dl_qc" value="${esc(qs.customer)}">`)+row('📍','Místo',`<input data-q="place" list="dl_qp" value="${esc(qs.place)}">`)+row('🚛','Stroj',`<input data-q="machine" list="dl_qm" placeholder="např. AC40" value="${esc(qs.machine)}">`)+row('🚗','Dojíždění',sel('commute',COMMUTE_OPTS,qs.commute)):''}${row('🍽️','Oběd',sel('lunch',LUNCH_OPTS,qs.lunch))}<p class="muted">Klepni na řádek pro změnu</p></div>
  ${isJob?`<div class="qcard"><div class="st-photos" id="stFormPhotos"></div>${stPhotoBtns("form",{cam:"📷 Vyfotit",gal:"🖼️ Z galerie",rowClass:"btnrow st-qphoto"})}</div>`:''}
@@ -1228,8 +1228,9 @@ function qBuild(){const s=qs.src,e=clone(s);e.id=newId();e.date=qs.date;delete e
  const base=isJob?Math.min(total,r2(com+extra)):total;
  Object.assign(e,{totalHours:total,commuteHours:r2(com),baseHours:r2(base),jobHours:r2(total-base),overtime:r2(Math.max(0,total-8-com)),weekendHours:isWeekend(qs.date)?total:0,vacationHours:0,sickHours:0,doctorHours:0});
  if('dpnHours' in s)e.dpnHours=0; else delete e.dpnHours;
- /* Nový den nepřebírá cesták ze šablony, Místa ani včerejška. */
- e.travel=blankTravel();e.tripHours=0;if(qs.kind==='depo'||s.noTravelOrder||qs.kind==='manual')e.noTravelOrder=true;else e.noTravelOrder=false;
+ /* Jako včera a Poslední zakázka přenesou vyplněný cesťák. Depo, ruční zápis a den bez cesťáku ho nezaloží. */
+ if((qs.kind==='copy'||qs.kind==='job')&&travelClaim(s)){e.travel=clone(s.travel||blankTravel());e.tripHours=num(s.tripHours);e.noTravelOrder=false}
+ else{e.travel=blankTravel();e.tripHours=0;e.noTravelOrder=true}
  if(isJob||qs.kind==='manual'){e.customer=(qs.customer||'').trim();e.place=(qs.place||'').trim();if(e.customer&&!String(e.note||'').trim())e.note=e.customer;if(qs.machine||'machine'in s||qs.kind==='manual')e.machine=(qs.machine||'').trim()}
  if(typeof formPhotos!=='undefined'&&formPhotos.length)e.photos=formPhotos.map(p=>Object.assign({},p));
  return e}
@@ -1247,7 +1248,7 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
  if(act==='qShift'){qs[a.dataset.f]=addMin(qs[a.dataset.f],+a.dataset.m);$(`[data-q="${a.dataset.f}"]`).value=qs[a.dataset.f];qRefresh();return}
  if(act==='qSave')return qSave();
  if(act==='eyeT'){ui.hide=!ui.hide;saveUi();render();return}
- if(act==='qFull'){const e=qBuild();delete e.id;e.noTravelOrder=false;e.travel=blankTravel();e.tripHours=0;$('#dlg').close();return openForm(null,e.date,e)}
+ if(act==='qFull'){const e=qBuild();delete e.id;if(!travelClaim(e)){e.noTravelOrder=false;e.travel=blankTravel();e.tripHours=0}$('#dlg').close();return openForm(null,e.date,e)}
 },true);
 document.addEventListener('click',ev=>{const el=ev.target.closest('.qtv input');if(el&&el.showPicker)try{el.showPicker()}catch(e){}});
 document.addEventListener('input',ev=>{const el=ev.target;if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
@@ -1516,7 +1517,7 @@ function renderOrders(){
  <p class="print-only">Číslo příkazu: <b>${esc(o.orderNo)||'—'}</b> · Spolucestující: ${esc(o.companions)||'—'} · Přílohy: ${esc(o.receipts)}</p>
  <div class="tscroll"><table class="t"><thead><tr><th>Datum</th><th>Odjezd</th><th>Příjezd</th><th>Návrat</th><th>Účel / poznámka</th><th>Doprava</th><th class="n">Hod.</th><th class="n">Stravné</th><th class="n">Jízdné</th><th class="n">Ubyt.</th><th class="n">Ostatní</th><th class="n">Km náhr.</th><th class="n">Celkem</th></tr></thead><tbody>${rows||'<tr><td colspan="13" class="empty">V tomto měsíci nejsou žádné pracovní cesty.</td></tr>'}</tbody><tfoot><tr><td colspan="6">Celkem ${es.length} ${pl(es.length,'cesta','cesty','cest')}</td><td class="n">${fmtH(tot.h)}</td><td class="n">${tot.d}</td><td class="n">${r2(tot.f)}</td><td class="n">${r2(tot.l)}</td><td class="n">${r2(tot.o)}</td><td class="n">${r2(tot.k)}</td><td class="n">${r2(tot.s)}</td></tr></tfoot></table></div>
  <div class="rows" style="max-width:380px;margin-left:auto"><div class="row"><span>Náhrady celkem</span><b>${r2(tot.s).toLocaleString('cs-CZ')} Kč</b></div><div class="row"><span>Záloha</span><b>${num(o.advance).toLocaleString('cs-CZ')} Kč</b></div><div class="row total"><span>${bal>=0?'Doplatek zaměstnanci':'Přeplatek (vrátit)'}</span><b>${Math.abs(bal).toLocaleString('cs-CZ')} Kč</b></div></div>
- <div class="print-only" style="margin-top:40px;display:flex;justify-content:space-between"><span>Datum: ____________</span><span>Podpis zaměstnance: ____________</span><span>Schválil: ____________</span></div>
+ <div class="print-only sign-row"><span>Datum: ____________</span><span>Podpis zaměstnance: ____________</span><span>Schválil: ____________</span></div>
  <div class="btnrow no-print"><button class="btn" data-act="print">🖨 Tisk / PDF</button></div>`;
 }
 function setOrderField(f,v){const key=`${Y}-${pad(M+1)}`;state.travelOrders=state.travelOrders||{};const o=state.travelOrders[key]||(state.travelOrders[key]={advance:0,orderNo:'',companions:'',receipts:0});o[f]=(f==='advance'||f==='receipts')?num(v):v;saveData();}
@@ -1570,9 +1571,9 @@ function celebrateSave(e){
  try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}
  let ov=$('#saveCeleb');if(ov)ov.remove();
  ov=document.createElement('div');ov.id='saveCeleb';ov.className='save-celeb';ov.setAttribute('role','status');
- const bits=[['money/czk-1000.webp','note',-130,-210,150,0],['money/czk-2000.webp','note',140,-190,-130,.05],['money/czk-20.webp','coin',-30,-240,210,.02],['money/czk-50.webp','coin',80,-200,-70,.06],['money/czk-1000.webp','note',190,-70,80,.08],['money/czk-2000.webp','note',-180,-50,-110,.03],['money/czk-20.webp','coin',30,-150,40,.1],['money/czk-50.webp','coin',-100,-130,-190,.07]];
+ const bits=[['money/czk-20-note.webp','note',-140,-200,140,0],['money/czk-50-note.webp','note',150,-180,-120,.05],['money/czk-20.webp','coin',-20,-240,200,.02],['money/czk-50.webp','coin',90,-210,-80,.06],['money/czk-20-note.webp','note',190,-60,70,.08],['money/czk-50-note.webp','note',-190,-40,-100,.03],['money/czk-20.webp','coin',40,-150,30,.1],['money/czk-50.webp','coin',-80,-130,-180,.07]];
  const burst=bits.map(([src,kind,x,y,r,d])=>`<img class="sc-fly sc-${kind}" src="${src}" alt="" style="--x:${x}px;--y:${y}px;--r:${r}deg;--d:${d}s">`).join('');
- ov.innerHTML=`<div class="sc-burst" aria-hidden="true">${burst}</div><div class="sc-card"><div class="sc-money" aria-hidden="true"><img class="sc-note" src="money/czk-1000.webp" alt="1000 Kč"><img class="sc-coinimg" src="money/czk-20.webp" alt="20 Kč"><img class="sc-coinimg" src="money/czk-50.webp" alt="50 Kč"><img class="sc-note" src="money/czk-2000.webp" alt="2000 Kč"></div><div class="sc-amt">+${all.toLocaleString('cs-CZ')} Kč</div><div class="sc-sub">výdělek ${work.toLocaleString('cs-CZ')} Kč${diet?` + stravné ${diet.toLocaleString('cs-CZ')} Kč`:''}</div></div>`;
+ ov.innerHTML=`<div class="sc-burst" aria-hidden="true">${burst}</div><div class="sc-card"><div class="sc-money" aria-hidden="true"><img class="sc-note" src="money/czk-20-note.webp" alt="20 Kč bankovka"><img class="sc-coinimg" src="money/czk-20.webp" alt="20 Kč mince"><img class="sc-coinimg" src="money/czk-50.webp" alt="50 Kč mince"><img class="sc-note" src="money/czk-50-note.webp" alt="50 Kč bankovka"></div><div class="sc-amt">+${all.toLocaleString('cs-CZ')} Kč</div><div class="sc-sub">výdělek ${work.toLocaleString('cs-CZ')} Kč${diet?` + stravné ${diet.toLocaleString('cs-CZ')} Kč`:''}</div></div>`;
  const dismiss=()=>{if(!ov.isConnected||ov.classList.contains('out'))return;ov.classList.add('out');setTimeout(()=>ov.remove(),220)};
  ov.addEventListener('click',dismiss);document.body.appendChild(ov);
  requestAnimationFrame(()=>ov.classList.add('in'));
