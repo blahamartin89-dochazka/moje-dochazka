@@ -1,3 +1,2 @@
-Ilustrace bankovek a mince v okně po uložení dne jsou původní jednoduché kresby pro tuto aplikaci.
-Nejde o reprodukci bankovek nebo mincí České národní banky a neslouží jako platidlo.
-Smí se šířit spolu s aplikací Moje docházka.
+Kreslené bankovky z verze 2026-11-09.3 jsou pryč.
+Miniatury pravých bankovek a mincí, zdroje, licence a soulad s vyhláškou ČNB č. 274/2011 Sb. jsou v money/LICENCE.txt.
