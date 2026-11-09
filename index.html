@@ -193,6 +193,7 @@ body[data-view="charts"] .history-grid{display:grid;grid-template-columns:1fr;ga
 @keyframes scCardIn{0%,38%{opacity:0;transform:scale(.9)}55%,100%{opacity:1;transform:scale(1)}}
 .sc-burst{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .sc-fly{position:absolute;left:50%;top:42%;width:78px;margin:-22px 0 0 -39px;animation:scFly 2.15s cubic-bezier(.12,.72,.2,1) both;animation-delay:var(--d,0s);will-change:transform,opacity}
+.sc-fly.sc-coin,.sc-coinimg{border-radius:50%;clip-path:circle(50%);background:transparent}
 .sc-fly.sc-coin{width:44px;margin-left:-22px}
 @keyframes scFly{0%{transform:translate3d(0,24px,0) rotate(0deg) scale(.3);opacity:0}12%{opacity:1}46%{transform:translate3d(var(--x),var(--y),0) rotate(var(--r)) scale(1);opacity:1}100%{transform:translate3d(calc(var(--x) * .4),calc(var(--y) + 240px),0) rotate(calc(var(--r) + 90deg)) scale(.75);opacity:0}}
 @media (prefers-reduced-motion:reduce){
@@ -269,7 +270,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.5";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.6";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;

@@ -16,7 +16,8 @@ prvky ani sazbu skutečné bankovky České národní banky. Nejsou to
 reprodukce vydané bankovky.
 
 § 14 – minci lze zobrazit jako nehmotný obraz bez nápisu Specimen.
-Mince 20 Kč a 50 Kč jsou proto malé fotografie jen líce.
+Mince 20 Kč a 50 Kč jsou proto malé fotografie jen líce, oříznuté do kruhu
+s průhledným pozadím, aby za nimi nebyl bílý čtverec.
 
 Zdroje mincí
 ------------
