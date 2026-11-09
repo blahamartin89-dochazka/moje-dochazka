@@ -1,0 +1,3 @@
+Ilustrace bankovek a mince v okně po uložení dne jsou původní jednoduché kresby pro tuto aplikaci.
+Nejde o reprodukci bankovek nebo mincí České národní banky a neslouží jako platidlo.
+Smí se šířit spolu s aplikací Moje docházka.

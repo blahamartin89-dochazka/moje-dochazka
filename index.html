@@ -260,7 +260,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.2";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.3";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1559,8 +1559,9 @@ function celebrateSave(e){
  try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}
  let ov=$('#saveCeleb');if(ov)ov.remove();
  ov=document.createElement('div');ov.id='saveCeleb';ov.className='save-celeb';ov.setAttribute('role','status');
- const coins=['💰','🪙','💵','💰','🪙'].map((em,i)=>`<span class="sc-coin" style="--i:${i}">${em}</span>`).join('');
- ov.innerHTML=`<div class="sc-card"><div class="sc-coins" aria-hidden="true">${coins}</div><div class="sc-amt">+${all.toLocaleString('cs-CZ')} Kč 💰</div><div class="sc-sub">výdělek ${work.toLocaleString('cs-CZ')} Kč${diet?` + stravné ${diet.toLocaleString('cs-CZ')} Kč`:''}</div></div>`;
+ const note=(v,c1,c2)=>`<svg class="sc-note" viewBox="0 0 168 88" aria-hidden="true"><rect width="168" height="88" rx="8" fill="${c1}"/><rect x="8" y="8" width="152" height="72" rx="4" fill="none" stroke="${c2}" stroke-width="2"/><text x="14" y="36" fill="#fff" font-size="22" font-family="sans-serif" font-weight="700">${v}</text><text x="14" y="62" fill="${c2}" font-size="14" font-family="sans-serif">Kč</text><circle cx="136" cy="58" r="14" fill="none" stroke="${c2}" stroke-width="2"/></svg>`;
+ const coin=`<svg class="sc-coin-svg" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="32" fill="#d4a24c"/><circle cx="36" cy="36" r="26" fill="none" stroke="#f3e2b0" stroke-width="2"/><text x="36" y="42" text-anchor="middle" fill="#5a3b12" font-size="18" font-family="sans-serif" font-weight="700">Kč</text></svg>`;
+ ov.innerHTML=`<div class="sc-card"><div class="sc-money" aria-hidden="true">${note('1000','#1f6b4a','#d5f0e2')}${coin}${note('2000','#243e73','#d5e2f7')}</div><div class="sc-amt">+${all.toLocaleString('cs-CZ')} Kč</div><div class="sc-sub">výdělek ${work.toLocaleString('cs-CZ')} Kč${diet?` + stravné ${diet.toLocaleString('cs-CZ')} Kč`:''}</div></div>`;
  const dismiss=()=>{ov.classList.add('out');setTimeout(()=>ov.remove(),220)};
  ov.addEventListener('click',dismiss);document.body.appendChild(ov);
  requestAnimationFrame(()=>ov.classList.add('in'));
