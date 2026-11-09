@@ -1,63 +1,37 @@
-Miniatury českých bankovek a mincí v okně po uložení dne
-================================================================
+Peníze v okně po uložení dne
+============================
 
-Právní režim reprodukce (ČNB)
------------------------------
-Vyhláška č. 274/2011 Sb., o provedení některých ustanovení zákona o oběhu
-bankovek a mincí, ve znění vyhlášek č. 418/2016 Sb., č. 476/2021 Sb. a
-č. 189/2025 Sb., část sedmá:
+Vyhláška č. 274/2011 Sb. (ve znění č. 418/2016, 476/2021 a 189/2025 Sb.)
 
-§ 13 odst. 4 – nehmotná reprodukce bankovky smí mít při zachování velikosti
-bankovky rozlišení nejvýše 72 dpi a musí být neoddělitelně označena
-úhlopříčně nápisem „Specimen“ (nebo jiným nápisem stejných rozměrů a
-obdobného významu). Délka nápisu nejméně 75 % delší strany, výška nejméně
-15 % kratší strany, neprůhledná barva.
+§ 13 odst. 4 – nehmotná reprodukce i nehmotná napodobenina bankovky smí
+být jen při rozlišení nejvýše 72 dpi v životní velikosti a zároveň musí
+nést neoddělitelný úhlopříčný nápis „Specimen“ (nebo jiný stejně velký
+nápis stejného významu, např. VZOR). Samotná menší velikost na obrazovce
+ten nápis nenahrazuje.
 
-§ 14 – reprodukce mince je dovolena jako nehmotné zobrazení.
+Martin nechce nápis VZOR. Fotografie vydaných bankovek proto v aplikaci
+nejsou. Místo nich jsou původní kresby: fialová „1000“ a zelená „2000“
+s obecnou siluetou v medailonu. Nekopírují rytinu, portrét, ochranné
+prvky ani sazbu skutečné bankovky České národní banky. Nejsou to
+reprodukce vydané bankovky.
 
-Jak to plní tato aplikace
---------------------------
-- Jen líc (jedna strana). Rub se nepoužívá.
-- Soubory bankovek mají při životní velikosti pod 72 dpi
-  (1000 Kč: 305 px na 154 mm ≈ 50 dpi; 2000 Kč: 325 px na 164 mm ≈ 50 dpi).
-  Oficiální rozměry obíhajících bankovek: 1000 Kč 154 × 74 mm, 2000 Kč 164 × 74 mm
-  (řada České národní banky).
-- Do každé bankovky je vepsáno „VZOR“ úhlopříčně, neprůhledně, přes většinu plochy
-  (šířka nápisu přes 80 % delší strany). Nápis je součástí obrázku, nejde sloupnout.
-- Na obrazovce se kresby ukazují jen jako miniatury (bankovka asi 84 CSS px,
-  tedy zhruba desetina skutečné délky, pod 75 % vyžadovanými i pro hmotnou
-  jednostrannou reprodukci v § 13 odst. 1).
-- Mince 20 Kč a 50 Kč jsou malé nehmotné fotografie jedné strany (§ 14).
+§ 14 – minci lze zobrazit jako nehmotný obraz bez nápisu Specimen.
+Mince 20 Kč a 50 Kč jsou proto malé fotografie jen líce.
 
-Zdroje a licence fotografií
----------------------------
-1000 Kč, líc
-  https://commons.wikimedia.org/wiki/File:1000_Czech_koruna_Obverse.jpg
-  Autor fotografie: ТамараГончарук, vlastní dílo, 8. 4. 2019.
-  Wikimedia Commons uvádí public domain (úřední dílo / Money-CZ).
-
-2000 Kč, líc
-  https://commons.wikimedia.org/wiki/File:2000_Czech_koruna_Obverse.jpg
-  Autor fotografie: Phamat123, vlastní dílo.
-  Licence: Creative Commons Attribution-ShareAlike 4.0
-  https://creativecommons.org/licenses/by-sa/4.0/
-  Změna: zmenšení pod 72 dpi a neoddělitelný nápis VZOR. Odvozené dílo je
-  rovněž CC BY-SA 4.0.
-
+Zdroje mincí
+------------
 20 Kč, líc
   https://commons.wikimedia.org/wiki/File:Coin-20-Kc-obverse.jpg
-  Autor: Ilya Rudomilov, vlastní dílo.
-  Licence: Creative Commons Attribution-ShareAlike 3.0
+  Ilya Rudomilov, CC BY-SA 3.0
   https://creativecommons.org/licenses/by-sa/3.0/
-  Změna: zmenšení. Odvozené dílo je rovněž CC BY-SA 3.0.
+  Změna: zmenšení.
 
 50 Kč, líc
   https://commons.wikimedia.org/wiki/File:Coin-50-Kc-obverse.jpg
-  Autor: Ilya Rudomilov, vlastní dílo.
-  Licence: Creative Commons Attribution-ShareAlike 3.0
+  Ilya Rudomilov, CC BY-SA 3.0
   https://creativecommons.org/licenses/by-sa/3.0/
-  Změna: zmenšení. Odvozené dílo je rovněž CC BY-SA 3.0.
+  Změna: zmenšení.
 
-Soubory money/czk-2000.webp, money/czk-20.webp a money/czk-50.webp se smějí
-šířit jen se zachováním tohoto uvedení autorů a stejné licence. Nejde o
-platidlo a nesmí se vydávat za pravé bankovky nebo mince.
+Soubory czk-20.webp a czk-50.webp se smějí šířit jen s tímto uvedením
+autorů a stejnou licencí. Kresby czk-1000.webp a czk-2000.webp jsou
+vlastní dílo pro tuto aplikaci. Nejde o platidlo.

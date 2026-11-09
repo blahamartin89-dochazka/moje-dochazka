@@ -187,10 +187,19 @@ body[data-view="charts"] .history-grid{display:grid;grid-template-columns:1fr;ga
 .slip-list{display:flex;flex-direction:column;gap:10px;margin:12px 0}.slip-card{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;background:#f4f7fb;border-radius:14px;padding:12px;border:1px solid #d7e3f4}.slip-card b{display:block;font-size:16px}.slip-card small{display:block;color:#5a6b85;margin-top:4px;line-height:1.35}.slip-cmp i{display:block;font-style:normal;color:#5a6b85;font-size:12px;font-weight:500}.slip-cmp em{font-style:normal;font-size:12px;margin-left:8px}.slip-cmp em.up{color:#2e9e5b}.slip-cmp em.dn{color:#b3261e}
 
 /* save celebration */
-.save-celeb{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;background:rgba(11,37,74,.35);opacity:0;transition:opacity .2s;pointer-events:auto;padding:24px;touch-action:manipulation}
-.save-celeb.in{opacity:1}.save-celeb.out{opacity:0}
-.sc-card{background:#fff;border-radius:20px;padding:22px 28px 18px;text-align:center;box-shadow:0 16px 48px rgba(11,37,74,.35);max-width:320px;width:100%;transform:scale(.86);transition:transform .25s cubic-bezier(.2,1.2,.4,1)}
-.save-celeb.in .sc-card{transform:scale(1)}
+.save-celeb{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;background:rgba(11,37,74,0);transition:background .25s;pointer-events:auto;padding:24px;touch-action:manipulation}
+.save-celeb.in{background:rgba(11,37,74,.28)}.save-celeb.out{background:rgba(11,37,74,0)}
+.sc-card{background:#fff;border-radius:20px;padding:22px 22px 18px;text-align:center;box-shadow:0 16px 48px rgba(11,37,74,.35);max-width:340px;width:100%;position:relative;z-index:2;animation:scCardIn 2.2s ease both}
+@keyframes scCardIn{0%,38%{opacity:0;transform:scale(.9)}55%,100%{opacity:1;transform:scale(1)}}
+.sc-burst{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.sc-fly{position:absolute;left:50%;top:42%;width:78px;margin:-22px 0 0 -39px;animation:scFly 2.15s cubic-bezier(.12,.72,.2,1) both;animation-delay:var(--d,0s);will-change:transform,opacity}
+.sc-fly.sc-coin{width:44px;margin-left:-22px}
+@keyframes scFly{0%{transform:translate3d(0,24px,0) rotate(0deg) scale(.3);opacity:0}12%{opacity:1}46%{transform:translate3d(var(--x),var(--y),0) rotate(var(--r)) scale(1);opacity:1}100%{transform:translate3d(calc(var(--x) * .4),calc(var(--y) + 240px),0) rotate(calc(var(--r) + 90deg)) scale(.75);opacity:0}}
+@media (prefers-reduced-motion:reduce){
+ .sc-fly{display:none}
+ .sc-card{animation:none;opacity:1;transform:none}
+ .save-celeb,.save-celeb.in{transition:none;background:rgba(11,37,74,.28)}
+}
 .sc-amt{font-size:28px;font-weight:800;color:#124b92;letter-spacing:-.5px}
 .sc-sub{font-size:13px;color:#5b6e88;margin-top:6px}
 .sc-coins{height:28px;margin-bottom:8px;position:relative}
@@ -260,7 +269,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.4";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.5";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1559,11 +1568,13 @@ function celebrateSave(e){
  try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}
  let ov=$('#saveCeleb');if(ov)ov.remove();
  ov=document.createElement('div');ov.id='saveCeleb';ov.className='save-celeb';ov.setAttribute('role','status');
- ov.innerHTML=`<div class="sc-card"><div class="sc-money" aria-hidden="true"><img class="sc-note" src="money/czk-1000.webp" alt="1000 Kč, miniatura, VZOR"><img class="sc-coinimg" src="money/czk-20.webp" alt="20 Kč, miniatura"><img class="sc-coinimg" src="money/czk-50.webp" alt="50 Kč, miniatura"><img class="sc-note" src="money/czk-2000.webp" alt="2000 Kč, miniatura, VZOR"></div><div class="sc-amt">+${all.toLocaleString('cs-CZ')} Kč</div><div class="sc-sub">výdělek ${work.toLocaleString('cs-CZ')} Kč${diet?` + stravné ${diet.toLocaleString('cs-CZ')} Kč`:''}</div></div>`;
- const dismiss=()=>{ov.classList.add('out');setTimeout(()=>ov.remove(),220)};
+ const bits=[['money/czk-1000.webp','note',-130,-210,150,0],['money/czk-2000.webp','note',140,-190,-130,.05],['money/czk-20.webp','coin',-30,-240,210,.02],['money/czk-50.webp','coin',80,-200,-70,.06],['money/czk-1000.webp','note',190,-70,80,.08],['money/czk-2000.webp','note',-180,-50,-110,.03],['money/czk-20.webp','coin',30,-150,40,.1],['money/czk-50.webp','coin',-100,-130,-190,.07]];
+ const burst=bits.map(([src,kind,x,y,r,d])=>`<img class="sc-fly sc-${kind}" src="${src}" alt="" style="--x:${x}px;--y:${y}px;--r:${r}deg;--d:${d}s">`).join('');
+ ov.innerHTML=`<div class="sc-burst" aria-hidden="true">${burst}</div><div class="sc-card"><div class="sc-money" aria-hidden="true"><img class="sc-note" src="money/czk-1000.webp" alt="1000 Kč"><img class="sc-coinimg" src="money/czk-20.webp" alt="20 Kč"><img class="sc-coinimg" src="money/czk-50.webp" alt="50 Kč"><img class="sc-note" src="money/czk-2000.webp" alt="2000 Kč"></div><div class="sc-amt">+${all.toLocaleString('cs-CZ')} Kč</div><div class="sc-sub">výdělek ${work.toLocaleString('cs-CZ')} Kč${diet?` + stravné ${diet.toLocaleString('cs-CZ')} Kč`:''}</div></div>`;
+ const dismiss=()=>{if(!ov.isConnected||ov.classList.contains('out'))return;ov.classList.add('out');setTimeout(()=>ov.remove(),220)};
  ov.addEventListener('click',dismiss);document.body.appendChild(ov);
  requestAnimationFrame(()=>ov.classList.add('in'));
- setTimeout(dismiss,1800);
+ setTimeout(dismiss,2500);
 }
 
 /* ---------- rychlé přidání ---------- */
