@@ -272,7 +272,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.10";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.11";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1215,7 +1215,7 @@ function openTpl(kind,date){
  const row=(ic,l,ctl)=>`<label class="qrow"><span>${ic} ${l}</span>${ctl}</label>`;
  $('#dlg').innerHTML=`<div class="qe"><div class="dlg-head"><h2>Zapsat ${DOW_ACC[d.getDay()]} ${dm(date)}</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body">
  <datalist id="dl_qp">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_qc">${custs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_qm">${machs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
- <div class="qcard"><h3>${kind==='manual'?'Zápis':'Šablona'}</h3><b class="qtpl">${label}</b><div class="muted">${kind==='manual'?'doplň zákazníka a místo, uprav časy':'vše vyplněno – zkontroluj jen časy'}</div>${(kind==='copy'||kind==='job')&&typeof travelClaim==='function'&&travelClaim(src)?`<p class="muted">Cesťák se zkopíruje: ${esc([src.travel.from,src.travel.to].filter(Boolean).join(' → '))}.</p>`:''}</div>
+ <div class="qcard"><h3>${kind==='manual'?'Zápis':'Šablona'}</h3><b class="qtpl">${label}</b><div class="muted">${kind==='manual'?'doplň zákazníka a místo, uprav časy':'vše vyplněno – zkontroluj jen časy'}</div>${(kind==='copy'||kind==='job')&&typeof travelClaim==='function'&&travelClaim(src)?`<p class="muted">Cesťák se zkopíruje na ${esc(fmtDate(date))}: ${esc([src.travel.from,src.travel.to].filter(Boolean).join(' → '))}${src.travel.purpose||src.travel.transport?` · ${esc([src.travel.purpose,src.travel.transport].filter(Boolean).join(' · '))}`:''}.</p>`:''}</div>
  <div class="qcard"><h3>Čas práce</h3><div class="qtimes"><div class="qt"><label class="qtv"><span id="qv_start"></span><input type="time" data-q="start" value="${esc(qs.start)}" aria-label="Začátek"></label><div><button type="button" data-act="qShift" data-f="start" data-m="-30">−30 min</button><button type="button" data-act="qShift" data-f="start" data-m="30">+30 min</button></div></div><span class="qdash">–</span><div class="qt"><label class="qtv"><span id="qv_end"></span><input type="time" data-q="end" value="${esc(qs.end)}" aria-label="Konec"></label><div><button type="button" data-act="qShift" data-f="end" data-m="-30">−30 min</button><button type="button" data-act="qShift" data-f="end" data-m="30">+30 min</button></div></div></div><p class="qsum" id="qsum"></p></div>
  <div class="qcard"><h3>Předvyplněno</h3>${isJob?row('🏗️','Zákazník',`<input data-q="customer" list="dl_qc" value="${esc(qs.customer)}">`)+row('📍','Místo',`<input data-q="place" list="dl_qp" value="${esc(qs.place)}">`)+row('🚛','Stroj',`<input data-q="machine" list="dl_qm" placeholder="např. AC40" value="${esc(qs.machine)}">`)+row('🚗','Dojíždění',sel('commute',COMMUTE_OPTS,qs.commute)):''}${row('🍽️','Oběd',sel('lunch',LUNCH_OPTS,qs.lunch))}<p class="muted">Klepni na řádek pro změnu</p></div>
  ${isJob?`<div class="qcard"><div class="st-photos" id="stFormPhotos"></div>${stPhotoBtns("form",{cam:"📷 Vyfotit",gal:"🖼️ Z galerie",rowClass:"btnrow st-qphoto"})}</div>`:''}
@@ -1235,13 +1235,14 @@ function qBuild(){const s=qs.src,e=clone(s);e.id=newId();e.date=qs.date;delete e
  if(isJob||qs.kind==='manual'){e.customer=(qs.customer||'').trim();e.place=(qs.place||'').trim();if(e.customer&&!String(e.note||'').trim())e.note=e.customer;if(qs.machine||'machine'in s||qs.kind==='manual')e.machine=(qs.machine||'').trim()}
  if(typeof formPhotos!=='undefined'&&formPhotos.length)e.photos=formPhotos.map(p=>Object.assign({},p));
  return e}
-function qRefresh(){const e=qBuild(),c=calc(e),{errs}=validate(e);for(const f of['start','end']){const v=$('#qv_'+f);if(v)v.textContent=hm(qs[f])||'––:––'}
+function qRefresh(){if(!qs)return{e:null,errs:[]};const e=qBuild(),c=calc(e),{errs}=validate(e);for(const f of['start','end']){const v=$('#qv_'+f);if(v)v.textContent=hm(qs[f])||'––:––'}
  $('#qsum').innerHTML=`<b>${fmtH(e.totalHours)} h</b>${e.overtime?` · z toho přesčas ${fmtH(e.overtime)} h`:' · bez přesčasu'} · ${typeof lunchTxt==='function'?lunchTxt(e.lunchHours):(num(e.lunchHours)?`oběd ${fmtH(num(e.lunchHours))} h`:'bez oběda')}`;
  $('#qSaveBtn').innerHTML=`✓ Uložit · ${cash(c.all)}<small>výdělek ${cash(c.work)}${c.diet?` + stravné ${cash(c.diet)}`:''}${c.hol?' · svátek':isWeekend(e.date)&&e.totalHours?' · víkend':''}</small>`;
  $('#qmsgs').innerHTML=errs.map(x=>`<div class="msg err">✖ ${x}</div>`).join('');return{e,errs}}
-function qSave(){const{e,errs}=qRefresh();if(errs.length||!e.totalHours){if(!errs.length)$('#qmsgs').innerHTML='<div class="msg err">✖ Zkontroluj časy.</div>';return}
- if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?`))return;
- state.entries.push(e);saveData();if(typeof stitekSaved==='function')stitekSaved(e);qs=null;$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();if(typeof celebrateSave==='function')celebrateSave(e);toast('Uloženo','silent')}
+function qSave(){if(!qs)return;const{e,errs}=qRefresh();if(!e||errs.length||!e.totalHours){if(e&&!errs.length)$('#qmsgs').innerHTML='<div class="msg err">✖ Zkontroluj časy.</div>';return}
+ const dropped=(qs.kind==='copy'||qs.kind==='job')&&dropDuplicateClaim(e);
+ if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?${dropped?'\n\nCesťák v tento den už je, druhý se nepřidá.':''}`))return;
+ state.entries.push(e);saveData();if(typeof stitekSaved==='function')stitekSaved(e);qs=null;$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();if(typeof celebrateSave==='function')celebrateSave(e);toast(dropped?'Uloženo, druhý cesťák se nepřidal':'Uloženo','silent')}
 document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
  if(act==='tpl'){ev.stopPropagation();return openTpl(a.dataset.k,a.dataset.date)}
  if(act==='dPick'){dnesDate=a.dataset.date===todayISO()?null:a.dataset.date;view='dnes';render();return}
@@ -1505,6 +1506,11 @@ function renderHistory(){const ks=monthRange();const sums=ks.map(k=>summary(+k.s
 /* ---------- cestovní příkaz ---------- */
 /* Cesťák jen když ho sám vyplnil (místo/časy cesty). Prázdný den ani dojíždění ho nezaloží. */
 function travelClaim(e){const t=e?.travel||{};const s=k=>String(t[k]||'').trim();return !e?.noTravelOrder&&(num(e?.tripHours)>0||!!(s('from')||s('to')||s('returnFrom')||s('returnTo')||s('start')||s('arrival')||s('returnStart')||s('returnArrival')))}
+function dropDuplicateClaim(e){
+ if(!e||!travelClaim(e))return false;
+ if(!state.entries.some(x=>x.date===e.date&&x.id!==e.id&&travelClaim(x)))return false;
+ e.travel=blankTravel();e.tripHours=0;e.noTravelOrder=true;return true;
+}
 const tripEntries=(y,m)=>monthEntries(y,m).filter(travelClaim);
 function renderOrders(){
  const key=`${Y}-${pad(M+1)}`,o=Object.assign({advance:0,orderNo:'',companions:'',receipts:0},(state.travelOrders||{})[key]||{}),p=P(),es=tripEntries(Y,M);
@@ -1758,7 +1764,8 @@ function validate(e){
 function saveForm(){
  const{errs,warns}=refreshForm();if(errs.length){$('#fmsgs').scrollIntoView({block:'nearest'});return}
  const e=buildEntry(false);
- if(!editing&&state.entries.some(x=>x.date===e.date)&&!confirm('V tento den už záznam existuje. Opravdu přidat další?'))return;
+ const dropped=!editing&&dropDuplicateClaim(e);
+ if(!editing&&state.entries.some(x=>x.date===e.date)&&!confirm('V tento den už záznam existuje. Opravdu přidat další?'+(dropped?'\n\nCesťák v tento den už je, druhý se nepřidá.':'')))return;
  if(editing){const i=state.entries.findIndex(x=>x.id===editing.id);state.entries[i]=e}else state.entries.push(e);
  saveData();stitekSaved(e);const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();$('#dlg').close();render();celebrateSave(e);toast('Uloženo','silent');
 }
