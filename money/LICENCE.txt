@@ -1,38 +1,58 @@
-Peníze v okně po uložení dne
-============================
+Peníze v okně po uložení dne — jen 20 Kč a 50 Kč
+=================================================
+
+Proč bez nápisu VZOR
+--------------------
+Zákon č. 136/2011 Sb., o oběhu bankovek a mincí, § 2 odst. 1:
+tuzemská bankovka je bankovka v korunách českých vydaná ČNB, která je
+platná, nebo kterou lze za platnou vyměnit. Stejně je vymezena tuzemská mince.
 
 Vyhláška č. 274/2011 Sb. (ve znění č. 418/2016, 476/2021 a 189/2025 Sb.)
+v § 13 a § 14 upravuje reprodukce tuzemských a cizozemských bankovek a mincí
+v tomto smyslu. U digitální kopie platné bankovky § 13 odst. 4 vyžaduje
+nápis Specimen/VZOR. To se týká bankovek, které ještě platí nebo je lze vyměnit.
 
-§ 13 odst. 4 – nehmotná reprodukce i nehmotná napodobenina bankovky smí
-být jen při rozlišení nejvýše 72 dpi v životní velikosti a zároveň musí
-nést neoddělitelný úhlopříčný nápis „Specimen“ (nebo jiný stejně velký
-nápis stejného významu, např. VZOR). Samotná menší velikost na obrazovce
-ten nápis nenahrazuje.
+Bankovka 20 Kč (Přemysl Otakar I.) přestala platit 31. 8. 2008 a výměna
+skončila 31. 8. 2014. ČNB uvádí, že ji už nelze vyměnit:
+https://www.cnb.cz/cs/bankovky-a-mince/bankovky/informace-k-ukonceni-platnosti-bankovek/ukonceni-platnosti-bankovek-v-nominalni-hodnote-20-kc/
 
-Martin nechce nápis VZOR. Fotografie vydaných bankovek proto v aplikaci
-nejsou. Místo nich jsou původní kresby: fialová „1000“ a zelená „2000“
-s obecnou siluetou v medailonu. Nekopírují rytinu, portrét, ochranné
-prvky ani sazbu skutečné bankovky České národní banky. Nejsou to
-reprodukce vydané bankovky.
+Bankovka 50 Kč (svatá Anežka Česká) přestala platit 1. 4. 2011 a výměna
+skončila 31. 3. 2017:
+https://www.cnb.cz/cs/bankovky-a-mince/bankovky/informace-k-ukonceni-platnosti-bankovek/ukonceni-platnosti-padesatikorunove-bankovky/
 
-§ 14 – minci lze zobrazit jako nehmotný obraz bez nápisu Specimen.
-Mince 20 Kč a 50 Kč jsou proto malé fotografie jen líce, oříznuté do kruhu
-s průhledným pozadím, aby za nimi nebyl bílý čtverec.
+Nejsou tedy tuzemskou bankovkou podle § 2 odst. 1 zákona č. 136/2011 Sb.
+§ 13 vyhlášky se na ně nevztahuje, a proto jsou v aplikaci jejich fotografie
+líce bez nápisu VZOR. Zákon č. 6/1993 Sb. dává ČNB pravomoc platnost ukončit
+a stanovit dobu výměny; po jejím uplynutí už nejde o platnou ani vyměnitelnou
+bankovku.
 
-Zdroje mincí
-------------
-20 Kč, líc
+Mince 20 Kč a 50 Kč v oběhu zůstávají, takže jsou tuzemskou mincí.
+§ 14 dovoluje jejich nehmotné zobrazení bez nápisu Specimen. V aplikaci je
+jen líc, v malém kruhu, s průhledným pozadím.
+
+Zdroje
+------
+Bankovka 20 Kč, líc (stažená)
+  https://commons.wikimedia.org/wiki/File:20_Czech_koruna_Obverse.jpg
+  Fotografie: ТамараГончарук, Wikimedia Commons uvádí public domain.
+
+Bankovka 50 Kč, líc (stažená)
+  https://commons.wikimedia.org/wiki/File:50_Czech_koruna_Obverse.jpg
+  Fotografie: ТамараГончарук, Wikimedia Commons uvádí public domain.
+
+Mince 20 Kč, líc
   https://commons.wikimedia.org/wiki/File:Coin-20-Kc-obverse.jpg
   Ilya Rudomilov, CC BY-SA 3.0
   https://creativecommons.org/licenses/by-sa/3.0/
-  Změna: zmenšení.
+  Změna: zmenšení a ořez do kruhu s průhledným pozadím.
+  Odvozené dílo je rovněž CC BY-SA 3.0.
 
-50 Kč, líc
+Mince 50 Kč, líc
   https://commons.wikimedia.org/wiki/File:Coin-50-Kc-obverse.jpg
   Ilya Rudomilov, CC BY-SA 3.0
   https://creativecommons.org/licenses/by-sa/3.0/
-  Změna: zmenšení.
+  Změna: zmenšení a ořez do kruhu s průhledným pozadím.
+  Odvozené dílo je rovněž CC BY-SA 3.0.
 
-Soubory czk-20.webp a czk-50.webp se smějí šířit jen s tímto uvedením
-autorů a stejnou licencí. Kresby czk-1000.webp a czk-2000.webp jsou
-vlastní dílo pro tuto aplikaci. Nejde o platidlo.
+Soubory czk-20.webp a czk-50.webp se smějí šířit jen s tímto uvedením autorů
+a stejnou licencí. Nejde o platidlo.

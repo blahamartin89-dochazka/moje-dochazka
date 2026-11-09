@@ -270,7 +270,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.6";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.7";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1569,9 +1569,9 @@ function celebrateSave(e){
  try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}
  let ov=$('#saveCeleb');if(ov)ov.remove();
  ov=document.createElement('div');ov.id='saveCeleb';ov.className='save-celeb';ov.setAttribute('role','status');
- const bits=[['money/czk-1000.webp','note',-130,-210,150,0],['money/czk-2000.webp','note',140,-190,-130,.05],['money/czk-20.webp','coin',-30,-240,210,.02],['money/czk-50.webp','coin',80,-200,-70,.06],['money/czk-1000.webp','note',190,-70,80,.08],['money/czk-2000.webp','note',-180,-50,-110,.03],['money/czk-20.webp','coin',30,-150,40,.1],['money/czk-50.webp','coin',-100,-130,-190,.07]];
+ const bits=[['money/czk-20-note.webp','note',-140,-200,140,0],['money/czk-50-note.webp','note',150,-180,-120,.05],['money/czk-20.webp','coin',-20,-240,200,.02],['money/czk-50.webp','coin',90,-210,-80,.06],['money/czk-20-note.webp','note',190,-60,70,.08],['money/czk-50-note.webp','note',-190,-40,-100,.03],['money/czk-20.webp','coin',40,-150,30,.1],['money/czk-50.webp','coin',-80,-130,-180,.07]];
  const burst=bits.map(([src,kind,x,y,r,d])=>`<img class="sc-fly sc-${kind}" src="${src}" alt="" style="--x:${x}px;--y:${y}px;--r:${r}deg;--d:${d}s">`).join('');
- ov.innerHTML=`<div class="sc-burst" aria-hidden="true">${burst}</div><div class="sc-card"><div class="sc-money" aria-hidden="true"><img class="sc-note" src="money/czk-1000.webp" alt="1000 Kč"><img class="sc-coinimg" src="money/czk-20.webp" alt="20 Kč"><img class="sc-coinimg" src="money/czk-50.webp" alt="50 Kč"><img class="sc-note" src="money/czk-2000.webp" alt="2000 Kč"></div><div class="sc-amt">+${all.toLocaleString('cs-CZ')} Kč</div><div class="sc-sub">výdělek ${work.toLocaleString('cs-CZ')} Kč${diet?` + stravné ${diet.toLocaleString('cs-CZ')} Kč`:''}</div></div>`;
+ ov.innerHTML=`<div class="sc-burst" aria-hidden="true">${burst}</div><div class="sc-card"><div class="sc-money" aria-hidden="true"><img class="sc-note" src="money/czk-20-note.webp" alt="20 Kč bankovka"><img class="sc-coinimg" src="money/czk-20.webp" alt="20 Kč mince"><img class="sc-coinimg" src="money/czk-50.webp" alt="50 Kč mince"><img class="sc-note" src="money/czk-50-note.webp" alt="50 Kč bankovka"></div><div class="sc-amt">+${all.toLocaleString('cs-CZ')} Kč</div><div class="sc-sub">výdělek ${work.toLocaleString('cs-CZ')} Kč${diet?` + stravné ${diet.toLocaleString('cs-CZ')} Kč`:''}</div></div>`;
  const dismiss=()=>{if(!ov.isConnected||ov.classList.contains('out'))return;ov.classList.add('out');setTimeout(()=>ov.remove(),220)};
  ov.addEventListener('click',dismiss);document.body.appendChild(ov);
  requestAnimationFrame(()=>ov.classList.add('in'));
