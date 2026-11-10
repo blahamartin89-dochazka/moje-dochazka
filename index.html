@@ -89,8 +89,12 @@ dialog.crop-dlg.crop-force{position:fixed;z-index:2147483000;width:100%;height:1
  body[data-view]:not([data-view="calendar"]):not([data-view="charts"]) .intro{display:none!important}
 }
 /* v12 cesťák – horní lišta s tiskem */
-.order-actions{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px -4px 12px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid #dfe7f4;border-radius:12px;box-shadow:0 2px 10px rgba(18,75,146,.08)}
+.order-actions{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:-4px -4px 12px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid #dfe7f4;border-radius:12px;box-shadow:0 2px 10px rgba(18,75,146,.08)}
 .order-actions span{font-weight:700;color:#124b92;font-size:14px}.order-actions .btn{min-height:44px;padding:10px 16px;white-space:nowrap}
+.ord-seg{flex:1 1 100%;display:flex;gap:3px;padding:3px;background:#e7eef8;border-radius:12px}
+.ord-seg button{flex:1;border:0;background:transparent;border-radius:9px;min-height:36px;font:700 15px/1 inherit;color:#3d5678;cursor:pointer}
+.ord-seg button.on{background:#fff;color:#124b92;box-shadow:0 1px 3px #0b254a22}
+.ord-btns{display:flex;gap:8px;flex-wrap:wrap}
 
 /* v14 form hints */
 #eform .grid .hint.wide{grid-column:1/-1;margin:-6px 0 4px;font-size:12.5px}
@@ -272,7 +276,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-09.11";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-10.1";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1143,8 +1147,14 @@ async function sharePdf(make,btn){const old=btn&&btn.textContent;if(btn){btn.dis
   const u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);toast('PDF staženo: '+f.name);return'download'}
  catch(e){console.warn(e);toast('PDF se nepodařilo vytvořit'+(navigator.onLine===false?' (offline – otevři aplikaci jednou online)':''));return'error'}
  finally{if(btn){btn.disabled=false;btn.textContent=old}}}
-const cestakPrint=btn=>sharePdf(cestakPdf,btn),dochazkaPrint=btn=>sharePdf(dochazkaPdf,btn);
-window.__cestak={cestakPdf,cestakPrint,cestakFileName,usePdf,dochazkaPdf,dochazkaPrint,dochazkaData,pdfFileName};
+async function bothPdf(){await pdfLibs();const doc=newDoc();drawDochazka(doc);
+ const key=`${Y}-${pad(M+1)}`,o=Object.assign({advance:0,orderNo:'',companions:'',receipts:0},(state.travelOrders||{})[key]||{}),trips=tripEntries(Y,M);
+ const chunks=[];for(let i=0;i<trips.length;i+=11)chunks.push(trips.slice(i,i+11));if(!chunks.length)chunks.push([]);
+ chunks.forEach(c=>{doc.addPage();drawPrikaz(doc,c,o);doc.addPage();drawVyuct(doc,c)});
+ doc.setProperties({title:`Docházka a cestovní příkaz – ${MONTHS[M]} ${Y}`,author:P().name||'',creator:'Moje docházka'});
+ return new File([doc.output('blob')],pdfFileName('dochazka-cestak'),{type:'application/pdf'})}
+const cestakPrint=btn=>sharePdf(cestakPdf,btn),dochazkaPrint=btn=>sharePdf(dochazkaPdf,btn),bothPrint=btn=>sharePdf(bothPdf,btn);
+window.__cestak={cestakPdf,cestakPrint,cestakFileName,usePdf,dochazkaPdf,dochazkaPrint,bothPdf,bothPrint,dochazkaData,pdfFileName};
 /* ---------- Dnes (v16) ---------- */
 const DOW_ACC=['neděli','pondělí','úterý','středu','čtvrtek','pátek','sobotu'];
 const DOW_FULL=['neděle','pondělí','úterý','středa','čtvrtek','pátek','sobota'];
@@ -1512,20 +1522,45 @@ function dropDuplicateClaim(e){
  e.travel=blankTravel();e.tripHours=0;e.noTravelOrder=true;return true;
 }
 const tripEntries=(y,m)=>monthEntries(y,m).filter(travelClaim);
+let ordersTab='cestak';
+function dochazkaMonthRows(){
+ const n=dim(),bd=byDate(),rows=[];
+ const tot={job:0,base:0,com:0,ot:0,vac:0,sick:0,dpn:0,doc:0,hol:0,h:0};
+ for(let d=1;d<=n;d++){
+  const k=iso(Y,M,d),es=bd[k]||[];if(!es.length)continue;
+  const sum=f=>es.reduce((a,e)=>a+num(e[f]),0);
+  const starts=es.map(e=>e.startTime).filter(Boolean).sort(),ends=es.map(e=>e.endTime).filter(Boolean).sort();
+  const job=sum('jobHours'),base=sum('baseHours'),com=sum('commuteHours'),ot=sum('overtime');
+  const vac=sum('vacationHours'),sick=sum('sickHours'),dpn=sum('dpnHours'),doc=sum('doctorHours'),h=sum('totalHours');
+  const holName=holidayName(k)||'';
+  const label=es.map(entryLabel).filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i).join(', ');
+  rows.push({date:k,label,start:starts[0]||'',end:ends[ends.length-1]||'',job,base,com,ot,vac,sick,dpn,doc,holName,holH:holName?h:0,h});
+  tot.job+=job;tot.base+=base;tot.com+=com;tot.ot+=ot;tot.vac+=vac;tot.sick+=sick;tot.dpn+=dpn;tot.doc+=doc;tot.hol+=holName?h:0;tot.h+=h;
+ }
+ return{rows,tot};
+}
 function renderOrders(){
  const key=`${Y}-${pad(M+1)}`,o=Object.assign({advance:0,orderNo:'',companions:'',receipts:0},(state.travelOrders||{})[key]||{}),p=P(),es=tripEntries(Y,M);
  let tot={d:0,f:0,l:0,o:0,k:0,s:0,h:0};
  const rows=es.map(e=>{const c=calc(e),t=e.travel||{};tot.d+=c.diet;tot.f+=c.c.fare;tot.l+=c.c.lodging;tot.o+=c.c.other;tot.k+=c.c.km;tot.h+=num(e.tripHours);const s=c.diet+c.c.sum;tot.s+=s;
   return `<tr><td>${fmtDate(e.date)}</td><td>${esc(t.from)}<br>${esc(t.start)}</td><td>${esc(t.to)}<br>${esc(t.arrival)}</td><td>${esc(t.returnFrom)} ${esc(t.returnStart)}<br>→ ${esc(t.returnTo)} ${esc(t.returnArrival)}</td><td>${esc(t.purpose)}${e.note?'<br><span class="muted">'+esc(e.note)+'</span>':''}</td><td>${esc(t.transport)}${num(t.km)?'<br>'+fmtH(num(t.km))+' km':''}</td><td class="n">${fmtH(num(e.tripHours))}</td><td class="n">${c.diet}</td><td class="n">${c.c.fare}</td><td class="n">${c.c.lodging}</td><td class="n">${c.c.other}</td><td class="n">${c.c.km}</td><td class="n">${r2(s)}</td></tr>`}).join('');
  const bal=r2(tot.s-num(o.advance));
- $('#orders').innerHTML=`<div class="order-actions no-print"><span>PDF → Tisk, Soubory, WhatsApp</span><button class="btn" data-act="print" id="printTop">🖨 Tisk / PDF</button></div><div class="print-only"><h1>Cestovní příkaz – vyúčtování pracovních cest</h1><p>${esc(p.name)}${p.employeeNo?', os. č. '+esc(p.employeeNo):''} · ${esc(p.company)} · bydliště ${esc(p.homeAddress)} · pravidelné pracoviště ${esc(p.place)}</p></div>
+ const hz=n=>num(n)?fmtH(n):'–';
+ const tabBtn=(id,label)=>`<button type="button" data-act="ordTab" data-tab="${id}" class="${ordersTab===id?'on':''}" aria-pressed="${ordersTab===id?'true':'false'}">${label}</button>`;
+ const bar=`<div class="order-actions no-print"><div class="ord-seg" role="tablist" aria-label="Přehled">${tabBtn('cestak','Cesťák')}${tabBtn('dochazka','Docházka')}</div><span>PDF → Tisk, Soubory, WhatsApp</span><span class="ord-btns"><button type="button" class="btn" data-act="print" id="printTop">🖨 Tisk / PDF</button><button type="button" class="btn sec" data-act="printBoth">Obojí</button></span></div>`;
+ const dmth=dochazkaMonthRows();
+ const drows=dmth.rows.map(r=>{const nem=[num(r.sick)?fmtH(r.sick)+' h':'',num(r.dpn)?'DPN '+fmtH(r.dpn)+' h':''].filter(Boolean).join('<br>')||'–';
+  return `<tr><td>${fmtDate(r.date)}</td><td>${esc(r.label)}</td><td>${r.start||r.end?esc(r.start)+'–'+esc(r.end):'–'}</td><td class="n">${hz(r.job)}</td><td class="n">${hz(r.base)}</td><td class="n">${hz(r.com)}</td><td class="n">${hz(r.ot)}</td><td class="n">${hz(r.vac)}</td><td class="n">${nem}</td><td>${r.holName?esc(r.holName)+(num(r.holH)?'<br>'+fmtH(r.holH)+' h':''):'–'}</td></tr>`}).join('');
+ const dt=dmth.tot;
+ const doch=`<h2>Docházka · ${MONTHS[M]} ${Y}</h2><p class="muted no-print">Po dnech za stejný měsíc. Hodiny Alvianu zahrnují dojíždění, v součtu přesčasu už dojíždění není.</p><div class="tscroll"><table class="t"><thead><tr><th>Datum</th><th>Den</th><th>Od–do</th><th class="n" title="Zákazník">Zák. h</th><th class="n" title="Alvian a depo">Alvian h</th><th class="n" title="Dojíždění">Dojížd. h</th><th class="n">Přesčas</th><th class="n">Dovolená</th><th class="n">Nemoc</th><th>Svátek</th></tr></thead><tbody>${drows||'<tr><td colspan="10" class="empty">V tomto měsíci není žádný záznam.</td></tr>'}</tbody><tfoot><tr><td colspan="3">Celkem ${dmth.rows.length} ${pl(dmth.rows.length,'den','dny','dní')} · ${fmtH(dt.h)} h</td><td class="n">${fmtH(dt.job)}</td><td class="n">${fmtH(dt.base)}</td><td class="n">${fmtH(dt.com)}</td><td class="n">${fmtH(dt.ot)}</td><td class="n">${fmtH(dt.vac)}</td><td class="n">${fmtH(dt.sick+dt.dpn)}</td><td class="n">${fmtH(dt.hol)}</td></tr></tfoot></table></div>`;
+ const cest=`<div class="print-only"><h1>Cestovní příkaz – vyúčtování pracovních cest</h1><p>${esc(p.name)}${p.employeeNo?', os. č. '+esc(p.employeeNo):''} · ${esc(p.company)} · bydliště ${esc(p.homeAddress)} · pravidelné pracoviště ${esc(p.place)}</p></div>
  <h2>Cestovní příkaz · ${MONTHS[M]} ${Y}</h2><p class="muted no-print">Souhrn pracovních cest za měsíc (dny označené „bez cestovního příkazu“ se nezapočítávají).</p>
  <div class="grid no-print" style="margin:14px 0"><div class="f"><label>Číslo příkazu</label><input data-to="orderNo" value="${esc(o.orderNo)}"></div><div class="f"><label>Záloha (Kč)</label><input data-to="advance" inputmode="decimal" value="${esc(o.advance)}"></div><div class="f"><label>Spolucestující</label><input data-to="companions" value="${esc(o.companions)}"></div><div class="f"><label>Počet příloh / dokladů</label><input data-to="receipts" inputmode="numeric" value="${esc(o.receipts)}"></div></div>
  <p class="print-only">Číslo příkazu: <b>${esc(o.orderNo)||'—'}</b> · Spolucestující: ${esc(o.companions)||'—'} · Přílohy: ${esc(o.receipts)}</p>
  <div class="tscroll"><table class="t"><thead><tr><th>Datum</th><th>Odjezd</th><th>Příjezd</th><th>Návrat</th><th>Účel / poznámka</th><th>Doprava</th><th class="n">Hod.</th><th class="n">Stravné</th><th class="n">Jízdné</th><th class="n">Ubyt.</th><th class="n">Ostatní</th><th class="n">Km náhr.</th><th class="n">Celkem</th></tr></thead><tbody>${rows||'<tr><td colspan="13" class="empty">V tomto měsíci nejsou žádné pracovní cesty.</td></tr>'}</tbody><tfoot><tr><td colspan="6">Celkem ${es.length} ${pl(es.length,'cesta','cesty','cest')}</td><td class="n">${fmtH(tot.h)}</td><td class="n">${tot.d}</td><td class="n">${r2(tot.f)}</td><td class="n">${r2(tot.l)}</td><td class="n">${r2(tot.o)}</td><td class="n">${r2(tot.k)}</td><td class="n">${r2(tot.s)}</td></tr></tfoot></table></div>
  <div class="rows" style="max-width:380px;margin-left:auto"><div class="row"><span>Náhrady celkem</span><b>${r2(tot.s).toLocaleString('cs-CZ')} Kč</b></div><div class="row"><span>Záloha</span><b>${num(o.advance).toLocaleString('cs-CZ')} Kč</b></div><div class="row total"><span>${bal>=0?'Doplatek zaměstnanci':'Přeplatek (vrátit)'}</span><b>${Math.abs(bal).toLocaleString('cs-CZ')} Kč</b></div></div>
- <div class="print-only sign-row"><span>Datum: ____________</span><span>Podpis zaměstnance: ____________</span><span>Schválil: ____________</span></div>
- <div class="btnrow no-print"><button class="btn" data-act="print">🖨 Tisk / PDF</button></div>`;
+ <div class="print-only sign-row"><span>Datum: ____________</span><span>Podpis zaměstnance: ____________</span><span>Schválil: ____________</span></div>`;
+ $('#orders').innerHTML=bar+(ordersTab==='dochazka'?doch:cest);
 }
 function setOrderField(f,v){const key=`${Y}-${pad(M+1)}`;state.travelOrders=state.travelOrders||{};const o=state.travelOrders[key]||(state.travelOrders[key]={advance:0,orderNo:'',companions:'',receipts:0});o[f]=(f==='advance'||f==='receipts')?num(v):v;saveData();}
 
@@ -1838,7 +1873,9 @@ document.addEventListener('click',ev=>{
   if(act==='import')return $('#fileIn').click();
   if(act==='csv')return exportCSV();
   if(act==='saveSettings')return saveSettings();
-  if(act==='print')return cestakPrint(ev.target.closest('[data-act]'));
+  if(act==='print')return (ordersTab==='dochazka'?dochazkaPrint:cestakPrint)(ev.target.closest('[data-act]'));
+  if(act==='printBoth')return bothPrint(ev.target.closest('[data-act]'));
+  if(act==='ordTab'){ordersTab=a.dataset.tab==='dochazka'?'dochazka':'cestak';renderOrders();return}
   if(act==='payPrev'){go(-1);return}
   if(act==='payNext'){go(1);return}
   if(act==='dochPdf'){dochazkaPrint(a);return}
