@@ -190,8 +190,11 @@ body[data-view="charts"] .history-grid{display:grid;grid-template-columns:1fr;ga
 
 .pay-actions{margin:0 0 8px;display:flex;justify-content:flex-end}
 
-.slip-split{display:flex;flex-direction:column;gap:12px}.slip-photo{background:#0e1726;border-radius:12px;min-height:140px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:8px}.slip-photo img{width:100%;max-height:42vh;object-fit:contain}.slip-photo .muted{color:#c5d4ea;margin:0;text-align:center}.slip-th{width:84px}.slip-th img{width:84px;height:110px;object-fit:cover}
-@media(min-width:800px){.slip-split{flex-direction:row;align-items:flex-start}.slip-photo{flex:0 0 46%;position:sticky;top:8px}.slip-photo img{max-height:68vh}.slip-fields{flex:1;min-width:0}}
+.slip-photo{position:relative;background:#0e1726;border-radius:12px;min-height:168px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px}.slip-photo img{width:100%;max-height:42vh;object-fit:contain;display:block}.slip-photo .muted{color:#c5d4ea;margin:0;text-align:center;padding:16px}.slip-photo.has img{cursor:zoom-in}
+.slip-cam-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;align-items:center}.slip-photo:not(.has) .slip-cam-row{position:absolute;inset:0}.slip-photo.has .slip-cam-row{position:absolute;left:8px;right:8px;bottom:8px}.slip-cam-row .btn{min-height:40px}
+.slip-msg{background:#fbe3e0;color:#a2332a;border-radius:10px;padding:8px 10px;margin:0 0 8px;font-size:14px;font-weight:600}
+.grid.slip-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.grid.slip-fields .f{min-width:0}.grid.slip-fields .f.wide{grid-column:1/-1}.grid.slip-fields input{min-width:0;max-width:100%;width:100%;box-sizing:border-box}.grid.slip-fields input.bad{border-color:#a2332a;background:#fff6f5}
+.slip-th{width:84px}.slip-th img{width:84px;height:110px;object-fit:cover}
 .slip-list{display:flex;flex-direction:column;gap:10px;margin:12px 0}.slip-card{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;background:#f4f7fb;border-radius:14px;padding:12px;border:1px solid #d7e3f4}.slip-card b{display:block;font-size:16px}.slip-card small{display:block;color:#5a6b85;margin-top:4px;line-height:1.35}.slip-cmp i{display:block;font-style:normal;color:#5a6b85;font-size:12px;font-weight:500}.slip-cmp em{font-style:normal;font-size:12px;margin-left:8px}.slip-cmp em.up{color:#2e9e5b}.slip-cmp em.dn{color:#b3261e}
 
 /* save celebration */
@@ -278,7 +281,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-11.1";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-11.2";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -946,23 +949,7 @@ function slipOwns(id){
  if(typeof slipPhotos!=='undefined'&&slipPhotos.some(p=>p.id===id))return true;
  return typeof payslips==='function'&&payslips().some(s=>(s.photos||[]).some(p=>p.id===id));
 }
-function slipPlain(id){let d=$('#photoView');if(!d){d=document.createElement('dialog');d.id='photoView';d.className='photo-view';document.body.appendChild(d)}
- d.innerHTML=`<button type="button" class="pv-x" data-st-act="viewClose" aria-label="Zavřít">✕</button><div class="pv-stage" id="pvStage"><img data-photo="${esc(id)}" alt="výplatnice"></div>`;
- try{if(!d.open)d.showModal()}catch(e){const dlg=$('#dlg');if(dlg&&dlg.open&&d.parentElement!==dlg)dlg.appendChild(d);d.classList.add('crop-embedded');d.setAttribute('open','')}
- hydrateThumbs(d)}
-function stView(id){if(slipOwns(id))return slipPlain(id);let d=$('#photoView');if(!d){d=document.createElement('dialog');d.id='photoView';d.className='photo-view';document.body.appendChild(d)}
- pv={z:1,x:0,y:0,ptrs:new Map(),pinch:null,pan:null,lastTap:0};
- const hit=findPhoto(id),p=hit?hit.list[hit.i]:{},x=photoParts(p,hit&&hit.entry);
- d.innerHTML=`<button type="button" class="pv-x" data-st-act="viewClose" aria-label="Zavřít">✕</button><div class="pv-stage" id="pvStage"><img data-photo="${esc(id)}" alt="${esc(photoCaption(p,hit&&hit.entry)||'štítek')}"></div>
- <form class="pv-meta" id="pvMeta"><p class="st-cap" id="pvCap">${esc(photoCaption(p,hit&&hit.entry))}</p>
- <label>Datum<input data-pf="date" type="date" value="${esc(x.date)}"></label>
- <label>Firma<input data-pf="customer" value="${esc(x.customer)}"></label>
- <label>Místo<input data-pf="place" value="${esc(x.place)}"></label>
- <label>Jeřáb<input data-pf="machine" value="${esc(x.machine)}"></label>
- <div class="btnrow"><button type="button" class="btn small" data-st-act="photoSave" data-id="${esc(id)}">Uložit popisek</button><button type="button" class="btn sec small" data-st-act="copyPhoto" data-id="${esc(id)}">Kopírovat pro WhatsApp</button></div></form>`;
- try{if(!d.open)d.showModal()}catch(e){const dlg=$('#dlg');if(dlg&&dlg.open&&d.parentElement!==dlg)dlg.appendChild(d);d.classList.add('crop-embedded');d.setAttribute('open','')}
- hydrateThumbs(d).then(()=>pvApply());
- const st=$('#pvStage');if(!st||st._pvBound)return;st._pvBound=1;
+function bindPvStage(){const st=$('#pvStage');if(!st||st._pvBound)return;st._pvBound=1;
  st.addEventListener('pointerdown',ev=>{if(ev.target.closest&&ev.target.closest('.pv-x'))return;pv.ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
   if(pv.ptrs.size===1){pv.pan={x:ev.clientX,y:ev.clientY};const now=Date.now();if(now-pv.lastTap<280){pv.z=pv.z>1.05?1:2.5;pv.x=0;pv.y=0;pvApply();pv.lastTap=0}else pv.lastTap=now}
   else if(pv.ptrs.size===2){pv.pan=null;const pts=[...pv.ptrs.values()];pv.pinch={dist:Math.hypot(pts[1].x-pts[0].x,pts[1].y-pts[0].y)||1,z:pv.z,x:pv.x,y:pv.y,mx:(pts[0].x+pts[1].x)/2,my:(pts[0].y+pts[1].y)/2}}
@@ -974,6 +961,23 @@ function stView(id){if(slipOwns(id))return slipPlain(id);let d=$('#photoView');i
  st.addEventListener('pointerup',ev=>{pv.ptrs.delete(ev.pointerId);if(pv.ptrs.size<2)pv.pinch=null;if(!pv.ptrs.size)pv.pan=null});
  st.addEventListener('pointercancel',()=>{pv.ptrs.clear();pv.pinch=null;pv.pan=null});
  st.addEventListener('wheel',ev=>{ev.preventDefault();const before=pv.z;pv.z=Math.min(6,Math.max(1,pv.z*(ev.deltaY<0?1.12:1/1.12)));const ratio=pv.z/before;pv.x=ev.clientX-((ev.clientX-pv.x)*ratio);pv.y=ev.clientY-((ev.clientY-pv.y)*ratio);pvApply()},{passive:false})}
+function slipPlain(id){let d=$('#photoView');if(!d){d=document.createElement('dialog');d.id='photoView';d.className='photo-view';document.body.appendChild(d)}
+ pv={z:1,x:0,y:0,ptrs:new Map(),pinch:null,pan:null,lastTap:0};
+ d.innerHTML=`<button type="button" class="pv-x" data-st-act="viewClose" aria-label="Zavřít">✕</button><div class="pv-stage" id="pvStage"><img data-photo="${esc(id)}" alt="výplatnice"></div>`;
+ try{if(!d.open)d.showModal()}catch(e){const dlg=$('#dlg');if(dlg&&dlg.open&&d.parentElement!==dlg)dlg.appendChild(d);d.classList.add('crop-embedded');d.setAttribute('open','')}
+ hydrateThumbs(d).then(()=>pvApply());bindPvStage()}
+function stView(id){if(slipOwns(id))return slipPlain(id);let d=$('#photoView');if(!d){d=document.createElement('dialog');d.id='photoView';d.className='photo-view';document.body.appendChild(d)}
+ pv={z:1,x:0,y:0,ptrs:new Map(),pinch:null,pan:null,lastTap:0};
+ const hit=findPhoto(id),p=hit?hit.list[hit.i]:{},x=photoParts(p,hit&&hit.entry);
+ d.innerHTML=`<button type="button" class="pv-x" data-st-act="viewClose" aria-label="Zavřít">✕</button><div class="pv-stage" id="pvStage"><img data-photo="${esc(id)}" alt="${esc(photoCaption(p,hit&&hit.entry)||'štítek')}"></div>
+ <form class="pv-meta" id="pvMeta"><p class="st-cap" id="pvCap">${esc(photoCaption(p,hit&&hit.entry))}</p>
+ <label>Datum<input data-pf="date" type="date" value="${esc(x.date)}"></label>
+ <label>Firma<input data-pf="customer" value="${esc(x.customer)}"></label>
+ <label>Místo<input data-pf="place" value="${esc(x.place)}"></label>
+ <label>Jeřáb<input data-pf="machine" value="${esc(x.machine)}"></label>
+ <div class="btnrow"><button type="button" class="btn small" data-st-act="photoSave" data-id="${esc(id)}">Uložit popisek</button><button type="button" class="btn sec small" data-st-act="copyPhoto" data-id="${esc(id)}">Kopírovat pro WhatsApp</button></div></form>`;
+ try{if(!d.open)d.showModal()}catch(e){const dlg=$('#dlg');if(dlg&&dlg.open&&d.parentElement!==dlg)dlg.appendChild(d);d.classList.add('crop-embedded');d.setAttribute('open','')}
+ hydrateThumbs(d).then(()=>pvApply());bindPvStage()}
 
 let _cropBusy=Promise.resolve();
 function enqueueCrops(files,target){
@@ -2007,9 +2011,10 @@ function slipCmpHTML(slip){
 }
 function renderSlipsPanel(){
  const list=payslips().slice().sort((a,b)=>String(b.period).localeCompare(String(a.period)));
- const cards=list.map(s=>`<div class="slip-card"><div><b>${esc(fmtPeriod(s.period))}</b><small>průměr ${fmtH(num(s.avgGross))} · hrubá ${cash(s.gross)} · čistá ${cash(s.net)} · vyúčt. ${cash(s.payout)}${num(s.vacRemain)||s.vacRemain===0?` · dovolená ${fmtH(num(s.vacRemain))} h`:''}</small>
+ const cards=list.map(s=>{const bits=[`průměr ${fmtH(num(s.avgGross))}`];if(String(s.gross??'')!=='')bits.push('hrubá '+cash(s.gross));if(String(s.net??'')!=='')bits.push('čistá '+cash(s.net));if(String(s.payout??'')!=='')bits.push('vyúčt. '+cash(s.payout));if(String(s.vacRemain??'')!=='')bits.push('dovolená '+fmtH(num(s.vacRemain))+' h');
+  return `<div class="slip-card"><div><b>${esc(fmtPeriod(s.period))}</b><small>${bits.join(' · ')}</small>
   ${s.photos&&s.photos.length?`<div class="st-photos" style="margin-top:8px">${s.photos.map(p=>`<div class="st-th slip-th"><img data-photo="${esc(p.id)}" alt="výplatnice" data-st-act="slipView" data-id="${esc(p.id)}"></div>`).join('')}</div>`:''}
-  </div><div class="btnrow"><button type="button" class="btn sec small" data-act="slipEdit" data-id="${esc(s.id)}">✎</button><button type="button" class="btn danger small" data-act="slipDel" data-id="${esc(s.id)}">Smazat</button></div></div>`).join('')
+  </div><div class="btnrow"><button type="button" class="btn sec small" data-act="slipEdit" data-id="${esc(s.id)}">✎</button><button type="button" class="btn danger small" data-act="slipDel" data-id="${esc(s.id)}">Smazat</button></div></div>`}).join('')
   ||'<p class="muted">Zatím žádná výplatnice. Přidej poslední pásku – app z ní vezme průměr a poměr čistá/hrubá pro dovolenou a nemoc.</p>';
  return `<div class="panel" style="grid-column:1/-1" id="slipsPanel"><h2>Výplatnice</h2>
   <p class="muted">Fotka + klíčová čísla z pásky. Fotky se <b>nemažou</b> automaticky (na rozdíl od štítků). Průměr z nejnovější výplatnice platí pro náhrady (§ 351+ ZP).</p>
@@ -2019,31 +2024,49 @@ function renderSlipsPanel(){
 function openSlipForm(slip){
  editingSlip=slip?clone(slip):{id:newId(),period:'',avgGross:'',gross:'',net:'',hours:'',vacRemain:'',travel:'',payout:'',photos:[],note:''};
  slipPhotos=(editingSlip.photos||[]).map(p=>Object.assign({},p));
- const fields=SLIP_F.map(([k,l,t])=>`<div class="f"><label>${l}</label><input data-slip="${k}" ${t==='month'?'type="month"':t==='number'?'inputmode="decimal"':''} value="${esc(editingSlip[k]??'')}"></div>`).join('');
+ const fields=SLIP_F.map(([k,l,t])=>`<div class="f${k==='period'?' wide':''}"><label for="slip_${k}">${l}</label><input id="slip_${k}" data-slip="${k}" ${t==='month'?'type="month"':t==='number'?'inputmode="decimal"':''} value="${esc(editingSlip[k]??'')}"></div>`).join('');
  $('#dlg').classList.add('qdlg');
  $('#dlg').innerHTML=`<div class="qe"><div class="dlg-head"><h2>${slip?'Upravit':'Nová'} výplatnice</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div>
-  <div class="dlg-body"><div class="slip-split"><div class="slip-photo" id="slipBigWrap"><p class="muted" id="slipBigEmpty">Po vyfocení se sem dá páska k opisování.</p><img id="slipBig" alt="výplatnice" hidden></div>
-  <div class="slip-fields"><p class="muted" id="slipHint">Čísla se neukládají sama. Doplň je podle pásky a potvrď Uložit výplatnici.</p><div class="grid">${fields}</div></div></div>
-  <div class="st-photos" id="slipPhotos"></div>
-  ${stPhotoBtns("slipForm",{cam:"📷 Vyfotit výplatnici",gal:"🖼️ Z galerie"})}</div>
+  <div class="dlg-body"><div class="slip-photo" id="slipBigWrap"><p class="muted" id="slipBigEmpty">Vyfoť pásku nebo ji vyber z galerie.</p><img id="slipBig" alt="výplatnice" hidden>
+   <div class="slip-cam-row"><label class="btn sec st-file"><span id="slipCamLbl">📷 Vyfotit</span><input type="file" accept="image/*" capture="environment" data-st-file="slipForm" data-st-src="camera"></label><label class="btn sec st-file"><span>🖼️ Galerie</span><input type="file" accept="image/*" data-st-file="slipForm" data-st-src="gallery"></label><button type="button" class="btn danger" id="slipDel" data-st-act="slipDelPhoto" hidden>Smazat</button></div></div>
+  <p class="slip-msg" id="slipMsg" hidden></p>
+  <p class="muted">Povinné je jen období a použitý průměr. Ostatní doplň podle pásky. Uloží se až tlačítkem dole.</p>
+  <div class="grid slip-fields">${fields}</div></div>
   <div class="qfoot"><button type="button" class="btn qsave" data-act="slipSave">✓ Uložit výplatnici</button></div></div>`;
  if(!$('#dlg').open)$('#dlg').showModal();renderSlipPhotos();
 }
-function renderSlipPhotos(){const b=$('#slipPhotos');if(b)b.innerHTML=slipPhotos.map(p=>`<div class="st-th slip-th"><img data-photo="${esc(p.id)}" alt="výplatnice" data-st-act="slipView" data-id="${esc(p.id)}"><button type="button" class="st-x" data-st-act="slipDelPhoto" data-id="${esc(p.id)}" aria-label="Odebrat">✕</button></div>`).join('');
- const big=$('#slipBig'),empty=$('#slipBigEmpty'),last=slipPhotos[slipPhotos.length-1];
- if(big){if(last){big.hidden=false;big.dataset.photo=last.id;delete big.dataset.loaded}else{big.hidden=true;delete big.dataset.photo}}
+function renderSlipPhotos(){
+ const wrap=$('#slipBigWrap'),big=$('#slipBig'),empty=$('#slipBigEmpty'),del=$('#slipDel'),lbl=$('#slipCamLbl');
+ const last=slipPhotos[slipPhotos.length-1];
+ if(wrap)wrap.classList.toggle('has',!!last);
+ if(big){if(last){big.hidden=false;big.dataset.photo=last.id;big.setAttribute('data-st-act','slipView');big.dataset.id=last.id;delete big.dataset.loaded}else{big.hidden=true;big.removeAttribute('data-st-act');delete big.dataset.photo;delete big.dataset.id}}
  if(empty)empty.hidden=!!last;
- hydrateThumbs($('#dlg')||document)}
+ if(del){del.hidden=!last;if(last)del.dataset.id=last.id}
+ if(lbl)lbl.textContent=last?'📷 Znovu':'📷 Vyfotit';
+ hydrateThumbs(wrap||document)}
+function slipFail(el,msg){
+ const box=$('#slipMsg');if(box){box.hidden=false;box.textContent=msg}
+ $$('#dlg [data-slip]').forEach(i=>i.classList.remove('bad'));
+ if(!el)return;el.classList.add('bad');
+ try{el.focus({preventScroll:true})}catch(e){}
+ const dlg=el.closest('dialog');
+ if(dlg){const top=el.getBoundingClientRect().top-dlg.getBoundingClientRect().top;dlg.scrollTo({top:Math.max(0,dlg.scrollTop+top-72),behavior:'smooth'})}
+ else el.scrollIntoView({block:'center',behavior:'smooth'});
+}
 function saveSlip(){
  if(!editingSlip)return;
- const o={id:editingSlip.id,photos:slipPhotos.map(p=>Object.assign({},p))};
- $$('[data-slip]').forEach(i=>{const k=i.dataset.slip;o[k]=k==='period'?i.value:num(i.value)});
- if(!/^\d{4}-\d{2}$/.test(o.period||''))return toast('Vyplň období (měsíc)');
+ const periodEl=$('[data-slip="period"]'),avgEl=$('[data-slip="avgGross"]');
+ const period=String(periodEl&&periodEl.value||'').trim();
+ const avgRaw=String(avgEl&&avgEl.value||'').trim();
+ if(!/^\d{4}-\d{2}$/.test(period))return slipFail(periodEl,'Vyplň období (měsíc a rok).');
+ if(avgRaw===''||!(num(avgRaw)>0))return slipFail(avgEl,'Vyplň použitý průměr (Kč/h). Ostatní pole mohou zůstat prázdná.');
+ const o={id:editingSlip.id,photos:slipPhotos.map(p=>Object.assign({},p)),note:editingSlip.note||''};
+ $$('[data-slip]').forEach(i=>{const k=i.dataset.slip;const raw=String(i.value||'').trim();o[k]=k==='period'?i.value:(raw===''?'':num(raw))});
  const list=ensurePayslips(),i=list.findIndex(x=>x.id===o.id);
  if(i>=0)list[i]=o;else list.push(o);
  const lat=latestPayslip();
  if(lat){state.profile=state.profile||{};if(num(lat.avgGross))state.profile.vacationAverageGross=num(lat.avgGross);
-  if(lat.vacRemain!==''&&lat.vacRemain!==undefined){state.profile.vacationBalanceHours=num(lat.vacRemain);state.profile.vacationBalanceFrom=lat.period+'-01'}}
+  if(String(lat.vacRemain??'')!==''){state.profile.vacationBalanceHours=num(lat.vacRemain);state.profile.vacationBalanceFrom=lat.period+'-01'}}
  saveData();editingSlip=null;slipPhotos=[];$('#dlg').close();render();toast('Výplatnice uložena');
 }
 function delSlip(id){const s=payslips().find(x=>x.id===id);if(!s)return;if(!confirm('Smazat výplatnici '+fmtPeriod(s.period)+'?'))return;
@@ -2057,8 +2080,9 @@ document.addEventListener('click',ev=>{
 });
 document.addEventListener('click',ev=>{
  const a=ev.target.closest('[data-st-act]');if(!a)return;
- if(a.dataset.stAct==='slipDelPhoto'){slipPhotos=slipPhotos.filter(p=>p.id!==a.dataset.id);renderSlipPhotos()}
+ if(a.dataset.stAct==='slipDelPhoto'){const id=a.dataset.id||(slipPhotos[slipPhotos.length-1]||{}).id;slipPhotos=slipPhotos.filter(p=>p.id!==id);renderSlipPhotos()}
 });
+document.addEventListener('input',ev=>{const el=ev.target;if(!el.dataset||!el.dataset.slip)return;el.classList.remove('bad');const box=$('#slipMsg');if(box&&!document.querySelector('#dlg [data-slip].bad'))box.hidden=true});
 window.__vyplatnice={openSlipForm,slipCmpHTML,renderSlipsPanel,fmtPeriod};
 
 /* ================= Cloud sync (Supabase) – jen ve veřejné verzi ================= */
