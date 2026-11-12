@@ -45,6 +45,9 @@ header{padding-top:calc(12px + constant(safe-area-inset-top));padding-top:calc(1
 .day{position:relative}.day .clip{position:absolute;top:2px;right:3px;font-size:11px;line-height:1}
 .clip.quiet{color:#7d8da3;font-weight:700}
 .st-skip{margin:8px 0 0;color:#5a6b85;font-size:13px}
+.cestak-line{display:block;width:100%;text-align:left;border:0;background:#e5f0ff;color:#124b92;border-radius:12px;padding:8px 10px;margin:8px 0 0;font:600 14px/1.35 system-ui,sans-serif}
+.day .plane{position:absolute;bottom:2px;left:3px;font-size:11px;line-height:1}
+.wd .plane{font-style:normal;margin-left:2px}
 .st-share{margin:8px 0 0}
 .st-share-note{margin:6px 0;font-size:13px;font-weight:650;color:#124b92}
 .share-box{margin:8px 0;padding:10px;border:1px solid #d7e3f4;border-radius:12px;background:#f6f8fc}
@@ -330,7 +333,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.9";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.10";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1290,7 +1293,8 @@ function dayState(k,today){const es=byDate()[k]||[];
  if(k<today&&!isWeekend(k)&&!holidayName(k))return{es,mark:'!',cls:'miss'};return{es,mark:'',cls:''}}
 function weekStrip(today){const d=parseISO(today),mon=addDays(today,-((d.getDay()+6)%7));let h='',sum=0,sumV=0;
  for(let i=0;i<7;i++){const k=addDays(mon,i),st=dayState(k,today),hrs=st.es.reduce((t,e)=>t+num(e.totalHours),0),ty=st.es[0]?dayType(st.es[0]):'';sum+=hrs;sumV+=st.es.reduce((t,e)=>t+calc(e).all,0);
-  h+=`<button class="wd ${st.cls} ${k===today?'today':''} ${k===dnesDay()?'picked':''} ${holidayName(k)?'hol':''}" data-act="dPick" data-date="${k}" aria-label="${DOW_FULL[parseISO(k).getDay()]} ${dm(k)}"><b>${DOW[parseISO(k).getDay()].replace(/^./,c=>c.toUpperCase())}</b><span>${dm(k)}</span><strong>${st.es.length?(hrs?fmtH(hrs)+' h':ty.slice(0,4)+'.'):(k<=today?'—':'')}</strong><i>${st.mark}</i></button>`}
+  const fly=st.es.some(e=>typeof travelClaim==='function'&&travelClaim(e));
+  h+=`<button class="wd ${st.cls} ${k===today?'today':''} ${k===dnesDay()?'picked':''} ${holidayName(k)?'hol':''}" data-act="dPick" data-date="${k}" aria-label="${DOW_FULL[parseISO(k).getDay()]} ${dm(k)}"><b>${DOW[parseISO(k).getDay()].replace(/^./,c=>c.toUpperCase())}</b><span>${dm(k)}</span><strong>${st.es.length?(hrs?fmtH(hrs)+' h':ty.slice(0,4)+'.'):(k<=today?'—':'')}</strong><i>${st.mark}${fly?'<em class="plane">✈</em>':''}</i></button>`}
  return `<div class="weekstrip">${h}</div><p class="muted dn-sub">Týden zatím: ${fmtH(sum)} h · ${cash(sumV)}</p>`}
 function reminders(today){const out=[],ym=today.slice(0,7),bd=byDate();
  const seenD=new Set();const noPh=state.entries.filter(e=>{if(!e.date||!e.date.startsWith(ym)||e.date>today||seenD.has(e.date)||!dayStazkaOpen(byDate()[e.date]||[]))return false;seenD.add(e.date);return true}).sort((a,b)=>a.date.localeCompare(b.date));
@@ -1417,7 +1421,7 @@ function rqClock(id,label,value){const v=value||'';return `<div class="trip-time
 function rqCard(id,label,value,times){return `<section class="trip-card"><label class="trip-k" for="${id}">${label}</label><input class="trip-place" id="${id}" list="rq_places" value="${esc(value)}" autocomplete="off">${rqChips(id)}${times}</section>`}
 function openQuickCestak(date){
  const st=stampsFor(date),es=(typeof byDate==='function'?byDate()[date]:[])||[];
- const src=es.find(e=>(typeof entryPlace==='function'&&entryPlace(e))||custOf(e))||es[0];
+ const src=(es.find(e=>typeof travelClaim==='function'&&travelClaim(e)))||es.find(e=>(typeof entryPlace==='function'&&entryPlace(e))||custOf(e))||es[0];
  const misto=src?((typeof entryPlace==='function'&&entryPlace(src))||custOf(src)||''):'';
  const have=src&&src.travel||{};
  const from=String(have.from||'').trim()||HK_PLACE;
@@ -1425,10 +1429,10 @@ function openQuickCestak(date){
  const back=String(have.returnTo||'').trim()||HK_PLACE;
  const places=uniqPlaces([misto,HK_PLACE,...recentPlaces()]);
  placeEdit=false;
- const leave0=String(have.start||'').trim()||st.leave||'',home0=String(have.returnArrival||'').trim()||st.home||'',km0=num(have.km)>0?String(num(have.km)):'';
+ const leave0=String(have.start||'').trim()||st.leave||'',arr0=String(have.arrival||'').trim()||st.arrive||'',dep0=String(have.returnStart||'').trim()||st.depart||'',home0=String(have.returnArrival||'').trim()||st.home||'',km0=num(have.km)>0?String(num(have.km)):'';
  rqTouch={leave:!!leave0,home:!!home0,km:!!km0};rqRoute=null;
  $('#dlg').classList.remove('qdlg');$('#dlg').classList.add('tripdlg');
- $('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlý cesťák</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Účel Služební cesta. Uloží se až tlačítkem.</p>${placeToolsHTML()}<datalist id="rq_places">${places.map(p=>`<option value="${esc(p)}">`).join('')}</datalist><div class="trip">${rqCard('rq_from','Odkud',from,rqClock('rq_leave','Odjezd',leave0))}<p class="trip-leg" id="rq_leg"></p>${rqCard('rq_to','Kam',to,`<div class="trip-times">${rqClock('rq_arr','Příjezd',st.arrive||'')}${rqClock('rq_dep','Odjezd z místa',st.depart||'')}</div>`)}<p class="trip-leg" id="rq_leg_back"></p>${rqCard('rq_back','Zpět kam',back,rqClock('rq_home','Příjezd',home0))}<div class="trip-km"><label for="rq_km">Km tam a zpět</label><input id="rq_km" inputmode="decimal" value="${esc(km0)}"></div></div></div><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="rqSave" data-date="${date}">Uložit</button></div>`;
+ $('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlý cesťák</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Účel Služební cesta. Uloží se až tlačítkem.</p>${placeToolsHTML()}<datalist id="rq_places">${places.map(p=>`<option value="${esc(p)}">`).join('')}</datalist><div class="trip">${rqCard('rq_from','Odkud',from,rqClock('rq_leave','Odjezd',leave0))}<p class="trip-leg" id="rq_leg"></p>${rqCard('rq_to','Kam',to,`<div class="trip-times">${rqClock('rq_arr','Příjezd',arr0)}${rqClock('rq_dep','Odjezd z místa',dep0)}</div>`)}<p class="trip-leg" id="rq_leg_back"></p>${rqCard('rq_back','Zpět kam',back,rqClock('rq_home','Příjezd',home0))}<div class="trip-km"><label for="rq_km">Km tam a zpět</label><input id="rq_km" inputmode="decimal" value="${esc(km0)}"></div></div></div><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="rqSave" data-date="${date}">Uložit</button></div>`;
  if(!$('#dlg').open)$('#dlg').showModal();syncRqChips();scheduleQuickRoute();
 }
 let rqSaving=false;
@@ -1445,12 +1449,17 @@ async function saveQuickCestak(date){
  else{e.travel=Object.assign(blankTravel(),e.travel||{});e.noTravelOrder=false;if(!e.place&&misto)e.place=misto;if(!e.customer&&cust)e.customer=cust}
  const from=canonPlace($('#rq_from')&&$('#rq_from').value)||HK_PLACE,to=canonPlace($('#rq_to')&&$('#rq_to').value),back=canonPlace($('#rq_back')&&$('#rq_back').value)||HK_PLACE;
  const leave=($('#rq_leave')&&$('#rq_leave').value||'').trim(),home=($('#rq_home')&&$('#rq_home').value||'').trim(),kmRaw=$('#rq_km')?$('#rq_km').value:'';
+ const partial=!(dep||home);
+ if(!from||!to||!(leave||arr||dep||home)){toast('Vyplň odkud, kam a aspoň jeden čas.','err');return}
  const t=e.travel;t.from=from;t.to=to;t.returnTo=back;if(!String(t.purpose||'').trim())t.purpose='Služební cesta';if(to&&!e.place)e.place=to;if(leave)t.start=leave;else if(st.leave&&!String(t.start||'').trim())t.start=st.leave;if(home)t.returnArrival=home;else if(st.home&&!String(t.returnArrival||'').trim())t.returnArrival=st.home;if(String(kmRaw).trim()!=='')t.km=num(kmRaw);t.arrival=arr;t.returnStart=dep;
  if(to&&!e.place)e.place=to;if(e.place)e.place=canonPlace(e.place);
  if(created)state.entries.push(e);
- saveData();$('#dlg').close();render();toast('Cesťák uložen','silent');
+ saveData();$('#dlg').close();render();toast(partial?'Cesťák uložen (rozpracovaný)':'Cesťák uložen','silent');
  }finally{rqSaving=false}
 }
+function cestakPlace(s,short){const n=typeof canonPlace==='function'?canonPlace(s):String(s||'').trim();if(short&&n==='Hradec Králové')return 'HK';return n}
+function cestakPartial(e){const t=e&&e.travel||{};return !String(t.returnStart||'').trim()&&!String(t.returnArrival||'').trim()}
+function cestakLine(e){if(!e||typeof travelClaim!=='function'||!travelClaim(e))return '';const t=e.travel||{},part=cestakPartial(e);const bit=(place,time)=>[cestakPlace(place,!part),hm(time)].filter(Boolean).join(' ');let route=[bit(t.from,t.start),bit(t.to,t.arrival)].filter(Boolean).join(' → ');if(!part){const back=hm(t.returnArrival)||hm(t.returnStart);if(back)route+=` … zpět ${back}`;if(num(t.km))route+=` · ${fmtH(num(t.km))} km`}return `<button type="button" class="cestak-line" data-act="quickCestak" data-date="${esc(e.date)}">✈ ${part?'Cesťák rozpracovaný':'Cesťák'}${route?` · ${esc(route)}`:''}</button>`}
 function renderDnes(){
  const today=todayISO(),k=dnesDay(),es=byDate()[k]||[],d=parseISO(k),hol=holidayName(k);
  const title=(k===today?'Dnes · ':'')+DOW_FULL[d.getDay()]+' '+dm(k);
@@ -1458,7 +1467,7 @@ function renderDnes(){
  if(hol)card+=`<p class="dn-note hol">🎉 Svátek: ${esc(hol)} – za práci se počítá příplatek.</p>`;else if(isWeekend(k))card+=`<p class="dn-note">Víkend – za práci se počítá víkendový příplatek.</p>`;
  card+=stampRow(k);
  if(k!==today)card+=`<button class="linkbtn" data-act="dPick" data-date="${today}">← zpět na dnešek</button>`;
- if(es.length){for(const e of es){const c=calc(e),ty=dayType(e);card+=`<div class="dn-entry"><div><b>${ty}${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)}`:''} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.dpnHours)||num(e.doctorHours))} h</b><small>${esc(tplPreview(e)&&num(e.totalHours)?[custOf(e),e.travel?.to].filter(Boolean).filter((x,i,a)=>i===0||!a[0].includes(x)).join(' · '):e.note||'')}${num(e.overtime)?` · přesčas ${fmtH(num(e.overtime))} h`:''}</small></div><strong>${cash(c.all)}</strong></div>`}
+ if(es.length){for(const e of es){const c=calc(e),ty=dayType(e);card+=`<div class="dn-entry"><div><b>${ty}${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)}`:''} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.dpnHours)||num(e.doctorHours))} h</b><small>${esc(tplPreview(e)&&num(e.totalHours)?[custOf(e),e.travel?.to].filter(Boolean).filter((x,i,a)=>i===0||!a[0].includes(x)).join(' · '):e.note||'')}${num(e.overtime)?` · přesčas ${fmtH(num(e.overtime))} h`:''}</small></div><strong>${cash(c.all)}</strong></div>${cestakLine(e)}`}
   card+=`<button class="tplb sec big" data-act="edit" data-id="${es[0].id}">✏️ Upravit dnešek</button><div class="btnrow"><button class="btn sec small" data-act="dCal" data-date="${k}">Detail dne</button><button class="btn sec small" data-act="add" data-date="${k}">+ Další záznam</button></div>`}
  else{const cp=tplCopySrc(k),jb=tplJobSrc(k);
   card+=`<p class="dn-sub">Jak chceš zapsat dnešek?</p>`
@@ -1712,7 +1721,8 @@ function render(){
  for(let d=1;d<=days;d++){const k=iso(Y,M,d),es=bd[k]||[],hol=holidayName(k),v=es.reduce((t,e)=>t+value(e),0),h=es.reduce((t,e)=>t+num(e.totalHours),0),ty=es[0]?dayType(es[0]):'';
   const td=todayISO(),tc=es.length?(es.some(e=>num(e.jobHours)>0)?'t-job':es.some(e=>num(e.totalHours)>0)?'t-depo':es.some(e=>num(e.vacationHours)>0)?'t-vac':(es.some(e=>num(e.sickHours)>0||num(e.dpnHours)>0)?'t-sick':'')):(k<td&&!isWeekend(k)&&!hol?'t-miss':'');
   const clip=dayHasStazka(es)?'<span class="clip" aria-label="stazka">📎</span>':(es.some(e=>num(e.jobHours)>0)&&dayBezStazky(es)?'<span class="clip quiet" aria-label="bez stazky">–</span>':'');
-  html+=`<button class="day ${tc} ${isWeekend(k)?'weekend':''} ${(multi?multi.has(k):d===sel)?'selected':''} ${multi&&multi.has(k)?'multi':''} ${hol?'holiday':''}" data-day="${d}" title="${esc(hol)}" aria-label="${d}. ${MONTHS_GEN[M]}${hol?', '+esc(hol):''}, ${es.length?cash(v):'bez záznamu'}"><span class="num">${d}</span>${clip}<span class="money ${ty==='Dovolená'?'leave':(ty==='Nemoc'||ty==='Lékař')?'sick':''}">${es.length?(ui.hide?'••••':Math.abs(v)>=10000?(v/1000).toLocaleString('cs-CZ',{maximumFractionDigits:1})+'k':cash(v).replace(' Kč','')):'—'}</span><span class="hours">${es.length?(h>0?fmtH(h)+' h':ty):''}${es.length>1?' ×'+es.length:''}</span></button>`}
+  const plane=es.some(e=>travelClaim(e))?'<span class="plane" aria-label="cesťák">✈</span>':'';
+  html+=`<button class="day ${tc} ${isWeekend(k)?'weekend':''} ${(multi?multi.has(k):d===sel)?'selected':''} ${multi&&multi.has(k)?'multi':''} ${hol?'holiday':''}" data-day="${d}" title="${esc(hol)}" aria-label="${d}. ${MONTHS_GEN[M]}${hol?', '+esc(hol):''}, ${es.length?cash(v):'bez záznamu'}"><span class="num">${d}</span>${clip}${plane}<span class="money ${ty==='Dovolená'?'leave':(ty==='Nemoc'||ty==='Lékař')?'sick':''}">${es.length?(ui.hide?'••••':Math.abs(v)>=10000?(v/1000).toLocaleString('cs-CZ',{maximumFractionDigits:1})+'k':cash(v).replace(' Kč','')):'—'}</span><span class="hours">${es.length?(h>0?fmtH(h)+' h':ty):''}${es.length>1?' ×'+es.length:''}</span></button>`}
  $('#calendar').innerHTML=html;
  const det=details();$('#detail').innerHTML=det;
  const vals=Array.from({length:days},(_,i)=>(bd[iso(Y,M,i+1)]||[]).reduce((t,e)=>t+value(e),0));const max=Math.max(1,...vals);
@@ -1760,7 +1770,7 @@ function details(){
   rows.push(`<div class="row total"><span>Celkem od firmy</span><b>${cash(c.all)}</b></div>`);
   const chips=[];if(c.hol&&num(e.totalHours))chips.push(`<span class="chip">Práce ve svátek ${fmtH(num(e.totalHours))} h</span>`);if(num(e.overtime))chips.push(`<span class="chip blue">přesčas ${fmtH(num(e.overtime))} h</span>`);if(num(e.tripHours))chips.push(`<span class="chip blue">cesta ${fmtH(num(e.tripHours))} h</span>`);if(num(e.commuteHours))chips.push(`<span class="chip blue">dojíždění ${fmtH(num(e.commuteHours))} h</span>`);if(num(e.doctorHours))chips.push(`<span class="chip warn">lékař ${fmtH(num(e.doctorHours))} h</span>`);if(num(e.sickHours))chips.push(`<span class="chip warn">sick day ${fmtH(num(e.sickHours))} h</span>`);if(num(e.dpnHours))chips.push(`<span class="chip warn">DPN ${fmtH(num(e.dpnHours))} h</span>`);if(e.noTravelOrder)chips.push(`<span class="chip warn">bez cestovního příkazu</span>`);
   const route=t.from||t.to?`${esc(t.from)} ${esc(t.start)} → ${esc(t.to)} ${esc(t.arrival)}${t.returnStart||t.returnArrival?` · zpět ${esc(t.returnFrom)} ${esc(t.returnStart)} → ${esc(t.returnTo)} ${esc(t.returnArrival)}`:''}${t.transport?' · '+esc(t.transport):''}`:'';
-  h+=`<div class="entry-card"><span class="tag">${ty} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.dpnHours)||num(e.doctorHours))} h${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)} · ${lunchTxt(e.lunchHours)}`:''}</span><div style="margin-top:8px">${chips.join('')}</div><div class="detail-total">${cash(ty==='Práce'||ty==='Dovolená'?c.work:c.all)}</div><div class="muted">${ty==='Dovolená'?(c.leave.netish?'Náhrada mzdy · cca čisté (z hrubého průměru)':'Náhrada mzdy (průměrný výdělek)'):ty==='Nemoc (DPN)'?(c.leave.cssz?'Nemocenská od ČSSZ (mimo firmu)':(c.leave.netish?'Náhrada mzdy při DPN · cca čisté':'Náhrada mzdy při DPN 1.–14. den')):ty==='Sick day'?(c.leave.netish?'Firemní sick day · cca čisté':'Firemní sick day'):'Výdělek včetně příplatků'}</div><div class="rows">${rows.join('')}</div>${(entryLabel(e)||e.note||route)?`<div class="job">${esc(entryLabel(e)||e.note||"")}${route?"<br>"+route:""}</div>`:""}${stitekDetailHTML(e)}<div class="btnrow no-print"><button class="btn sec small" data-act="edit" data-id="${esc(e.id)}">✎ Upravit</button><button class="btn danger small" data-act="del" data-id="${esc(e.id)}">Smazat</button></div></div>`}
+  h+=`<div class="entry-card"><span class="tag">${ty} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.dpnHours)||num(e.doctorHours))} h${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)} · ${lunchTxt(e.lunchHours)}`:''}</span><div style="margin-top:8px">${chips.join('')}</div><div class="detail-total">${cash(ty==='Práce'||ty==='Dovolená'?c.work:c.all)}</div><div class="muted">${ty==='Dovolená'?(c.leave.netish?'Náhrada mzdy · cca čisté (z hrubého průměru)':'Náhrada mzdy (průměrný výdělek)'):ty==='Nemoc (DPN)'?(c.leave.cssz?'Nemocenská od ČSSZ (mimo firmu)':(c.leave.netish?'Náhrada mzdy při DPN · cca čisté':'Náhrada mzdy při DPN 1.–14. den')):ty==='Sick day'?(c.leave.netish?'Firemní sick day · cca čisté':'Firemní sick day'):'Výdělek včetně příplatků'}</div><div class="rows">${rows.join('')}</div>${(entryLabel(e)||e.note||route)?`<div class="job">${esc(entryLabel(e)||e.note||"")}${route?"<br>"+route:""}</div>`:""}${typeof cestakLine==='function'?cestakLine(e):''}${stitekDetailHTML(e)}<div class="btnrow no-print"><button class="btn sec small" data-act="edit" data-id="${esc(e.id)}">✎ Upravit</button><button class="btn danger small" data-act="del" data-id="${esc(e.id)}">Smazat</button></div></div>`}
  return h+`<div class="btnrow no-print"><button class="btn small" data-act="add" data-date="${k}">+ Další záznam v tento den</button></div>`;
 }
 function monthRange(){const ks=state.entries.map(e=>e.date?.slice(0,7)).filter(Boolean).concat(Object.keys(state.travelOrders||{})).sort();const t=new Date(),cur=`${t.getFullYear()}-${pad(t.getMonth()+1)}`;if(!ks.length)return[cur];let a=ks[0],b=ks[ks.length-1]>cur?ks[ks.length-1]:cur;const out=[];let[y,m]=a.split('-').map(Number);while(`${y}-${pad(m)}`<=b){out.push(`${y}-${pad(m)}`);m++;if(m>12){m=1;y++}}return out.slice(-24).reverse()}
