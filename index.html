@@ -1275,7 +1275,7 @@ function migratePlaces(){if(!state||!Array.isArray(state.entries))return false;l
 function recentPlaces(){const seen=[],keys=[],add=s=>{s=canonPlace(s);if(!s)return;const k=placeKey(s);if(!k||k===placeKey(HK_PLACE)||hiddenPlaceKeys.includes(k)||keys.includes(k))return;keys.push(k);seen.push(s)};
  const es=[...state.entries].sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.id||'').localeCompare(String(a.id||'')));
  for(const e of es){add(typeof entryPlace==='function'?entryPlace(e):e.place);add(e.travel&&e.travel.to);add(e.travel&&e.travel.from);add(e.travel&&e.travel.returnTo);add(e.travel&&e.travel.returnFrom)}
- return seen.slice(0,8)}
+ return seen.slice(0,6)}
 function rqChips(inputId){const opts=[HK_PLACE,...recentPlaces()];
  return `<div class="hk-row" data-place-for="${esc(inputId)}">${opts.map(p=>{const x=placeEdit&&placeKey(p)!==placeKey(HK_PLACE)?`<button type="button" class="chip-x" data-act="placeHide" data-val="${esc(p)}" aria-label="Odebrat ${esc(p)}">×</button>`:'';return `<span class="chip-wrap"><button type="button" class="hk-chip" data-act="rqPlace" data-for="${inputId}" data-val="${esc(p)}">${esc(p)}</button>${x}</span>`}).join('')}</div>`}
 function syncRqChips(){document.querySelectorAll('.hk-chip[data-for]').forEach(b=>{const el=document.getElementById(b.dataset.for);const on=!!(el&&String(el.value||'').trim()===b.dataset.val);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')})}
