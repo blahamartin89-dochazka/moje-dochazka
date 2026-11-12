@@ -183,9 +183,28 @@ body[data-view="charts"] .intro p{display:none}
 .hk-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .hk-chip{border:1px solid #124b92;background:#fff;color:#124b92;border-radius:999px;padding:6px 12px;font:600 13px/1.2 system-ui,sans-serif;cursor:pointer}
 .hk-chip.on{background:#124b92;color:#fff}
-.route-hint{margin:8px 0 0;font:600 14px/1.35 system-ui,sans-serif;color:#124b92}
-.route-hint:empty{display:none}
-#eform .route-hint.wide{grid-column:1/-1;margin:0 0 4px}
+.trip{display:flex;flex-direction:column}
+.trip-card{background:#fff;border:1px solid #d7e3f4;border-left:4px solid #124b92;border-radius:16px;padding:12px 12px 14px;box-shadow:0 1px 2px #0b254a14}
+.trip-card+.trip-card,.trip-leg+.trip-card{margin-top:0}
+.trip-k{display:block;margin:0 0 6px;font:700 12px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#5a6b85}
+.trip-place{display:block;width:100%;box-sizing:border-box;border:0;border-radius:12px;background:#f3f6fb;color:#14233b;font:700 22px/1.25 system-ui,sans-serif;padding:12px}
+.trip-times{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.trip-card>.trip-time{margin-top:12px}
+.trip-time-l{display:block;margin:0 0 4px;font:600 13px/1.2 system-ui,sans-serif;color:#5a6b85}
+.trip-clock{position:relative;display:flex;align-items:center;justify-content:center;min-height:64px;border-radius:14px;background:#e5f0ff;color:#124b92}
+.trip-clock-v{font:800 34px/1 system-ui,sans-serif;letter-spacing:-.4px}
+.trip-times .trip-clock-v{font-size:26px}
+.trip-clock input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;border:0;font-size:16px}
+.trip-time .step-row{margin-top:6px}
+.trip-time .step-row button{flex:1;padding:10px 6px;font-weight:700}
+.trip-leg{margin:8px 0;text-align:center;font:700 15px/1.3 system-ui,sans-serif;color:#124b92}
+.trip-leg:empty{display:none}
+.trip-km{margin-top:12px;background:#f4f7fb;border-radius:16px;padding:12px 14px}
+.trip-km label{display:block;margin:0 0 6px;font:700 12px/1 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#5a6b85}
+.trip-km input{display:block;width:100%;box-sizing:border-box;border:0;border-radius:12px;background:#fff;color:#124b92;font:800 32px/1 system-ui,sans-serif;text-align:center;padding:10px}
+dialog.tripdlg[open]{display:flex;flex-direction:column;overflow:hidden}
+dialog.tripdlg .dlg-body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+@media(max-width:700px){dialog.tripdlg{width:100%;max-width:100%;height:100%;max-height:100%;margin:0;border-radius:0}dialog.tripdlg .dlg-head{padding-top:calc(12px + env(safe-area-inset-top,0px))}}
 .pay-box{background:#fff;border-radius:16px;padding:14px 16px;margin:0 0 12px;box-shadow:0 1px 3px #0b254a14}
 .pay-box h3,.pay-h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:#5a6b85}
 .pay-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #eef2f7;font-size:14px}
@@ -290,7 +309,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.5";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.6";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1241,7 +1260,9 @@ function syncRqChips(){['rq_from','rq_to','rq_back'].forEach(id=>{const v=($('#'
 const LS_ROUTES='mojeDochazka.routes';
 function routeBook(){try{return JSON.parse(localStorage.getItem(LS_ROUTES)||'{}')||{}}catch(e){return {}}}
 function routeKey(a,b){const n=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');return n(a)+'|'+n(b)}
-function routeText(r){return r&&r.km?`${r.from} → ${r.to}: ~${r.km} km, ~${r.min} min`:''}
+function routeText(r){return r&&r.km?`↓ ~${r.km} km · ~${r.min} min`:''}
+function paintLegs(ids,r){const t=routeText(r);ids.forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t})}
+function syncTripClocks(root){(root||document).querySelectorAll('.trip-clock').forEach(box=>{const inp=box.querySelector('input');const v=box.querySelector('.trip-clock-v');if(inp&&v)v.textContent=inp.value||'––:––'})}
 function snap30(total,up){if(total==null||isNaN(total))return '';let m=up?Math.ceil(total/30)*30:Math.floor(total/30)*30;m=((m%1440)+1440)%1440;return pad(Math.floor(m/60))+':'+pad(m%60)}
 async function geoPoint(q){const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),8000);
  try{const res=await fetch('https://photon.komoot.io/api/?limit=5&q='+encodeURIComponent(String(q).trim()+', Česko'),{signal:ctrl.signal});
@@ -1268,22 +1289,24 @@ async function lookupDrive(from,to){
   const all=routeBook();all[key]=out;try{localStorage.setItem(LS_ROUTES,JSON.stringify(all))}catch(e){}
   return out}catch(e){return null}}
 let rqTouch={leave:false,home:false,km:false},rqRoute=null,rqSeq=0,rqTimer=0;
-function applyRqRoute(r){rqRoute=r||null;const hint=$('#rq_route');if(hint)hint.textContent=routeText(r);if(!r)return;
+function applyRqRoute(r){rqRoute=r||null;paintLegs(['rq_leg','rq_leg_back'],r);if(!r){syncTripClocks(document.getElementById('dlg'));return}
  const arr=$('#rq_arr')&&$('#rq_arr').value,dep=$('#rq_dep')&&$('#rq_dep').value;
  const leave=$('#rq_leave'),home=$('#rq_home'),km=$('#rq_km');
  if(leave&&!rqTouch.leave&&arr){const v=snap30(toMin(arr)-r.min,false);if(v)leave.value=v}
  if(home&&!rqTouch.home&&dep){const v=snap30(toMin(dep)+r.min,true);if(v)home.value=v}
- if(km&&!rqTouch.km)km.value=String(r.rtKm)}
+ if(km&&!rqTouch.km)km.value=String(r.rtKm)
+ syncTripClocks(document.getElementById('dlg'))}
 function scheduleQuickRoute(){clearTimeout(rqTimer);rqTimer=setTimeout(()=>{
  const from=($('#rq_from')&&$('#rq_from').value||'').trim()||HK_PLACE,to=($('#rq_to')&&$('#rq_to').value||'').trim();
- const hint=$('#rq_route'),seq=++rqSeq;
- if(!$('#rq_to')||!to||from.toLowerCase()===to.toLowerCase()){rqRoute=null;if(hint)hint.textContent='';return}
+ const seq=++rqSeq;
+ if(!$('#rq_to')||!to||from.toLowerCase()===to.toLowerCase()){rqRoute=null;paintLegs(['rq_leg','rq_leg_back'],null);return}
  const cached=routeBook()[routeKey(from,to)];
  if(cached&&cached.km){applyRqRoute(Object.assign({},cached,{from,to}));return}
- if(hint)hint.textContent='';
+ paintLegs(['rq_leg','rq_leg_back'],null);
  lookupDrive(from,to).then(r=>{if(seq!==rqSeq||!$('#rq_to'))return;applyRqRoute(r)})
 },400)}
-function rqTime(id,label,value){return `<div class="f" style="margin-top:12px"><label for="${id}">${label}</label><input id="${id}" type="time" value="${esc(value||'')}"><div class="step-row"><button type="button" data-act="rqShift" data-f="${id}" data-m="-30">−30 min</button><button type="button" data-act="rqShift" data-f="${id}" data-m="30">+30 min</button></div></div>`}
+function rqClock(id,label,value){const v=value||'';return `<div class="trip-time"><span class="trip-time-l">${label}</span><div class="trip-clock"><span class="trip-clock-v">${esc(v||'––:––')}</span><input id="${id}" type="time" value="${esc(v)}" aria-label="${label}"></div><div class="step-row"><button type="button" data-act="rqShift" data-f="${id}" data-m="-30">−30 min</button><button type="button" data-act="rqShift" data-f="${id}" data-m="30">+30 min</button></div></div>`}
+function rqCard(id,label,value,times){return `<section class="trip-card"><label class="trip-k" for="${id}">${label}</label><input class="trip-place" id="${id}" list="rq_places" value="${esc(value)}" autocomplete="off">${rqChips(id)}${times}</section>`}
 function openQuickCestak(date){
  const st=stampsFor(date),es=(typeof byDate==='function'?byDate()[date]:[])||[];
  const src=es.find(e=>(typeof entryPlace==='function'&&entryPlace(e))||custOf(e))||es[0];
@@ -1295,8 +1318,8 @@ function openQuickCestak(date){
  const places=[...new Set([misto,HK_PLACE,...recentPlaces()].filter(Boolean))];
  const leave0=String(have.start||'').trim()||st.leave||'',home0=String(have.returnArrival||'').trim()||st.home||'',km0=num(have.km)>0?String(num(have.km)):'';
  rqTouch={leave:!!leave0,home:!!home0,km:!!km0};rqRoute=null;
- $('#dlg').classList.remove('qdlg');
- $('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlý cesťák</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Účel Služební cesta. Uloží se až tlačítkem.</p><datalist id="rq_places">${places.map(p=>`<option value="${esc(p)}">`).join('')}</datalist><div class="f"><label for="rq_from">Odkud</label><input id="rq_from" list="rq_places" value="${esc(from)}">${rqChips('rq_from')}</div><div class="f" style="margin-top:10px"><label for="rq_to">Kam</label><input id="rq_to" list="rq_places" value="${esc(to)}">${rqChips('rq_to')}</div><div class="f" style="margin-top:10px"><label for="rq_back">Zpět kam</label><input id="rq_back" list="rq_places" value="${esc(back)}">${rqChips('rq_back')}</div><p class="route-hint" id="rq_route"></p>${rqTime('rq_leave','Odjezd z Odkud',leave0)}${rqTime('rq_arr','Příjezd do',st.arrive||'')}${rqTime('rq_dep','Odjezd z',st.depart||'')}${rqTime('rq_home','Příjezd zpět',home0)}<div class="f" style="margin-top:12px"><label for="rq_km">Km tam a zpět</label><input id="rq_km" inputmode="decimal" value="${esc(km0)}"></div></div><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="rqSave" data-date="${date}">Uložit</button></div>`;
+ $('#dlg').classList.remove('qdlg');$('#dlg').classList.add('tripdlg');
+ $('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlý cesťák</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Účel Služební cesta. Uloží se až tlačítkem.</p><datalist id="rq_places">${places.map(p=>`<option value="${esc(p)}">`).join('')}</datalist><div class="trip">${rqCard('rq_from','Odkud',from,rqClock('rq_leave','Odjezd',leave0))}<p class="trip-leg" id="rq_leg"></p>${rqCard('rq_to','Kam',to,`<div class="trip-times">${rqClock('rq_arr','Příjezd',st.arrive||'')}${rqClock('rq_dep','Odjezd z místa',st.depart||'')}</div>`)}<p class="trip-leg" id="rq_leg_back"></p>${rqCard('rq_back','Zpět kam',back,rqClock('rq_home','Příjezd',home0))}<div class="trip-km"><label for="rq_km">Km tam a zpět</label><input id="rq_km" inputmode="decimal" value="${esc(km0)}"></div></div></div><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="rqSave" data-date="${date}">Uložit</button></div>`;
  if(!$('#dlg').open)$('#dlg').showModal();syncRqChips();scheduleQuickRoute();
 }
 function saveQuickCestak(date){
@@ -1382,7 +1405,7 @@ function qSave(){if(!qs)return;const{e,errs}=qRefresh();if(!e||errs.length||!e.t
 document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
  if(act==='quickCestak'){ev.stopPropagation();return openQuickCestak(a.dataset.date)}
  if(act==='rqSave'){ev.stopPropagation();return saveQuickCestak(a.dataset.date)}
- if(act==='rqShift'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;const next=addMin(el.value,+a.dataset.m);if(!next)return;el.value=next;if(el.id==='rq_leave')rqTouch.leave=true;else if(el.id==='rq_home')rqTouch.home=true;else if(el.id==='rq_arr'||el.id==='rq_dep')applyRqRoute(rqRoute);return}
+ if(act==='rqShift'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;const next=addMin(el.value,+a.dataset.m);if(!next)return;el.value=next;syncTripClocks(el.closest('.trip-clock'));if(el.id==='rq_leave')rqTouch.leave=true;else if(el.id==='rq_home')rqTouch.home=true;else if(el.id==='rq_arr'||el.id==='rq_dep')applyRqRoute(rqRoute);return}
  if(act==='rqPlace'){ev.stopPropagation();const el=document.getElementById(a.dataset.for);if(!el)return;el.value=a.dataset.val||'';syncRqChips();if(el.id!=='rq_back')scheduleQuickRoute();return}
  if(act==='stamp'||act==='stampUndo'){ev.stopPropagation();const key=a.dataset.k,date=a.dataset.date;if(act==='stampUndo'){setStamp(date,key,'');return}
   const cur=stampsFor(date)[key];const inp=a.parentElement&&a.parentElement.querySelector('[data-stamp-edit]');
@@ -1397,13 +1420,13 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
  if(act==='qFull'){const e=qBuild();delete e.id;if(!travelClaim(e)){e.noTravelOrder=false;e.travel=blankTravel();e.tripHours=0}$('#dlg').close();return openForm(null,e.date,e)}
 },true);
 document.addEventListener('click',ev=>{const el=ev.target.closest('.qtv input');if(el&&el.showPicker)try{el.showPicker()}catch(e){}});
-document.addEventListener('input',ev=>{const el=ev.target;if(el&&(el.id==='rq_from'||el.id==='rq_to'||el.id==='rq_back')){syncRqChips();if(el.id!=='rq_back')scheduleQuickRoute();return}if(el&&(el.id==='rq_arr'||el.id==='rq_dep')){applyRqRoute(rqRoute);return}if(el&&el.id==='rq_leave'){rqTouch.leave=true;return}if(el&&el.id==='rq_home'){rqTouch.home=true;return}if(el&&el.id==='rq_km'){rqTouch.km=true;return}if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
-document.addEventListener('change',ev=>{const el=ev.target;if(el.dataset&&el.dataset.stampEdit){setStamp(el.dataset.date,el.dataset.stampEdit,el.value||'');return}if(el.dataset&&el.dataset.q&&qs){qs[el.dataset.q]=['lunch','commute'].includes(el.dataset.q)?num(el.value):el.value;qRefresh()}});
+document.addEventListener('input',ev=>{const el=ev.target;if(el&&el.closest&&el.closest('.trip-clock'))syncTripClocks(el.closest('.trip-clock'));if(el&&(el.id==='rq_from'||el.id==='rq_to'||el.id==='rq_back')){syncRqChips();if(el.id!=='rq_back')scheduleQuickRoute();return}if(el&&(el.id==='rq_arr'||el.id==='rq_dep')){applyRqRoute(rqRoute);return}if(el&&el.id==='rq_leave'){rqTouch.leave=true;return}if(el&&el.id==='rq_home'){rqTouch.home=true;return}if(el&&el.id==='rq_km'){rqTouch.km=true;return}if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
+document.addEventListener('change',ev=>{const el=ev.target;if(el&&el.closest&&el.closest('.trip-clock'))syncTripClocks(el.closest('.trip-clock'));if(el.dataset&&el.dataset.stampEdit){setStamp(el.dataset.date,el.dataset.stampEdit,el.value||'');return}if(el.dataset&&el.dataset.q&&qs){qs[el.dataset.q]=['lunch','commute'].includes(el.dataset.q)?num(el.value):el.value;qRefresh()}});
 document.addEventListener('close',ev=>{
  if(ev.target.id!=='dlg')return;
  /* Kamera na iPhonu dialog často zavře sama. Parkování kvůli ořezu taky. Formulář necháme. */
  if(ev.target.dataset.parked||ev.target.dataset.picking)return;
- ev.target.classList.remove('qdlg');qs=null;
+ ev.target.classList.remove('qdlg');ev.target.classList.remove('tripdlg');qs=null;
 },true);
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -1771,7 +1794,7 @@ function lastTrip(){return[...state.entries].filter(e=>!e.noTravelOrder&&e.trave
 const homePlace=()=>String(P().homePlace||'').trim();
 const HK_PLACE='Hradec Králové';
 const hkChips=field=>`<div class="hk-row"><button type="button" class="hk-chip" data-act="hkFill" data-hk="${field}" aria-pressed="false">Hradec Králové</button></div>`;
-function syncHkChips(root){(root||document).querySelectorAll('.hk-chip').forEach(b=>{const key=b.dataset.hk;const el=key.startsWith('t.')?document.getElementById('f_'+key):document.querySelector(`[data-j="${key}"]`);const on=!!(el&&String(el.value||'').trim()===HK_PLACE);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')})}
+function syncHkChips(root){(root||document).querySelectorAll('.hk-chip').forEach(b=>{const key=b.dataset.hk;if(!key)return;const el=key.startsWith('t.')?document.getElementById('f_'+key):document.querySelector(`[data-j="${key}"]`);const on=!!(el&&String(el.value||'').trim()===HK_PLACE);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')})}
 function blankTravel(){return{from:'',start:'',to:'',arrival:'',returnFrom:'',returnStart:'',returnTo:'',returnArrival:'',purpose:'',transport:'',km:0,fare:0,lodging:0,other:0,dietOverride:null,freeMeals:false,freeLodging:false,reducedTicket:false}}
 const depoHours=()=>Math.max(0,r2((spanH(tpl.depo.start,tpl.depo.end)??0)-num(tpl.depo.lunch)));
 function makeDepo(date){const t=tpl.depo,total=depoHours();return{id:newId(),date,startTime:t.start,endTime:t.end,lunchHours:num(t.lunch),totalHours:total,note:t.note||'Depo',jobHours:0,baseHours:total,overtime:0,commuteHours:0,weekendHours:isWeekend(date)?total:0,noTravelOrder:true,tripHours:0,vacationHours:0,doctorHours:0,sickHours:0,travel:blankTravel()}}
@@ -1830,6 +1853,7 @@ function saveJob(){const{e,errs}=refreshJob();if(errs.length)return;if(state.ent
 let editing=null,manual=new Set();
 const TRAVEL_KEYS=['freeBoard','from','start','to','arrival','returnFrom','returnStart','returnTo','returnArrival','purpose','transport','km','fare','lodging','other','dietOverride','freeMeals','freeLodging','reducedTicket'];
 const stepBtns=k=>`<div class="step-row"><button type="button" data-act="tShift" data-f="${k}" data-m="-30">−30 min</button><button type="button" data-act="tShift" data-f="${k}" data-m="30">+30 min</button></div>`;
+function tripWhen(k,label){return `<div class="trip-time"><span class="trip-time-l">${label}</span><div class="trip-clock"><span class="trip-clock-v">––:––</span><input id="f_${k}" data-k="${k}" type="time" aria-label="${label}"></div>${stepBtns(k)}</div>`}
 const fld=(k,l,o={})=>`<div class="f ${o.wide?'wide':''}"><label for="f_${k}">${l}</label>${o.auto?`<div class="auto"><input id="f_${k}" data-k="${k}" inputmode="decimal"><button type="button" data-reset="${k}" title="Vrátit automatický výpočet">↺ auto</button></div>`:o.sel?`<select id="f_${k}" data-k="${k}">${o.sel.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select>`:`<input id="f_${k}" data-k="${k}" ${o.type?`type="${o.type}"`:''} ${o.num?'inputmode="decimal"':''} ${o.list?`list="${o.list}"`:''}>`}${o.step?stepBtns(k):''}</div>`;
 let fstate={pair:null,jobV:0,baseV:0,retFollow:true,startFollow:true,arrFollow:true,placeFollow:true};
 function ensureOpt(k,v,list){v=String(num(v));if(!list.some(o=>o[0]===v)){const s=$('#f_'+k);if(s)s.add(new Option(fmtH(num(v))+' h',v))}}
@@ -1837,7 +1861,7 @@ function hourOpts(k,total,v){const s=$('#f_'+k);if(!s)return;v=r2(num(v));const 
  const html=vals.map(x=>`<option value="${x}">${fmtH(x)} h</option>`).join('');if(s.dataset.opts!==html){s.innerHTML=html;s.dataset.opts=html}s.value=String(v)}
 const chk=(k,l)=>`<label class="chk"><input type="checkbox" id="f_${k}" data-k="${k}">${l}</label>`;
 function openForm(entry,date,draft){
- editing=entry||null;manual=new Set();
+ editing=entry||null;manual=new Set();$('#dlg').classList.remove('tripdlg');
  const e=entry?clone(entry):draft?clone(draft):{date:date||iso(Y,M,sel),startTime:'',endTime:'',lunchHours:0,note:'',jobHours:0,baseHours:0,commuteHours:0,vacationHours:0,doctorHours:0,sickHours:0,travel:blankTravel()};
  if(!entry){e.travel=Object.assign(blankTravel(),e.travel||{});if(!String(e.travel.purpose||'').trim())e.travel.purpose='Služební cesta';if(typeof applyStampsToEntry==='function')applyStampsToEntry(e)}
  const places=[...new Set(state.entries.flatMap(x=>[x.place,x.travel?.from,x.travel?.to,x.travel?.returnFrom,x.travel?.returnTo]).filter(Boolean))];
@@ -1847,7 +1871,7 @@ function openForm(entry,date,draft){
  <datalist id="dl_places">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_cust">${custs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_notes">${notes.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
  <fieldset><legend>Směna</legend>${!entry&&Object.keys(stampsFor(e.date)||{}).length?'<p class="muted hint wide">Časy z razítek jen předvyplní pole. Konec a příjezd zpět jen po Doma, odjezd zpět jen po Odjezd z místa. Uprav ±30 min a ulož.</p>':''}<div class="grid">${fld('date','Datum',{type:'date'})}${fld('startTime','Začátek',{type:'time',step:1})}${fld('endTime','Konec',{type:'time',step:1})}${fld('lunchHours','Oběd',{sel:LUNCH_OPTS})}${fld('customer','Zákazník',{list:'dl_cust'})}${fld('place','Místo',{list:'dl_places'})}<div class="f wide" id="noteWrap"><button type="button" class="linkbtn" id="noteToggle" data-act="noteToggle" style="padding:0">+ poznámka</button><div id="noteBox" hidden>${fld('note','Poznámka',{wide:1,list:'dl_notes'})}</div></div></div></fieldset>
  <fieldset><legend>Hodiny</legend><div class="grid">${fld('totalHours','Celkem · h',{auto:1})}${fld('overtime','Přesčas · h',{auto:1})}${fld('commuteHours','Dojíždění dům–stavba celkem · h',{sel:COMMUTE_OPTS,wide:1})}<p class="muted hint wide">Vyber součet jízdy autem tam i zpět. Zůstane v hodinách Alvianu, odečte se jen od přesčasu.</p>${fld('jobHours','Zákazník · hodiny',{sel:[['0','0 h']]})}${fld('baseHours','Alvian · hodiny',{sel:[['0','0 h']]})}<p class="muted hint wide">Vyber hodiny zákazníka; Alvian se dopočítá ze zbytku. Nebo vyber hodiny Alvianu; zákazník se dopočítá ze zbytku.</p>${fld('weekendHours','Víkend h',{auto:1})}${fld('vacationHours','Dovolená h',{num:1})}${fld('doctorHours','Lékař h',{num:1})}${fld('sickHours','Sick day h (firemní)',{num:1})}${fld('dpnHours','Nemoc (DPN) h',{num:1})}</div></fieldset>
- ${stitekFormHTML(e)}<fieldset><legend>Pracovní cesta</legend><p class="muted">Cesták se uloží, jen když ho vyplníš. Nový den ho sám nezakládá.</p><div style="margin-bottom:10px">${chk('noTravelOrder','Bez cestovního příkazu (žádné stravné)')}</div><div class="grid"><div class="f"><label for="f_t.from">Odjezd odkud</label><input id="f_t.from" data-k="t.from" list="dl_places">${hkChips('t.from')}</div>${fld('t.start','Odjezd',{type:'time',step:1})}${fld('t.to','Kam (místo jednání)',{list:'dl_places'})}<p class="route-hint wide" id="routeHint"></p>${fld('t.arrival','Příjezd',{type:'time',step:1})}${fld('t.returnFrom','Zpět odkud',{list:'dl_places'})}${fld('t.returnStart','Odjezd zpět',{type:'time',step:1})}<div class="f"><label for="f_t.returnTo">Zpět kam</label><input id="f_t.returnTo" data-k="t.returnTo" list="dl_places">${hkChips('t.returnTo')}</div>${fld('t.returnArrival','Příjezd zpět',{type:'time',step:1})}${fld('tripHours','Doba cesty h',{auto:1})}${fld('t.purpose','Účel')}${fld('t.transport','Doprava',{sel:[['','—'],['AUS','AUS – služební auto'],['AUV','AUV – vlastní auto'],['VLAK','Vlak'],['BUS','Autobus'],['MHD','MHD'],['JINE','Jiné']]})}${fld('t.km','Km (vlastní auto)',{num:1})}${fld('t.fare','Jízdné Kč',{num:1})}${fld('t.lodging','Ubytování Kč',{num:1})}${fld('t.other','Ostatní Kč',{num:1})}${fld('t.dietOverride','Stravné ručně Kč (prázdné = auto)',{num:1})}${fld('t.freeMeals','Jídla zdarma',{sel:[['0','žádné'],['1','1 jídlo'],['2','2 jídla'],['3','3 jídla']]})}</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">${chk('t.freeBoard','Bezplatné stravování')}${chk('t.freeLodging','Bezplatné ubytování')}${chk('t.reducedTicket','Snížená jízdenka')}</div><p class="muted hint" id="freeBoardHint" hidden>Při bezplatném stravování uprav stravné: vyber „Jídla zdarma“ nebo zadej „Stravné ručně“.</p></fieldset>
+ ${stitekFormHTML(e)}<fieldset><legend>Pracovní cesta</legend><p class="muted">Cesták se uloží, jen když ho vyplníš. Nový den ho sám nezakládá.</p><div style="margin-bottom:10px">${chk('noTravelOrder','Bez cestovního příkazu (žádné stravné)')}</div><div class="trip"><section class="trip-card"><label class="trip-k" for="f_t.from">Odkud</label><input class="trip-place" id="f_t.from" data-k="t.from" list="dl_places" autocomplete="off">${hkChips('t.from')}${tripWhen('t.start','Odjezd')}</section><p class="trip-leg" id="routeHint"></p><section class="trip-card"><label class="trip-k" for="f_t.to">Kam</label><input class="trip-place" id="f_t.to" data-k="t.to" list="dl_places" autocomplete="off">${hkChips('t.to')}<div class="trip-times">${tripWhen('t.arrival','Příjezd')}${tripWhen('t.returnStart','Odjezd z místa')}</div></section><p class="trip-leg" id="routeHintBack"></p><section class="trip-card"><label class="trip-k" for="f_t.returnTo">Zpět kam</label><input class="trip-place" id="f_t.returnTo" data-k="t.returnTo" list="dl_places" autocomplete="off">${hkChips('t.returnTo')}${tripWhen('t.returnArrival','Příjezd')}</section><div class="trip-km"><label for="f_t.km">Km tam a zpět</label><input id="f_t.km" data-k="t.km" inputmode="decimal"></div></div><div class="grid" style="margin-top:12px"><div class="f wide"><label for="f_t.returnFrom">Zpět odkud</label><input id="f_t.returnFrom" data-k="t.returnFrom" list="dl_places">${hkChips('t.returnFrom')}</div>${fld('tripHours','Doba cesty h',{auto:1})}${fld('t.purpose','Účel')}${fld('t.transport','Doprava',{sel:[['','—'],['AUS','AUS – služební auto'],['AUV','AUV – vlastní auto'],['VLAK','Vlak'],['BUS','Autobus'],['MHD','MHD'],['JINE','Jiné']]})}${fld('t.fare','Jízdné Kč',{num:1})}${fld('t.lodging','Ubytování Kč',{num:1})}${fld('t.other','Ostatní Kč',{num:1})}${fld('t.dietOverride','Stravné ručně Kč (prázdné = auto)',{num:1})}${fld('t.freeMeals','Jídla zdarma',{sel:[['0','žádné'],['1','1 jídlo'],['2','2 jídla'],['3','3 jídla']]})}</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">${chk('t.freeBoard','Bezplatné stravování')}${chk('t.freeLodging','Bezplatné ubytování')}${chk('t.reducedTicket','Snížená jízdenka')}</div><p class="muted hint" id="freeBoardHint" hidden>Při bezplatném stravování uprav stravné: vyber „Jídla zdarma“ nebo zadej „Stravné ručně“.</p></fieldset>
  <div class="calc" id="fcalc"></div><div class="msgs" id="fmsgs"></div></div>
  <div class="dlg-foot">${entry?'<button type="button" class="btn danger" data-act="delForm" style="margin-right:auto">Smazat</button>':''}<button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="saveForm">Uložit</button></div></form>`;
  const set=(k,v)=>{const el=$('#f_'+k.replace('.','\\.'));if(!el)return;if(el.type==='checkbox')el.checked=!!v;else el.value=v??''};
@@ -1865,7 +1889,7 @@ function openForm(entry,date,draft){
 }
 let formRouteTimer=0,formRouteSeq=0;
 function applyFormRoute(r){
- const hint=document.getElementById('routeHint');if(hint)hint.textContent=r?routeText(r):'';
+ paintLegs(['routeHint','routeHintBack'],r);
  if(!r||!fstate.routeTouch)return;
  const g=id=>document.getElementById('f_'+id);
  const arr=g('t.arrival')&&g('t.arrival').value,dep=g('t.returnStart')&&g('t.returnStart').value;let changed=false;
@@ -1877,10 +1901,10 @@ function applyFormRoute(r){
 function scheduleFormRoute(){clearTimeout(formRouteTimer);formRouteTimer=setTimeout(()=>{
  if(!document.getElementById('routeHint'))return;
  const from=(formVal('t.from')||'').trim()||HK_PLACE,to=(formVal('t.to')||'').trim(),seq=++formRouteSeq;
- if(!to||from.toLowerCase()===to.toLowerCase()){const hint=document.getElementById('routeHint');if(hint)hint.textContent='';return}
+ if(!to||from.toLowerCase()===to.toLowerCase()){paintLegs(['routeHint','routeHintBack'],null);return}
  const cached=routeBook()[routeKey(from,to)];
  if(cached&&cached.km){applyFormRoute(Object.assign({},cached,{from,to}));return}
- const hint=document.getElementById('routeHint');if(hint)hint.textContent='';
+ paintLegs(['routeHint','routeHintBack'],null);
  lookupDrive(from,to).then(r=>{if(seq!==formRouteSeq||!document.getElementById('routeHint'))return;applyFormRoute(r?Object.assign({},r,{from,to}):null)});
 },400)}
 function formVal(k){const el=$('#f_'+k.replace('.','\\.'));if(!el)return undefined;return el.type==='checkbox'?el.checked:el.value}
@@ -1900,7 +1924,7 @@ function refreshForm(){
  const e=buildEntry(true),{errs,warns,infos}=validate(e);const c=calc(e);
  $('#fcalc').innerHTML=`Výdělek <b>${cash(c.work)}</b> · stravné <b>${cash(c.diet)}</b> (${esc(c.dietWhy)}) · náhrady <b>${cash(c.c.sum)}</b> · celkem <b>${cash(c.all)}</b>${c.hol?` · <span style="color:#b36537">svátek: ${esc(c.hol)}</span>`:''}`;
  $('#fmsgs').innerHTML=errs.map(x=>`<div class="msg err">✖ ${x}</div>`).join('')+warns.map(x=>`<div class="msg warn">⚠ ${x}</div>`).join('')+infos.map(x=>x.startsWith('🎉')?`<div class="msg hol">${x}</div>`:`<div class="msg info">ℹ ${x}</div>`).join('');
- syncHkChips(document);
+ syncHkChips(document);if(typeof syncTripClocks==='function')syncTripClocks(document.getElementById('eform'));
  return{errs,warns}
 }
 function buildEntry(preview){
