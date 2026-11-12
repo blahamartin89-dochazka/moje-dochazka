@@ -287,7 +287,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.3";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.4";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1228,13 +1228,25 @@ function applyStampsToEntry(e){if(!e||e.id)return e;const st=stampsFor(e.date);i
 function stampRow(date){const st=stampsFor(date);
  const cells=STAMP_KEYS.map(([k,l])=>{const t=st[k]||'';return `<div class="stamp${t?' on':''}"><button type="button" class="stamp-hit" data-act="stamp" data-k="${k}" data-date="${date}"><b>${l}</b><small>${t?hm(t):'—'}</small></button>${t?`<button type="button" class="stamp-x" data-act="stampUndo" data-k="${k}" data-date="${date}" aria-label="Zrušit ${l.replace(/<br>/g,' ')}">×</button>`:''}<input type="time" class="stamp-pick" data-stamp-edit="${k}" data-date="${date}" value="${esc(t)}" tabindex="-1" aria-label="Upravit ${l.replace(/<br>/g,' ')}"></div>`}).join('');
  return `<div class="stamp-row" aria-label="Orientační časy">${cells}</div><p class="muted stamp-note">Orientační časy, zaokrouhlené na ${stampStep()} min. Den se sám neuloží.</p><button type="button" class="tplb sec" data-act="quickCestak" data-date="${date}"><span class="ti">✈</span><span><b>Rychlý cesťák</b><small>příjezd a odjezd · uloží se až po potvrzení</small></span></button>`}
+function recentPlaces(){const seen=[],add=s=>{s=String(s||'').trim();if(!s||seen.some(x=>x.toLowerCase()===s.toLowerCase()))return;seen.push(s)};
+ const es=[...state.entries].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ for(const e of es){add(typeof entryPlace==='function'?entryPlace(e):e.place);add(e.travel&&e.travel.to);add(e.travel&&e.travel.from);add(e.travel&&e.travel.returnTo);add(e.travel&&e.travel.returnFrom)}
+ return seen.filter(s=>s!==HK_PLACE).slice(0,8)}
+function rqChips(inputId){const opts=[HK_PLACE,...recentPlaces()];
+ return `<div class="hk-row">${opts.map(p=>`<button type="button" class="hk-chip" data-act="rqPlace" data-for="${inputId}" data-val="${esc(p)}">${esc(p)}</button>`).join('')}</div>`}
+function syncRqChips(){['rq_from','rq_to','rq_back'].forEach(id=>{const v=($('#'+id)&&$('#'+id).value||'').trim();document.querySelectorAll(`[data-for="${id}"]`).forEach(b=>{const on=b.dataset.val===v;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')})})}
 function openQuickCestak(date){
  const st=stampsFor(date),es=(typeof byDate==='function'?byDate()[date]:[])||[];
  const src=es.find(e=>(typeof entryPlace==='function'&&entryPlace(e))||custOf(e))||es[0];
  const misto=src?((typeof entryPlace==='function'&&entryPlace(src))||custOf(src)||''):'';
+ const have=src&&src.travel||{};
+ const from=String(have.from||'').trim()||HK_PLACE;
+ const to=String(have.to||'').trim()||misto;
+ const back=String(have.returnTo||'').trim()||HK_PLACE;
+ const places=[...new Set([misto,HK_PLACE,...recentPlaces()].filter(Boolean))];
  $('#dlg').classList.remove('qdlg');
- $('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlý cesťák</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Odkud i zpět Hradec Králové, účel Služební cesta${misto?`, místo ${esc(misto)}`:''}. Uloží se až tlačítkem.</p><div class="f"><label for="rq_arr">Příjezd do</label><input id="rq_arr" type="time" value="${esc(st.arrive||'')}"><div class="step-row"><button type="button" data-act="rqShift" data-f="rq_arr" data-m="-30">−30 min</button><button type="button" data-act="rqShift" data-f="rq_arr" data-m="30">+30 min</button></div></div><div class="f" style="margin-top:12px"><label for="rq_dep">Odjezd z</label><input id="rq_dep" type="time" value="${esc(st.depart||'')}"><div class="step-row"><button type="button" data-act="rqShift" data-f="rq_dep" data-m="-30">−30 min</button><button type="button" data-act="rqShift" data-f="rq_dep" data-m="30">+30 min</button></div></div></div><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="rqSave" data-date="${date}">Uložit</button></div>`;
- if(!$('#dlg').open)$('#dlg').showModal();
+ $('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlý cesťák</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Účel Služební cesta. Uloží se až tlačítkem.</p><datalist id="rq_places">${places.map(p=>`<option value="${esc(p)}">`).join('')}</datalist><div class="f"><label for="rq_from">Odkud</label><input id="rq_from" list="rq_places" value="${esc(from)}">${rqChips('rq_from')}</div><div class="f" style="margin-top:10px"><label for="rq_to">Kam</label><input id="rq_to" list="rq_places" value="${esc(to)}">${rqChips('rq_to')}</div><div class="f" style="margin-top:10px"><label for="rq_back">Zpět kam</label><input id="rq_back" list="rq_places" value="${esc(back)}">${rqChips('rq_back')}</div><div class="f" style="margin-top:12px"><label for="rq_arr">Příjezd do</label><input id="rq_arr" type="time" value="${esc(st.arrive||'')}"><div class="step-row"><button type="button" data-act="rqShift" data-f="rq_arr" data-m="-30">−30 min</button><button type="button" data-act="rqShift" data-f="rq_arr" data-m="30">+30 min</button></div></div><div class="f" style="margin-top:12px"><label for="rq_dep">Odjezd z</label><input id="rq_dep" type="time" value="${esc(st.depart||'')}"><div class="step-row"><button type="button" data-act="rqShift" data-f="rq_dep" data-m="-30">−30 min</button><button type="button" data-act="rqShift" data-f="rq_dep" data-m="30">+30 min</button></div></div></div><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="rqSave" data-date="${date}">Uložit</button></div>`;
+ if(!$('#dlg').open)$('#dlg').showModal();syncRqChips();
 }
 function saveQuickCestak(date){
  const arr=$('#rq_arr')?$('#rq_arr').value:'',dep=$('#rq_dep')?$('#rq_dep').value:'';
@@ -1245,7 +1257,8 @@ function saveQuickCestak(date){
  let e=es.find(x=>typeof travelClaim==='function'&&travelClaim(x))||es[0],created=false;
  if(!e){e={id:newId(),date,startTime:'',endTime:'',lunchHours:0,totalHours:0,note:'',jobHours:0,baseHours:0,commuteHours:0,overtime:0,weekendHours:0,vacationHours:0,sickHours:0,doctorHours:0,tripHours:0,noTravelOrder:false,customer:cust,place:misto,travel:blankTravel()};if(st.leave&&st.home){e.startTime=st.leave;e.endTime=st.home;const c=commuteFromStamps(st);if(c!=null)e.commuteHours=c}created=true}
  else{e.travel=Object.assign(blankTravel(),e.travel||{});e.noTravelOrder=false;if(!e.place&&misto)e.place=misto;if(!e.customer&&cust)e.customer=cust}
- const t=e.travel;if(!String(t.from||'').trim())t.from=HK_PLACE;if(!String(t.returnTo||'').trim())t.returnTo=HK_PLACE;if(!String(t.purpose||'').trim())t.purpose='Služební cesta';if(!String(t.to||'').trim()&&misto)t.to=misto;if(st.leave&&!String(t.start||'').trim())t.start=st.leave;if(st.home&&!String(t.returnArrival||'').trim())t.returnArrival=st.home;t.arrival=arr;t.returnStart=dep;
+ const from=($('#rq_from')&&$('#rq_from').value||'').trim()||HK_PLACE,to=($('#rq_to')&&$('#rq_to').value||'').trim(),back=($('#rq_back')&&$('#rq_back').value||'').trim()||HK_PLACE;
+ const t=e.travel;t.from=from;t.to=to;t.returnTo=back;if(!String(t.purpose||'').trim())t.purpose='Služební cesta';if(to&&!e.place)e.place=to;if(st.leave&&!String(t.start||'').trim())t.start=st.leave;if(st.home&&!String(t.returnArrival||'').trim())t.returnArrival=st.home;t.arrival=arr;t.returnStart=dep;
  if(created)state.entries.push(e);
  saveData();$('#dlg').close();render();toast('Cesťák uložen','silent');
 }
@@ -1318,6 +1331,7 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
  if(act==='quickCestak'){ev.stopPropagation();return openQuickCestak(a.dataset.date)}
  if(act==='rqSave'){ev.stopPropagation();return saveQuickCestak(a.dataset.date)}
  if(act==='rqShift'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;const next=addMin(el.value,+a.dataset.m);if(!next)return;el.value=next;return}
+ if(act==='rqPlace'){ev.stopPropagation();const el=document.getElementById(a.dataset.for);if(!el)return;el.value=a.dataset.val||'';syncRqChips();return}
  if(act==='stamp'||act==='stampUndo'){ev.stopPropagation();const key=a.dataset.k,date=a.dataset.date;if(act==='stampUndo'){setStamp(date,key,'');return}
   const cur=stampsFor(date)[key];const inp=a.parentElement&&a.parentElement.querySelector('[data-stamp-edit]');
   if(cur||date!==todayISO()){if(inp)try{inp.showPicker()}catch(e){inp.focus()}return}
@@ -1331,7 +1345,7 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
  if(act==='qFull'){const e=qBuild();delete e.id;if(!travelClaim(e)){e.noTravelOrder=false;e.travel=blankTravel();e.tripHours=0}$('#dlg').close();return openForm(null,e.date,e)}
 },true);
 document.addEventListener('click',ev=>{const el=ev.target.closest('.qtv input');if(el&&el.showPicker)try{el.showPicker()}catch(e){}});
-document.addEventListener('input',ev=>{const el=ev.target;if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
+document.addEventListener('input',ev=>{const el=ev.target;if(el&&(el.id==='rq_from'||el.id==='rq_to'||el.id==='rq_back')){syncRqChips();return}if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
 document.addEventListener('change',ev=>{const el=ev.target;if(el.dataset&&el.dataset.stampEdit){setStamp(el.dataset.date,el.dataset.stampEdit,el.value||'');return}if(el.dataset&&el.dataset.q&&qs){qs[el.dataset.q]=['lunch','commute'].includes(el.dataset.q)?num(el.value):el.value;qRefresh()}});
 document.addEventListener('close',ev=>{
  if(ev.target.id!=='dlg')return;
