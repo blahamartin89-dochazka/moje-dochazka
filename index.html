@@ -127,6 +127,24 @@ body[data-view="dnes"] #addBtn,body[data-view="dnes"] .intro p{display:none}
 #dnesView{max-width:620px;margin:0 auto}
 .dn-card,.dn-box{background:#fff;border-radius:18px;padding:16px;margin:0 0 12px;box-shadow:0 1px 4px #0b254a14}
 .stamp-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0 2px}
+.ov{display:block;width:100%;text-align:left;border:1px solid #d7e3f4;border-left:4px solid #124b92;border-radius:16px;background:#fff;padding:12px;margin:10px 0 0;color:#14233b}
+.ov-empty{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700;color:#5a6b85}
+.ov-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ov-h span{font:800 13px/1 system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#124b92}
+.ov-h i{font-style:normal;font-size:12px;font-weight:700;border-radius:999px;padding:3px 8px}
+.ov-h i.part{background:#fff3cd;color:#7a5a00}.ov-h i.done{background:#e3f5e9;color:#1b7f3b}
+.ov-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.ov-grid.ov-2{grid-template-columns:1fr 1fr}
+.ov-t small,.ov-col small{display:block;font-size:11px;color:#5a6b85;font-weight:650}
+.ov-t b,.ov-clock{display:block;margin-top:2px;font-size:18px;letter-spacing:-.3px;color:#124b92}
+.ov-t.empty b{font-size:13px;font-weight:650;color:#8aa0bd}
+.ov-meta,.ov-pay,.ov-staz{margin:8px 0 0;font-size:13px;color:#3d5678}
+.ov-pay{font-weight:750;color:#14233b}
+.ov-staz{color:#124b92;font-weight:650}
+.ov-hours{cursor:default}
+.ov-hours .step-row{margin-top:6px}
+.ov-hours .step-row button{flex:1;padding:8px 4px;font-weight:700;font-size:12px}
+button.ov{font:inherit;cursor:pointer}
 .stamp{position:relative;min-width:0}.stamp-hit{width:100%;min-height:62px;border:1px solid #d4dff0;background:#f6f9fe;border-radius:12px;padding:6px 2px;color:#124b92;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:inherit}
 .stamp-hit b{font-size:11px;line-height:1.15;font-weight:700;text-align:center}.stamp-hit small{font-size:14px;font-weight:800;letter-spacing:-.3px}
 .stamp.on .stamp-hit{background:#e5f0ff;border-color:#124b92}.stamp-x{position:absolute;top:-5px;right:-3px;width:22px;height:22px;border-radius:50%;border:0;background:#fff;color:#a2332a;box-shadow:0 0 0 1px #e7c4c0;font-size:14px;line-height:1;z-index:1}
@@ -333,7 +351,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.10";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.11";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1317,10 +1335,11 @@ function setStamp(date,key,value){const cur=Object.assign({},stampsFor(date));if
 function stampMins(t){if(!/^\d{2}:\d{2}$/.test(String(t||'')))return null;const[h,m]=t.split(':').map(Number);return h*60+m}
 function stampSpan(a,b){const x=stampMins(a),y=stampMins(b);if(x==null||y==null)return 0;let d=y-x;if(d<0)d+=1440;return d}
 function commuteFromStamps(st){let m=0,any=false;if(st.leave&&st.arrive){m+=stampSpan(st.leave,st.arrive);any=true}if(st.depart&&st.home){m+=stampSpan(st.depart,st.home);any=true}if(!any)return null;return Math.min(6,Math.round((m/60)*2)/2)}
-function applyStampsToEntry(e){if(!e||e.id)return e;const st=stampsFor(e.date);if(!e.travel)e.travel=typeof blankTravel==='function'?blankTravel():{};if(st.leave){e.startTime=st.leave;e.travel.start=st.leave}if(st.arrive)e.travel.arrival=st.arrive;if(st.depart)e.travel.returnStart=st.depart;if(st.home){e.endTime=st.home;e.travel.returnArrival=st.home}const c=commuteFromStamps(st);if(c!=null)e.commuteHours=c;return e}
-function stampRow(date){const st=stampsFor(date);
- const cells=STAMP_KEYS.map(([k,l])=>{const t=st[k]||'';return `<div class="stamp${t?' on':''}"><button type="button" class="stamp-hit" data-act="stamp" data-k="${k}" data-date="${date}"><b>${l}</b><small>${t?hm(t):'—'}</small></button>${t?`<button type="button" class="stamp-x" data-act="stampUndo" data-k="${k}" data-date="${date}" aria-label="Zrušit ${l.replace(/<br>/g,' ')}">×</button>`:''}<input type="time" class="stamp-pick" data-stamp-edit="${k}" data-date="${date}" value="${esc(t)}" tabindex="-1" aria-label="Upravit ${l.replace(/<br>/g,' ')}"></div>`}).join('');
- return `<div class="stamp-row" aria-label="Orientační časy">${cells}</div><p class="muted stamp-note">Orientační časy, zaokrouhlené na ${stampStep()} min. Den se sám neuloží.</p><button type="button" class="tplb sec" data-act="quickCestak" data-date="${date}"><span class="ti">✈</span><span><b>Rychlý cesťák</b><small>příjezd a odjezd · uloží se až po potvrzení</small></span></button>`}
+function applyStampsToEntry(e){if(!e||e.id)return e;const st=stampsFor(e.date);if(!e.travel)e.travel=typeof blankTravel==='function'?blankTravel():{};if(st.leave){e.travel.start=st.leave}if(st.arrive)e.travel.arrival=st.arrive;if(st.depart)e.travel.returnStart=st.depart;if(st.home)e.travel.returnArrival=st.home;if(st.workIn)e.startTime=st.workIn;else if(st.leave)e.startTime=st.leave;if(st.workOut)e.endTime=st.workOut;else if(st.home)e.endTime=st.home;const c=commuteFromStamps(st);if(c!=null)e.commuteHours=c;return e}
+function dayCestak(es){return (es||[]).find(e=>typeof travelClaim==='function'&&travelClaim(e))||null}
+function cestakFacts(e){const t=e.travel||{};let km=num(t.km),mins=null,est=!km;if(!km&&t.from&&t.to&&typeof routeBook==='function'){const r=routeBook()[routeKey(canonPlace(t.from)||t.from,canonPlace(t.to)||t.to)];if(r&&r.km){km=r.rtKm||r.km;mins=r.min}}let dur=num(e.tripHours);if(!dur&&t.start&&t.returnArrival)dur=spanH(t.start,t.returnArrival)||0;const bits=[];if(km>0)bits.push((est?'~':'')+fmtH(km)+' km');if(dur)bits.push(fmtH(dur)+' h');else if(mins)bits.push('~'+mins+' min');return bits.join(' · ')}
+function cestakOverview(date,es){const e=dayCestak(es);if(!e)return `<div class="ov ov-empty"><span>Žádný cesťák</span><button type="button" class="btn sec small" data-act="quickCestak" data-date="${date}">Rychlý cesťák</button></div>`;const t=e.travel||{},part=cestakPartial(e);const cell=(label,time)=>`<div class="ov-t ${String(time||'').trim()?'':'empty'}"><small>${label}</small><b>${String(time||'').trim()?hm(time):'— doplnit'}</b></div>`;const meta=cestakFacts(e);return `<button type="button" class="ov ov-cest" data-act="quickCestak" data-date="${date}"><div class="ov-h"><span>✈ Cesťák</span><i class="${part?'part':'done'}">${part?'rozpracovaný':'hotový'}</i></div><div class="ov-grid">${cell('Odjezd',t.start)}${cell('Příjezd',t.arrival)}${cell('Z místa',t.returnStart)}${cell('Návrat',t.returnArrival)}</div>${meta?`<p class="ov-meta">${esc(meta)}</p>`:''}</button>`}
+function hoursOverview(date,es){const st=stampsFor(date);const saved=es.filter(e=>num(e.totalHours)>0||num(e.jobHours)>0||num(e.baseHours)>0);const showIn=st.workIn||(saved.find(e=>e.startTime)||{}).startTime||'';const showOut=st.workOut||(saved.find(e=>e.endTime)||{}).endTime||'';const draft=!!(st.workIn||st.workOut);let hourLine='',payLine='';if(saved.length&&!draft){const job=saved.reduce((s,e)=>s+num(e.jobHours),0),base=saved.reduce((s,e)=>s+num(e.baseHours),0),com=saved.reduce((s,e)=>s+num(e.commuteHours),0),ot=saved.reduce((s,e)=>s+num(e.overtime),0),work=saved.reduce((s,e)=>s+calc(e).work,0),rt=R();const bits=[];if(job)bits.push(`zákazník ${fmtH(job)} h × ${rt.job}`);if(base)bits.push(`Alvian ${fmtH(base)} h × ${rt.base}`);if(ot)bits.push(`přesčas ${fmtH(ot)} h`);hourLine=bits.join(' · ')||`${fmtH(saved.reduce((s,e)=>s+num(e.totalHours),0))} h`;if(com)hourLine+=` · dojíždění ${fmtH(com)} h v Alvianu`;payLine=`Výdělek ${cash(work)}`}else if(showIn&&showOut){const span=spanH(showIn,showOut)||0,rt=R();hourLine=`odhad ${fmtH(span)} h · zákazník × ${rt.job}`;payLine=`odhad ${cash(r2(span*num(rt.job)))} · den se uloží až po potvrzení`}else{hourLine='Hodiny se dopočítají po odchodu.';payLine='Den se uloží až po potvrzení.'}let staz='Stazka —';if(!es.length)staz='Stazka — až bude záznam';else if(dayHasStazka(es))staz='Stazka máš';else if(dayBezStazky(es))staz='Bez stazky';else if(dayStazkaOpen(es))staz='Stazka chybí';const col=(key,label,shown)=>`<div class="ov-col"><small>${label}</small><b class="ov-clock">${shown?hm(shown):'—'}</b><div class="step-row"><button type="button" data-act="workNow" data-k="${key}" data-date="${date}">Teď</button><button type="button" data-act="workShift" data-k="${key}" data-date="${date}" data-m="-30">−30</button><button type="button" data-act="workShift" data-k="${key}" data-date="${date}" data-m="30">+30</button></div><input type="time" class="stamp-pick" data-stamp-edit="${key}" data-date="${date}" value="${esc(st[key]||'')}" aria-label="${label}"></div>`;return `<div class="ov ov-hours"><div class="ov-h"><span>Hodiny</span>${draft?'<i class="part">není uloženo</i>':''}</div><div class="ov-grid ov-2">${col('workIn','Příchod do práce',showIn)}${col('workOut','Odchod',showOut)}</div><p class="ov-meta">${esc(hourLine)}</p><p class="ov-pay">${esc(payLine)}</p><p class="ov-staz">${esc(staz)}</p></div>`}
 const PLACE_SMALL=new Set(['nad','pod','u','v','ve','na','při','a','za']);
 const PLACE_ABBR={hk:'HK'};
 function foldPlace(s){return String(s||'').trim().toLocaleLowerCase('cs').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ')}
@@ -1465,9 +1484,10 @@ function renderDnes(){
  const title=(k===today?'Dnes · ':'')+DOW_FULL[d.getDay()]+' '+dm(k);
  let card=`<div class="dn-card ${es.length?'done':'todo'}"><div class="dn-head"><h2>${title}</h2><span class="dn-st ${es.length?'ok':'todo'}">${es.length?'✓ Zapsáno':'Nezapsáno'}</span></div>`;
  if(hol)card+=`<p class="dn-note hol">🎉 Svátek: ${esc(hol)} – za práci se počítá příplatek.</p>`;else if(isWeekend(k))card+=`<p class="dn-note">Víkend – za práci se počítá víkendový příplatek.</p>`;
- card+=stampRow(k);
+ card+=cestakOverview(k,es);
  if(k!==today)card+=`<button class="linkbtn" data-act="dPick" data-date="${today}">← zpět na dnešek</button>`;
- if(es.length){for(const e of es){const c=calc(e),ty=dayType(e);card+=`<div class="dn-entry"><div><b>${ty}${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)}`:''} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.dpnHours)||num(e.doctorHours))} h</b><small>${esc(tplPreview(e)&&num(e.totalHours)?[custOf(e),e.travel?.to].filter(Boolean).filter((x,i,a)=>i===0||!a[0].includes(x)).join(' · '):e.note||'')}${num(e.overtime)?` · přesčas ${fmtH(num(e.overtime))} h`:''}</small></div><strong>${cash(c.all)}</strong></div>${cestakLine(e)}`}
+ card+=hoursOverview(k,es);
+ if(es.length){for(const e of es){const c=calc(e),ty=dayType(e);card+=`<div class="dn-entry"><div><b>${ty}${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)}`:''} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.dpnHours)||num(e.doctorHours))} h</b><small>${esc(tplPreview(e)&&num(e.totalHours)?[custOf(e),e.travel?.to].filter(Boolean).filter((x,i,a)=>i===0||!a[0].includes(x)).join(' · '):e.note||'')}${num(e.overtime)?` · přesčas ${fmtH(num(e.overtime))} h`:''}</small></div><strong>${cash(c.all)}</strong></div>`}
   card+=`<button class="tplb sec big" data-act="edit" data-id="${es[0].id}">✏️ Upravit dnešek</button><div class="btnrow"><button class="btn sec small" data-act="dCal" data-date="${k}">Detail dne</button><button class="btn sec small" data-act="add" data-date="${k}">+ Další záznam</button></div>`}
  else{const cp=tplCopySrc(k),jb=tplJobSrc(k);
   card+=`<p class="dn-sub">Jak chceš zapsat dnešek?</p>`
@@ -1489,7 +1509,7 @@ function openTpl(kind,date){
  const src=kind==='manual'?makeManual(date):kind==='depo'?makeDepo(date):kind==='copy'?tplCopySrc(date):tplJobSrc(date);if(!src)return openForm(null,date);
  const label={depo:'🏭 Depo',copy:'🔁 Jako včera',job:'🏗️ Poslední zakázka',manual:'✏️ Ruční zápis'}[kind];
  qs={date,kind,label,src:clone(src),start:src.startTime||'07:00',end:src.endTime||'15:30',lunch:num(src.lunchHours),commute:num(src.commuteHours),place:kind==='manual'?'':(src.place||src.travel?.to||''),customer:kind==='manual'?'':custOf(src),machine:kind==='manual'?'':(src.machine||'')};
- const stm=stampsFor(date);if(stm.leave)qs.start=stm.leave;if(stm.home)qs.end=stm.home;const stc=commuteFromStamps(stm);if(stc!=null)qs.commute=stc;
+ const stm=stampsFor(date);if(stm.leave)qs.start=stm.leave;if(stm.home)qs.end=stm.home;if(stm.workIn)qs.start=stm.workIn;if(stm.workOut)qs.end=stm.workOut;const stc=commuteFromStamps(stm);if(stc!=null)qs.commute=stc;
  if(typeof formPhotos!=='undefined')formPhotos=[];
  const places=[...new Set(state.entries.flatMap(x=>[x.travel?.to]).filter(Boolean))],custs=[...new Set(state.entries.map(custOf).filter(Boolean))].slice(-40),machs=[...new Set(state.entries.map(x=>x.machine).filter(Boolean))].slice(-20);
  const isJob=num(src.jobHours)>0||kind==='manual',d=parseISO(date);
@@ -1534,6 +1554,8 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
  if(act==='placeHide'){ev.stopPropagation();hidePlace(a.dataset.val);return}
  if(act==='placeEdit'){ev.stopPropagation();placeEdit=!placeEdit;refreshPlaceChips();return}
  if(act==='placeRestore'){ev.stopPropagation();hiddenPlaceKeys=[];saveHiddenPlaces();refreshPlaceChips();if(typeof toast==='function')toast('Skrytá místa jsou zase v nabídce','silent');return}
+ if(act==='workNow'){ev.stopPropagation();setStamp(a.dataset.date,a.dataset.k,stampNow());return}
+ if(act==='workShift'){ev.stopPropagation();const date=a.dataset.date,key=a.dataset.k;const cur=stampsFor(date)[key];const es=byDate()[date]||[];const saved=(es.find(x=>key==='workIn'?x.startTime:x.endTime)||{});const base=cur||(key==='workIn'?saved.startTime:saved.endTime)||stampNow();const next=addMin(base,+a.dataset.m);if(!next)return;setStamp(date,key,next);return}
  if(act==='stamp'||act==='stampUndo'){ev.stopPropagation();const key=a.dataset.k,date=a.dataset.date;if(act==='stampUndo'){setStamp(date,key,'');return}
   const cur=stampsFor(date)[key];const inp=a.parentElement&&a.parentElement.querySelector('[data-stamp-edit]');
   if(cur||date!==todayISO()){if(inp)try{inp.showPicker()}catch(e){inp.focus()}return}
