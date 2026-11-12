@@ -110,6 +110,11 @@ body[data-view]:not([data-view="calendar"]) #detail{display:none!important}
 body[data-view="dnes"] #addBtn,body[data-view="dnes"] .intro p{display:none}
 #dnesView{max-width:620px;margin:0 auto}
 .dn-card,.dn-box{background:#fff;border-radius:18px;padding:16px;margin:0 0 12px;box-shadow:0 1px 4px #0b254a14}
+.stamp-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0 2px}
+.stamp{position:relative;min-width:0}.stamp-hit{width:100%;min-height:62px;border:1px solid #d4dff0;background:#f6f9fe;border-radius:12px;padding:6px 2px;color:#124b92;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:inherit}
+.stamp-hit b{font-size:11px;line-height:1.15;font-weight:700;text-align:center}.stamp-hit small{font-size:14px;font-weight:800;letter-spacing:-.3px}
+.stamp.on .stamp-hit{background:#e5f0ff;border-color:#124b92}.stamp-x{position:absolute;top:-5px;right:-3px;width:22px;height:22px;border-radius:50%;border:0;background:#fff;color:#a2332a;box-shadow:0 0 0 1px #e7c4c0;font-size:14px;line-height:1;z-index:1}
+.stamp-pick{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.stamp-note{font-size:12px;margin:4px 0 8px}
 .dn-card.todo{border:2px solid #f0b400}.dn-card.done{border:2px solid #2e9e5b}
 .dn-head{display:flex;justify-content:space-between;align-items:center;gap:8px}.dn-head h2{margin:0;font-size:21px;color:#14233b}.dn-head h2::first-letter{text-transform:uppercase}
 .dn-st{border-radius:20px;padding:4px 10px;font-size:13px;font-weight:700;white-space:nowrap}.dn-st.todo{background:#fff3cd;color:#7a5a00}.dn-st.ok{background:#e3f5e9;color:#1b7f3b}
@@ -281,7 +286,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-11.2";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.1";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1206,11 +1211,28 @@ function reminders(today){const out=[],ym=today.slice(0,7),bd=byDate();
  for(let i=1;i<=14;i++){const k=addDays(today,i),h=holidayName(k);if(h){out.push(`<div class="rem hol">🎉 ${DOW[parseISO(k).getDay()]} ${dm(k)} svátek – ${esc(h)}${i===1?' (zítra)':' (za '+i+' dní)'}</div>`);break}}
  return out.length?out.join(''):'<p class="muted">✓ Vše je zapsané, nic ti nechybí.</p>'}
 function tplBtn(k,icon,title,sub,date,big){return `<button class="tplb ${big?'big':''}" data-act="tpl" data-k="${k}" data-date="${date}"><span class="ti">${icon}</span><span><b>${title}</b>${sub?`<small>${esc(sub)}</small>`:''}</span></button>`}
+const LS_STAMPS='mojeDochazka.stamps';
+const STAMP_KEYS=[['leave','Vyjíždím'],['arrive','Na místě'],['depart','Odjezd<br>z místa'],['home','Doma']];
+let stampBook={};try{stampBook=JSON.parse(localStorage.getItem(LS_STAMPS)||'{}')||{}}catch(e){stampBook={}}
+function saveStamps(){try{localStorage.setItem(LS_STAMPS,JSON.stringify(stampBook))}catch(e){}}
+function stampsFor(date){const s=stampBook&&stampBook[date];return s&&typeof s==='object'?s:{}}
+function stampStep(){const n=+((typeof ui!=='undefined'&&ui.stampRound)||30);return n===15||n===60?n:30}
+function roundHM(mins,step){let r=Math.round(mins/step)*step;r=((r%1440)+1440)%1440;return pad(Math.floor(r/60))+':'+pad(r%60)}
+function stampNow(){const d=new Date();return roundHM(d.getHours()*60+d.getMinutes(),stampStep())}
+function setStamp(date,key,value){const cur=Object.assign({},stampsFor(date));if(value)cur[key]=value;else delete cur[key];if(Object.keys(cur).length)stampBook[date]=cur;else delete stampBook[date];saveStamps();if(typeof view!=='undefined'&&view==='dnes'&&typeof renderDnes==='function')renderDnes()}
+function stampMins(t){if(!/^\d{2}:\d{2}$/.test(String(t||'')))return null;const[h,m]=t.split(':').map(Number);return h*60+m}
+function stampSpan(a,b){const x=stampMins(a),y=stampMins(b);if(x==null||y==null)return 0;let d=y-x;if(d<0)d+=1440;return d}
+function commuteFromStamps(st){let m=0,any=false;if(st.leave&&st.arrive){m+=stampSpan(st.leave,st.arrive);any=true}if(st.depart&&st.home){m+=stampSpan(st.depart,st.home);any=true}if(!any)return null;return Math.min(6,Math.round((m/60)*2)/2)}
+function applyStampsToEntry(e){if(!e||e.id)return e;const st=stampsFor(e.date);if(st.leave)e.startTime=st.leave;if(st.home)e.endTime=st.home;const c=commuteFromStamps(st);if(c!=null)e.commuteHours=c;return e}
+function stampRow(date){const st=stampsFor(date);
+ const cells=STAMP_KEYS.map(([k,l])=>{const t=st[k]||'';return `<div class="stamp${t?' on':''}"><button type="button" class="stamp-hit" data-act="stamp" data-k="${k}" data-date="${date}"><b>${l}</b><small>${t?hm(t):'—'}</small></button>${t?`<button type="button" class="stamp-x" data-act="stampUndo" data-k="${k}" data-date="${date}" aria-label="Zrušit ${l.replace(/<br>/g,' ')}">×</button>`:''}<input type="time" class="stamp-pick" data-stamp-edit="${k}" data-date="${date}" value="${esc(t)}" tabindex="-1" aria-label="Upravit ${l.replace(/<br>/g,' ')}"></div>`}).join('');
+ return `<div class="stamp-row" aria-label="Orientační časy">${cells}</div><p class="muted stamp-note">Orientační časy, zaokrouhlené na ${stampStep()} min. Den se sám neuloží.</p>`}
 function renderDnes(){
  const today=todayISO(),k=dnesDay(),es=byDate()[k]||[],d=parseISO(k),hol=holidayName(k);
  const title=(k===today?'Dnes · ':'')+DOW_FULL[d.getDay()]+' '+dm(k);
  let card=`<div class="dn-card ${es.length?'done':'todo'}"><div class="dn-head"><h2>${title}</h2><span class="dn-st ${es.length?'ok':'todo'}">${es.length?'✓ Zapsáno':'Nezapsáno'}</span></div>`;
  if(hol)card+=`<p class="dn-note hol">🎉 Svátek: ${esc(hol)} – za práci se počítá příplatek.</p>`;else if(isWeekend(k))card+=`<p class="dn-note">Víkend – za práci se počítá víkendový příplatek.</p>`;
+ card+=stampRow(k);
  if(k!==today)card+=`<button class="linkbtn" data-act="dPick" data-date="${today}">← zpět na dnešek</button>`;
  if(es.length){for(const e of es){const c=calc(e),ty=dayType(e);card+=`<div class="dn-entry"><div><b>${ty}${e.startTime?` · ${esc(e.startTime)}–${esc(e.endTime)}`:''} · ${fmtH(num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.dpnHours)||num(e.doctorHours))} h</b><small>${esc(tplPreview(e)&&num(e.totalHours)?[custOf(e),e.travel?.to].filter(Boolean).filter((x,i,a)=>i===0||!a[0].includes(x)).join(' · '):e.note||'')}${num(e.overtime)?` · přesčas ${fmtH(num(e.overtime))} h`:''}</small></div><strong>${cash(c.all)}</strong></div>`}
   card+=`<button class="tplb sec big" data-act="edit" data-id="${es[0].id}">✏️ Upravit dnešek</button><div class="btnrow"><button class="btn sec small" data-act="dCal" data-date="${k}">Detail dne</button><button class="btn sec small" data-act="add" data-date="${k}">+ Další záznam</button></div>`}
@@ -1234,6 +1256,7 @@ function openTpl(kind,date){
  const src=kind==='manual'?makeManual(date):kind==='depo'?makeDepo(date):kind==='copy'?tplCopySrc(date):tplJobSrc(date);if(!src)return openForm(null,date);
  const label={depo:'🏭 Depo',copy:'🔁 Jako včera',job:'🏗️ Poslední zakázka',manual:'✏️ Ruční zápis'}[kind];
  qs={date,kind,label,src:clone(src),start:src.startTime||'07:00',end:src.endTime||'15:30',lunch:num(src.lunchHours),commute:num(src.commuteHours),place:kind==='manual'?'':(src.place||src.travel?.to||''),customer:kind==='manual'?'':custOf(src),machine:kind==='manual'?'':(src.machine||'')};
+ const stm=stampsFor(date);if(stm.leave)qs.start=stm.leave;if(stm.home)qs.end=stm.home;const stc=commuteFromStamps(stm);if(stc!=null)qs.commute=stc;
  if(typeof formPhotos!=='undefined')formPhotos=[];
  const places=[...new Set(state.entries.flatMap(x=>[x.travel?.to]).filter(Boolean))],custs=[...new Set(state.entries.map(custOf).filter(Boolean))].slice(-40),machs=[...new Set(state.entries.map(x=>x.machine).filter(Boolean))].slice(-20);
  const isJob=num(src.jobHours)>0||kind==='manual',d=parseISO(date);
@@ -1270,6 +1293,10 @@ function qSave(){if(!qs)return;const{e,errs}=qRefresh();if(!e||errs.length||!e.t
  if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?${dropped?'\n\nCesťák v tento den už je, druhý se nepřidá.':''}`))return;
  state.entries.push(e);saveData();if(typeof stitekSaved==='function')stitekSaved(e);qs=null;$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();if(typeof celebrateSave==='function')celebrateSave(e);toast(dropped?'Uloženo, druhý cesťák se nepřidal':'Uloženo','silent')}
 document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
+ if(act==='stamp'||act==='stampUndo'){ev.stopPropagation();const key=a.dataset.k,date=a.dataset.date;if(act==='stampUndo'){setStamp(date,key,'');return}
+  const cur=stampsFor(date)[key];const inp=a.parentElement&&a.parentElement.querySelector('[data-stamp-edit]');
+  if(cur||date!==todayISO()){if(inp)try{inp.showPicker()}catch(e){inp.focus()}return}
+  setStamp(date,key,stampNow());return}
  if(act==='tpl'){ev.stopPropagation();return openTpl(a.dataset.k,a.dataset.date)}
  if(act==='dPick'){dnesDate=a.dataset.date===todayISO()?null:a.dataset.date;view='dnes';render();return}
  if(act==='dCal'){const d=parseISO(a.dataset.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();view='calendar';render();window.scrollTo(0,0);return}
@@ -1280,7 +1307,7 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
 },true);
 document.addEventListener('click',ev=>{const el=ev.target.closest('.qtv input');if(el&&el.showPicker)try{el.showPicker()}catch(e){}});
 document.addEventListener('input',ev=>{const el=ev.target;if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
-document.addEventListener('change',ev=>{const el=ev.target;if(el.dataset&&el.dataset.q&&qs){qs[el.dataset.q]=['lunch','commute'].includes(el.dataset.q)?num(el.value):el.value;qRefresh()}});
+document.addEventListener('change',ev=>{const el=ev.target;if(el.dataset&&el.dataset.stampEdit){setStamp(el.dataset.date,el.dataset.stampEdit,el.value||'');return}if(el.dataset&&el.dataset.q&&qs){qs[el.dataset.q]=['lunch','commute'].includes(el.dataset.q)?num(el.value):el.value;qRefresh()}});
 document.addEventListener('close',ev=>{
  if(ev.target.id!=='dlg')return;
  /* Kamera na iPhonu dialog často zavře sama. Parkování kvůli ořezu taky. Formulář necháme. */
@@ -1604,7 +1631,7 @@ function renderSettings(){
  <div class="panel"><div class="detail-label">SICK DAYS ${todayISO().slice(0,4)}</div><div class="bal">${b.sick} ${pl(b.sick,'den','dny','dní')}</div><p class="muted">Vyčerpáno ${b.usedS} ${pl(b.usedS,'den','dny','dní')} (dny se zadanou nemocí od ${p.sickDaysBalanceFrom?fmtDate(p.sickDaysBalanceFrom):'začátku roku'}).</p></div>
  <div class="panel"><h2>Sazby</h2><div class="grid" style="margin-top:12px">${RATE_F.map(([k,l])=>`<div class="f"><label>${l}</label><input data-rate="${k}" inputmode="decimal" placeholder="${k.startsWith('diet')?'':k==='holidayPct'?'%':'Kč/h'}" value="${['job','base','ot','weekend'].includes(k)&&!num(r[k])?'':esc(r[k])}"></div>`).join('')}</div><p class="muted">Dojíždění = sazba Alvian (Alvian / Depo), do přesčasu se nepočítá. Stravné 2026 (vyhl. 573/2025 Sb.) – minimum v soukromé firmě: 155 / 236 / 370 Kč.</p></div>
  <div class="panel"><h2>Profil</h2><div class="grid" style="margin-top:12px">${PROF_F.map(([k,l,t])=>`<div class="f ${t==='text'&&k!=='employeeNo'?'wide':''}"><label>${l}</label><input data-prof="${k}" data-type="${t}" ${t==='date'?'type="date"':t==='number'?'inputmode="decimal"':''} value="${esc(k==='vacationAnnualHours'?annualVac(p):(p[k]??''))}"></div>`).join('')}</div></div>
- <div class="panel" style="grid-column:1/-1"><h2>Rychlé přidání</h2><div class="grid" style="margin-top:12px"><div class="f"><label>Depo od</label><input type="time" data-tpl="depo.start" value="${esc(tpl.depo.start)}"></div><div class="f"><label>Depo do</label><input type="time" data-tpl="depo.end" value="${esc(tpl.depo.end)}"></div><div class="f"><label>Depo pauza (h) · 0 = bez oběda</label><input inputmode="decimal" data-tpl="depo.lunch" value="${esc(tpl.depo.lunch)}"></div><div class="f"><label>Depo poznámka</label><input data-tpl="depo.note" value="${esc(tpl.depo.note)}"></div><div class="f"><label>Sazba Depo = základ (Kč/h)</label><input inputmode="decimal" data-tpl="rate" placeholder="Kč/h" value="${num(r.base)?esc(r.base):''}"></div><div class="f"><label>Dovolená h/den</label><input inputmode="decimal" data-tpl="vacHours" value="${esc(tpl.vacHours)}"></div><div class="f"><label>Nemoc h/den</label><input inputmode="decimal" data-tpl="sickHours" value="${esc(tpl.sickHours)}"></div></div><p class="muted">Depo = všechny hodiny jako základ, bez přesčasu, bez cestovního příkazu a stravného. Šablony se ukládají v tomto zařízení.</p></div>
+ <div class="panel" style="grid-column:1/-1"><h2>Rychlé přidání</h2><div class="grid" style="margin-top:12px"><div class="f"><label>Depo od</label><input type="time" data-tpl="depo.start" value="${esc(tpl.depo.start)}"></div><div class="f"><label>Depo do</label><input type="time" data-tpl="depo.end" value="${esc(tpl.depo.end)}"></div><div class="f"><label>Depo pauza (h) · 0 = bez oběda</label><input inputmode="decimal" data-tpl="depo.lunch" value="${esc(tpl.depo.lunch)}"></div><div class="f"><label>Depo poznámka</label><input data-tpl="depo.note" value="${esc(tpl.depo.note)}"></div><div class="f"><label>Sazba Depo = základ (Kč/h)</label><input inputmode="decimal" data-tpl="rate" placeholder="Kč/h" value="${num(r.base)?esc(r.base):''}"></div><div class="f"><label>Dovolená h/den</label><input inputmode="decimal" data-tpl="vacHours" value="${esc(tpl.vacHours)}"></div><div class="f"><label>Nemoc h/den</label><input inputmode="decimal" data-tpl="sickHours" value="${esc(tpl.sickHours)}"></div><div class="f"><label for="stampRound">Zaokrouhlení razítek</label><select id="stampRound" data-ui="stampRound"><option value="15" ${stampStep()===15?'selected':''}>15 min</option><option value="30" ${stampStep()===30?'selected':''}>30 min</option><option value="60" ${stampStep()===60?'selected':''}>60 min</option></select></div></div><p class="muted">Depo = všechny hodiny jako základ, bez přesčasu, bez cestovního příkazu a stravného. Šablony se ukládají v tomto zařízení. Razítka jsou jen orientační a den samy neuloží.</p></div>
  ${typeof renderSlipsPanel==='function'?renderSlipsPanel():''}${hooks.account?hooks.account():''}<div class="panel" style="grid-column:1/-1"><h2>Zvuky</h2>
  <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
   <label class="chk"><input type="checkbox" data-sound="fx" ${ui.soundFx!==false?'checked':''}> Zvuky tlačítek</label>
@@ -1720,13 +1747,13 @@ const chk=(k,l)=>`<label class="chk"><input type="checkbox" id="f_${k}" data-k="
 function openForm(entry,date,draft){
  editing=entry||null;manual=new Set();
  const e=entry?clone(entry):draft?clone(draft):{date:date||iso(Y,M,sel),startTime:'',endTime:'',lunchHours:0,note:'',jobHours:0,baseHours:0,commuteHours:0,vacationHours:0,doctorHours:0,sickHours:0,travel:blankTravel()};
- if(!entry){e.travel=Object.assign(blankTravel(),e.travel||{});if(!String(e.travel.purpose||'').trim())e.travel.purpose='Služební cesta'}
+ if(!entry){e.travel=Object.assign(blankTravel(),e.travel||{});if(!String(e.travel.purpose||'').trim())e.travel.purpose='Služební cesta';if(typeof applyStampsToEntry==='function')applyStampsToEntry(e)}
  const places=[...new Set(state.entries.flatMap(x=>[x.place,x.travel?.from,x.travel?.to,x.travel?.returnFrom,x.travel?.returnTo]).filter(Boolean))];
  const custs=[...new Set(state.entries.map(x=>entryCustomer(x)).filter(Boolean))].slice(-40);
  const notes=[...new Set(state.entries.map(x=>x.note).filter(Boolean))].slice(-40);
  $('#dlg').innerHTML=`<form method="dialog" id="eform" novalidate><div class="dlg-head"><h2>${entry?'Upravit záznam':'Nový záznam'}</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body">
  <datalist id="dl_places">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_cust">${custs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_notes">${notes.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
- <fieldset><legend>Směna</legend><div class="grid">${fld('date','Datum',{type:'date'})}${fld('startTime','Začátek',{type:'time'})}${fld('endTime','Konec',{type:'time'})}${fld('lunchHours','Oběd',{sel:LUNCH_OPTS})}${fld('customer','Zákazník',{list:'dl_cust'})}${fld('place','Místo',{list:'dl_places'})}<div class="f wide" id="noteWrap"><button type="button" class="linkbtn" id="noteToggle" data-act="noteToggle" style="padding:0">+ poznámka</button><div id="noteBox" hidden>${fld('note','Poznámka',{wide:1,list:'dl_notes'})}</div></div></div></fieldset>
+ <fieldset><legend>Směna</legend>${!entry&&Object.keys(stampsFor(e.date)||{}).length?'<p class="muted hint wide">Časy jsou z razítek. Uprav je a ulož. Konec se doplní jen po klepnutí na Doma.</p>':''}<div class="grid">${fld('date','Datum',{type:'date'})}${fld('startTime','Začátek',{type:'time'})}${fld('endTime','Konec',{type:'time'})}${fld('lunchHours','Oběd',{sel:LUNCH_OPTS})}${fld('customer','Zákazník',{list:'dl_cust'})}${fld('place','Místo',{list:'dl_places'})}<div class="f wide" id="noteWrap"><button type="button" class="linkbtn" id="noteToggle" data-act="noteToggle" style="padding:0">+ poznámka</button><div id="noteBox" hidden>${fld('note','Poznámka',{wide:1,list:'dl_notes'})}</div></div></div></fieldset>
  <fieldset><legend>Hodiny</legend><div class="grid">${fld('totalHours','Celkem · h',{auto:1})}${fld('overtime','Přesčas · h',{auto:1})}${fld('commuteHours','Dojíždění dům–stavba celkem · h',{sel:COMMUTE_OPTS,wide:1})}<p class="muted hint wide">Vyber součet jízdy autem tam i zpět. Zůstane v hodinách Alvianu, odečte se jen od přesčasu.</p>${fld('jobHours','Zákazník · hodiny',{sel:[['0','0 h']]})}${fld('baseHours','Alvian · hodiny',{sel:[['0','0 h']]})}<p class="muted hint wide">Vyber hodiny zákazníka; Alvian se dopočítá ze zbytku. Nebo vyber hodiny Alvianu; zákazník se dopočítá ze zbytku.</p>${fld('weekendHours','Víkend h',{auto:1})}${fld('vacationHours','Dovolená h',{num:1})}${fld('doctorHours','Lékař h',{num:1})}${fld('sickHours','Sick day h (firemní)',{num:1})}${fld('dpnHours','Nemoc (DPN) h',{num:1})}</div></fieldset>
  ${stitekFormHTML(e)}<fieldset><legend>Pracovní cesta</legend><p class="muted">Cesták se uloží, jen když ho vyplníš. Nový den ho sám nezakládá.</p><div style="margin-bottom:10px">${chk('noTravelOrder','Bez cestovního příkazu (žádné stravné)')}</div><div class="grid"><div class="f"><label for="f_t.from">Odjezd odkud</label><input id="f_t.from" data-k="t.from" list="dl_places">${hkChips('t.from')}</div>${fld('t.start','Odjezd',{type:'time'})}${fld('t.to','Kam (místo jednání)',{list:'dl_places'})}${fld('t.arrival','Příjezd',{type:'time'})}${fld('t.returnFrom','Zpět odkud',{list:'dl_places'})}${fld('t.returnStart','Odjezd zpět',{type:'time'})}<div class="f"><label for="f_t.returnTo">Zpět kam</label><input id="f_t.returnTo" data-k="t.returnTo" list="dl_places">${hkChips('t.returnTo')}</div>${fld('t.returnArrival','Příjezd zpět',{type:'time'})}${fld('tripHours','Doba cesty h',{auto:1})}${fld('t.purpose','Účel')}${fld('t.transport','Doprava',{sel:[['','—'],['AUS','AUS – služební auto'],['AUV','AUV – vlastní auto'],['VLAK','Vlak'],['BUS','Autobus'],['MHD','MHD'],['JINE','Jiné']]})}${fld('t.km','Km (vlastní auto)',{num:1})}${fld('t.fare','Jízdné Kč',{num:1})}${fld('t.lodging','Ubytování Kč',{num:1})}${fld('t.other','Ostatní Kč',{num:1})}${fld('t.dietOverride','Stravné ručně Kč (prázdné = auto)',{num:1})}${fld('t.freeMeals','Jídla zdarma',{sel:[['0','žádné'],['1','1 jídlo'],['2','2 jídla'],['3','3 jídla']]})}</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">${chk('t.freeBoard','Bezplatné stravování')}${chk('t.freeLodging','Bezplatné ubytování')}${chk('t.reducedTicket','Snížená jízdenka')}</div><p class="muted hint" id="freeBoardHint" hidden>Při bezplatném stravování uprav stravné: vyber „Jídla zdarma“ nebo zadej „Stravné ručně“.</p></fieldset>
  <div class="calc" id="fcalc"></div><div class="msgs" id="fmsgs"></div></div>
@@ -1979,7 +2006,7 @@ $('#today').onclick=()=>{const t=new Date();Y=t.getFullYear();M=t.getMonth();sel
 $('#addBtn').onclick=()=>openQuick([iso(Y,M,sel)]);
 $('#eye').onclick=()=>{ui.hide=!ui.hide;saveUi();render()};
 $('#mode').onchange=e=>{ui.mode=e.target.value;saveUi();render()};
-document.addEventListener('change',ev=>{const el=ev.target;if(!el||!el.dataset)return;if(el.dataset.rate||el.dataset.prof||el.dataset.tpl){rememberSettingsField(el);scheduleSettingsSave();return}if(!el.dataset.sound)return;readSoundControls();writeSoundToProfile();saveUi();saveData();});
+document.addEventListener('change',ev=>{const el=ev.target;if(!el||!el.dataset)return;if(el.dataset.ui==='stampRound'){ui.stampRound=[15,30,60].includes(+el.value)?+el.value:30;saveUi();if(view==='dnes')render();return}if(el.dataset.rate||el.dataset.prof||el.dataset.tpl){rememberSettingsField(el);scheduleSettingsSave();return}if(!el.dataset.sound)return;readSoundControls();writeSoundToProfile();saveUi();saveData();});
 const _hdrMute=$('#hdrMute');if(_hdrMute)_hdrMute.addEventListener('click',ev=>{ev.preventDefault();toggleMute()});
 window.addEventListener('storage',e=>{if(e.key===LS_DATA){loadData();render()}});
 
