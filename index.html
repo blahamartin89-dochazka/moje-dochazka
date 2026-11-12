@@ -45,6 +45,17 @@ header{padding-top:calc(12px + constant(safe-area-inset-top));padding-top:calc(1
 .day{position:relative}.day .clip{position:absolute;top:2px;right:3px;font-size:11px;line-height:1}
 .clip.quiet{color:#7d8da3;font-weight:700}
 .st-skip{margin:8px 0 0;color:#5a6b85;font-size:13px}
+.st-share{margin:8px 0 0}
+.st-share-note{margin:6px 0;font-size:13px;font-weight:650;color:#124b92}
+.share-box{margin:8px 0;padding:10px;border:1px solid #d7e3f4;border-radius:12px;background:#f6f8fc}
+.share-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.share-nav b{font-size:14px;color:#14233b}
+.share-nav button{border:0;background:#e5f0ff;color:#124b92;border-radius:8px;width:36px;height:32px;font-size:20px}
+.share-days{display:flex;flex-direction:column}
+.share-day{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}
+.share-day small{color:#5a6b85}
+.share-day.off{opacity:.45}
+.share-day input{width:18px;height:18px;accent-color:#124b92}
 .st-photos{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.st-th{position:relative}.st-th img{width:84px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #cfd8e3;background:#eef2f7;cursor:zoom-in;display:block}
 .st-x{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:#c62828;color:#fff;font-size:12px}
 .st-file{cursor:pointer;position:relative;overflow:hidden}.st-file input[type=file]{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;font-size:16px;cursor:pointer}
@@ -611,6 +622,7 @@ async function pLocalHas(id){try{const db=await pdb();return await new Promise(r
 let _pq=false;
 async function photoCloudQueue(){if(_pq||!cloudReady())return;_pq=true;let changed=false;
  try{for(const e of state.entries)for(const p of e.photos||[]){
+  if(p.ref)continue;
   if(!p.path){if(e.date<photoCutoff())continue;const b=await pGet(p.id);if(!b)continue;try{const path=await hooks.photoUpload(p.id,b);
    // stav se mohl mezitím nahradit synchronizací → zapsat cestu do aktuálního záznamu
    const cur=state.entries.flatMap(x=>x.photos||[]).find(x=>x.id===p.id);if(path&&cur&&!cur.path){cur.path=path;changed=true}else if(path&&!cur)await hooks.photoRemove([path])}catch(x){console.warn('upload štítku',x&&x.message);if(navigator.onLine===false)break}}
@@ -624,7 +636,9 @@ const lsJ=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){ret
 async function photoCleanup(force,today){const now=today||isoD(new Date());if(!force&&localStorage.getItem(LS_PCLEAN)===now)return null;
  const cut=photoCutoff(now),pend=new Set(lsJ(LS_PDEL,[]));let removed=0;
  for(const e of state.entries){if(!e.photos||!e.photos.length||!(e.date<cut))continue;
-  for(const p of e.photos){pend.add(p.path||((hooks.photoUser&&hooks.photoUser())?hooks.photoUser()+'/'+p.id+'.jpg':'local:'+p.id));await pDel(p.id);if(_urls[p.id]){URL.revokeObjectURL(_urls[p.id]);delete _urls[p.id]}removed++}
+  for(const p of [...e.photos]){const keep=state.entries.some(x=>x!==e&&x.date>=cut&&(x.photos||[]).some(q=>q.id===p.id));
+   if(keep&&!p.ref){const host=state.entries.find(x=>x!==e&&x.date>=cut&&(x.photos||[]).some(q=>q.id===p.id));if(host){const i=host.photos.findIndex(q=>q.id===p.id);if(i>=0){const copy=Object.assign({},p);delete copy.ref;host.photos[i]=copy}}}
+   else{pend.add(p.path||((hooks.photoUser&&hooks.photoUser())?hooks.photoUser()+'/'+p.id+'.jpg':'local:'+p.id));await pDel(p.id);if(_urls[p.id]){URL.revokeObjectURL(_urls[p.id]);delete _urls[p.id]}removed++}}
   delete e.photos}
  if(removed){saveData();render()}
  let cloudOk=true;const cloudP=[...pend].filter(x=>!x.startsWith('local:'));
@@ -674,6 +688,31 @@ function thumbHTML(p,entry,opt){opt=opt||{};const cap=photoCaption(p,entry);
  return `<div class="st-th"><img data-photo="${esc(p.id)}" alt="${esc(cap||'štítek')}" data-st-act="view" data-id="${esc(p.id)}">${opt.del?`<button type="button" class="st-x" data-st-act="formDel" data-id="${esc(p.id)}" aria-label="Odebrat">✕</button>`:''}<p class="st-cap-mini">${esc(cap||'Štítek')}</p><button type="button" class="btn sec small st-copy" data-st-act="copyPhoto" data-id="${esc(p.id)}">Kopírovat</button></div>`}
 const isJobDay=e=>num(e.jobHours)>0||(e.photos&&e.photos.length>0);
 function dayHasStazka(es){return (es||[]).some(e=>e.photos&&e.photos.length)}
+function photoHolders(id){const out=[];for(const e of state.entries){const i=(e.photos||[]).findIndex(p=>p&&p.id===id);if(i>=0)out.push({e,i,p:e.photos[i]})}return out}
+function sameSite(a,b){if(!a||!b)return false;const cust=e=>String((typeof entryCustomer==='function'?entryCustomer(e):e.customer)||'').trim().toLocaleLowerCase('cs');const place=e=>{const p=typeof entryPlace==='function'?entryPlace(e):(e.place||(e.travel&&e.travel.to)||'');return typeof foldPlace==='function'?foldPlace(p):String(p||'').trim().toLocaleLowerCase('cs')};const ca=cust(a),cb=cust(b),pa=place(a),pb=place(b);if(ca&&cb&&ca!==cb)return false;if(pa&&pb&&pa!==pb)return false;return !!(ca||pa)}
+function weekMonday(iso){const d=parseISO(iso);return addDays(iso,-((d.getDay()+6)%7))}
+function weekDates(mon){return Array.from({length:7},(_,i)=>addDays(mon,i))}
+function stazkaSpan(dates){const ds=[...new Set(dates)].filter(Boolean).sort();if(!ds.length)return '';const fmt=iso=>{const d=parseISO(iso);return {d:d.getDate(),m:d.getMonth()+1}};const parts=[];let i=0;while(i<ds.length){let j=i;while(j+1<ds.length&&addDays(ds[j],1)===ds[j+1])j++;const a=fmt(ds[i]),b=fmt(ds[j]);parts.push(i===j?`${a.d}. ${a.m}.`:(a.m===b.m?`${a.d}.–${b.d}. ${a.m}.`:`${a.d}. ${a.m}.–${b.d}. ${b.m}.`));i=j+1}return parts.join(', ')}
+function stazkaShareNote(id){const dates=photoHolders(id).map(h=>h.e.date);if(new Set(dates).size<2)return '';return `Stazka společná pro ${stazkaSpan(dates)}`}
+let sharePick=null;
+function linkPhoto(entry,photo){if(!entry||!photo||!photo.id)return;entry.photos=entry.photos||[];if(entry.photos.some(p=>p.id===photo.id))return;const full=photoHolders(photo.id).find(h=>!h.p.ref);if(full)entry.photos.push({id:photo.id,ref:true});else{const copy=Object.assign({},photo);delete copy.ref;entry.photos.push(copy)}clearNoStazka(entry)}
+function unlinkPhoto(entry,id){if(!entry||!entry.photos)return false;const i=entry.photos.findIndex(p=>p.id===id);if(i<0)return false;const mine=entry.photos[i];const others=photoHolders(id).filter(h=>h.e!==entry);if(!mine.ref&&others.length){const copy=Object.assign({},mine);delete copy.ref;others[0].e.photos[others[0].i]=copy}entry.photos.splice(i,1);if(!entry.photos.length)delete entry.photos;return photoHolders(id).length===0}
+async function destroyPhoto(id){for(const e of state.entries){if(!e.photos)continue;e.photos=e.photos.filter(p=>p.id!==id);if(!e.photos.length)delete e.photos}if(typeof formPhotos!=='undefined')formPhotos=formPhotos.filter(p=>p.id!==id);await pDel(id);if(_urls[id]){URL.revokeObjectURL(_urls[id]);delete _urls[id]}const path=hooks.photoUser&&hooks.photoUser()?hooks.photoUser()+'/'+id+'.jpg':'';if(path&&hooks.photoRemove){try{await hooks.photoRemove([path])}catch(e){}}}
+function shareSource(){if(!sharePick)return null;const e=state.entries.find(x=>x.id===sharePick.entryId);const photo=(e&&(e.photos||[]).find(p=>p.id===sharePick.photoId))||(typeof formPhotos!=='undefined'&&formPhotos.find(p=>p.id===sharePick.photoId));return e&&photo?{e,photo}:photo?{e:e||{id:sharePick.entryId,date:sharePick.anchor,customer:sharePick.customer,place:sharePick.place},photo}:null}
+function openShare(photoId,entryId){const e=state.entries.find(x=>x.id===entryId)||{id:entryId,date:($('#f_date')&&$('#f_date').value)||todayISO(),customer:($('#f_customer')&&$('#f_customer').value)||'',place:($('#f_place')&&$('#f_place').value)||''};const monday=weekMonday(e.date||todayISO());const selected=new Set(photoHolders(photoId).map(h=>h.e.date).filter(d=>state.entries.some(x=>x.date===d)));if(state.entries.some(x=>x.date===e.date))selected.add(e.date);for(const date of weekDates(monday)){const es=state.entries.filter(x=>x.date===date);if(es.some(x=>sameSite(e,x)))selected.add(date)}sharePick={photoId,entryId,anchor:e.date,monday,selected,customer:typeof entryCustomer==='function'?entryCustomer(e):e.customer,place:typeof entryPlace==='function'?entryPlace(e):e.place};refreshShare()}
+function refreshShare(){document.querySelectorAll('[data-share-mount]').forEach(m=>{m.innerHTML=shareMountHTML(m.dataset.photo,m.dataset.entry)})}
+function shareMountHTML(photoId,entryId){if(!sharePick||sharePick.photoId!==photoId)return `<button type="button" class="btn sec small" data-st-act="shareDays" data-photo="${esc(photoId)}" data-entry="${esc(entryId)}">Přiřadit i k dalším dnům</button>`;
+ const days=weekDates(sharePick.monday),mon=parseISO(sharePick.monday),sun=parseISO(addDays(sharePick.monday,6));
+ const title=`${mon.getDate()}.–${sun.getDate()}. ${sun.getMonth()+1}.`;
+ const rows=days.map(date=>{const es=state.entries.filter(e=>e.date===date),has=es.length>0,on=sharePick.selected.has(date);const d=parseISO(date);const label=`${DOW[d.getDay()]} ${d.getDate()}. ${d.getMonth()+1}.`;const src=shareSource();const sub=!has?'bez záznamu':(src&&es.some(x=>sameSite(src.e,x))?'stejné místo':'');return `<label class="share-day ${has?'':'off'}"><input type="checkbox" data-share-date="${date}" ${on?'checked':''} ${has?'':'disabled'}><span><b>${esc(label)}</b>${sub?` <small>${esc(sub)}</small>`:''}</span></label>`}).join('');
+ return `<div class="share-box" id="stShareBox"><div class="share-nav"><button type="button" data-st-act="shareWeek" data-m="-1" aria-label="Předchozí týden">‹</button><b>${title}</b><button type="button" data-st-act="shareWeek" data-m="1" aria-label="Další týden">›</button></div><div class="share-days">${rows}</div><div class="btnrow"><button type="button" class="btn small" data-st-act="shareApply">Přiřadit</button><button type="button" class="btn sec small" data-st-act="shareClose">Zavřít</button></div></div>`}
+function applyShare(){const src=shareSource();if(!src){sharePick=null;refreshShare();return}const id=src.photo.id;const chosen=[...sharePick.selected];
+ for(const date of chosen){const es=state.entries.filter(e=>e.date===date);if(!es.length)continue;const target=es.find(e=>sameSite(src.e,e))||es.find(e=>num(e.jobHours)>0)||es[0];if(target===src.e&&(src.e.photos||[]).some(p=>p.id===id))continue;linkPhoto(target,src.photo)}
+ for(const date of weekDates(sharePick.monday)){if(sharePick.selected.has(date))continue;for(const e of state.entries.filter(x=>x.date===date)){if((e.photos||[]).some(p=>p.id===id))unlinkPhoto(e,id)}}
+ if(!photoHolders(id).length && !(typeof formPhotos!=='undefined'&&formPhotos.some(p=>p.id===id)))pDel(id);
+ sharePick=null;saveData();render();if(typeof toast==='function')toast('Stazka přiřazena','silent')}
+async function deleteStazka(id){const dates=[...new Set(photoHolders(id).map(h=>h.e.date))].sort();const span=stazkaSpan(dates);const msg=dates.length>1?`Smazat stazku u všech dnů (${span})? Fotka se smaže.`:'Smazat stazku?';if(!confirm(msg))return;await destroyPhoto(id);sharePick=null;saveData();render()}
+function unlinkStazkaDay(entry,id){const n=photoHolders(id).length;if(n>1){if(!confirm('Odebrat stazku jen z tohoto dne? U ostatních zůstane.'))return}else if(!confirm('Smazat stazku?'))return;const last=unlinkPhoto(entry,id);if(last)pDel(id);saveData();render()}
 function dayBezStazky(es){return (es||[]).some(e=>e.noStazka)}
 function dayStazkaOpen(es){es=es||[];return es.some(e=>num(e.jobHours)>0)&&!dayHasStazka(es)&&!dayBezStazky(es)}
 function clearNoStazka(e){if(!e)return;const es=(typeof byDate==='function'&&e.date?byDate()[e.date]:null)||[e];for(const x of es)if(x&&x.noStazka)delete x.noStazka}
@@ -696,9 +735,12 @@ function stitekFormHTML(e){formPhotos=(e.photos||[]).map(p=>Object.assign({},p))
  <div class="grid"><div class="f wide"><label for="f_machine">Stroj (typ + SPZ)</label><input id="f_machine" data-st="machine" list="dl_mach" placeholder="např. AC40   U01 3139" value="${esc(e.machine||lastM)}"></div></div>
  <div class="st-photos" id="stFormPhotos"></div>
  ${stPhotoBtns("form",{cam:"📷 Vyfotit",gal:"🖼️ Z galerie"})}
+ <div id="stShareArea"></div>
  ${bezStazkaBox(!!e.noStazka&&!(e.photos&&e.photos.length),'id="f_noStazka"')}
  <p class="muted st-note">Fotky se ukládají do tvého účtu${PHOTO_CLOUD?'':' (cloud vypnut – jen v zařízení)'} a v zařízení pro offline. ${PHOTO_NOTE}</p></fieldset>`}
-function renderFormPhotos(){const b=$('#stFormPhotos');if(!b)return;b.innerHTML=formPhotos.map(p=>thumbHTML(p,null,{del:1})).join('');hydrateThumbs(b)}
+function shareAreaHTML(photos,entryId){return (photos||[]).map(p=>{const note=stazkaShareNote(p.id);const shared=photoHolders(p.id).filter(h=>h.e.date).length>1||(photos.length&&photoHolders(p.id).length>1);return `<div class="st-share">${note?`<p class="st-share-note">${esc(note)}</p>`:''}<div data-share-mount data-photo="${esc(p.id)}" data-entry="${esc(entryId||'')}"></div><div class="btnrow">${shared?`<button type="button" class="btn sec small" data-st-act="unlinkDay" data-photo="${esc(p.id)}" data-entry="${esc(entryId||'')}">Odebrat z tohoto dne</button>`:''}<button type="button" class="btn sec small" data-st-act="deleteStazka" data-photo="${esc(p.id)}">Smazat stazku</button></div></div>`}).join('')}
+function paintFormShare(){const box=$('#stShareArea');if(!box)return;box.innerHTML=shareAreaHTML(formPhotos,editing&&editing.id);refreshShare()}
+function renderFormPhotos(){const b=$('#stFormPhotos');if(!b)return;b.innerHTML=formPhotos.map(p=>thumbHTML(p,null,{del:1})).join('');hydrateThumbs(b);paintFormShare()}
 function stitekFormInit(){renderFormPhotos();stitekToggle();stitekPreviewUpdate()}
 function stitekToggle(){const s=$('#stitekSet');if(!s)return;const j=num(formVal('jobHours'));s.hidden=!(j>0||formPhotos.length);stitekPreviewUpdate()}
 function stitekBuild(e,src){
@@ -717,7 +759,7 @@ function stitekSaved(e){if(e.machine)try{localStorage.setItem(LS_MACHINE,e.machi
 
 /* ---------- detail dne ---------- */
 function stitekDetailHTML(e){if(!isJobDay(e))return'';const ps=e.photos||[];
- return `<div class="st-box no-print"><div class="detail-label">ŠTÍTEK</div><p class="muted st-note">${PHOTO_NOTE}</p>${ps.length?`<div class="st-photos">${ps.map(p=>thumbHTML(p,e)).join('')}</div>`:'<p class="muted">Zatím bez fotky štítku.</p>'}${ps.length?'':bezStazkaBox(!!e.noStazka,`data-act="bezStazka" data-id="${esc(e.id)}"`)}
+ return `<div class="st-box no-print"><div class="detail-label">ŠTÍTEK</div><p class="muted st-note">${PHOTO_NOTE}</p>${ps.length?`<div class="st-photos">${ps.map(p=>thumbHTML(p,e)).join('')}</div>${shareAreaHTML(ps,e.id)}`:'<p class="muted">Zatím bez fotky štítku.</p>'}${ps.length?'':bezStazkaBox(!!e.noStazka,`data-act="bezStazka" data-id="${esc(e.id)}"`)}
  ${stCaption(e).includes('\n')?`<pre class="st-cap">${esc(stCaption(e))}</pre>`:''}
  ${stPhotoBtns(e.id,{small:true,cam:"📷 Vyfotit",gal:"🖼️ Z galerie"})}${ps.length?`<div class="btnrow"><button class="btn small" data-st-act="share" data-id="${esc(e.id)}">Poslat do WhatsAppu</button><button class="btn sec small" data-st-act="copy" data-id="${esc(e.id)}">Kopírovat popisek</button></div>`:`<div class="btnrow"><button class="btn sec small" data-st-act="copy" data-id="${esc(e.id)}">Kopírovat popisek</button></div>`}</div>`}
 
@@ -1043,14 +1085,20 @@ document.addEventListener('change',ev=>{const el=ev.target;if(!el.dataset||!el.d
  const d=ensureCropDlg();if(!d.open){d.innerHTML=cropShell('Načítám fotku…');presentCrop(d)}
  enqueueCrops(fs,target)});
 document.addEventListener('input',ev=>{if(ev.target.id==='f_jobHours')stitekToggle()});
-document.addEventListener('change',ev=>{const el=ev.target;if(!el||el.dataset.act!=='bezStazka')return;const e=state.entries.find(x=>x.id===el.dataset.id);if(!e||(e.photos&&e.photos.length))return;if(el.checked)e.noStazka=true;else delete e.noStazka;saveData();render()});
+document.addEventListener('change',ev=>{const el=ev.target;if(!el)return;if(el.dataset.shareDate&&sharePick){if(el.checked)sharePick.selected.add(el.dataset.shareDate);else sharePick.selected.delete(el.dataset.shareDate);return}if(el.dataset.act!=='bezStazka')return;const e=state.entries.find(x=>x.id===el.dataset.id);if(!e||(e.photos&&e.photos.length))return;if(el.checked)e.noStazka=true;else delete e.noStazka;saveData();render()});
 document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('[data-st-act]');if(!a)return;const k=a.dataset.stAct,ent=()=>state.entries.find(x=>x.id===a.dataset.id);
  if(!crop&&(k==='cropRot'||k==='cropAuto'||k==='cropFull'||k==='cropOk'))return;
  if(k==='cropRot'){crop.rot++;cropSetup();cropResetView();cropDraw();cropZoomToQuad();cropDraw()}
  else if(k==='cropAuto'){crop.q=autoQuad(crop.cv);cropZoomToQuad();cropDraw()}
  else if(k==='cropFull'){crop.q=[[0,0],[1,0],[1,1],[0,1]];cropResetView();cropDraw()}
  else if(k==='cropCancel'){cropClearGestures();crop=null;dismissCrop()}else if(k==='cropOk')cropFinish();
- else if(k==='formDel'){formPhotos=formPhotos.filter(p=>p.id!==a.dataset.id);renderFormPhotos();stitekToggle()}
+ else if(k==='formDel'){const id=a.dataset.id;formPhotos=formPhotos.filter(p=>p.id!==id);if(!photoHolders(id).length)pDel(id);renderFormPhotos();stitekToggle()}
+ else if(k==='shareDays')openShare(a.dataset.photo,a.dataset.entry)
+ else if(k==='shareWeek'){if(sharePick){sharePick.monday=addDays(sharePick.monday,+a.dataset.m*7);refreshShare()}}
+ else if(k==='shareApply')applyShare()
+ else if(k==='shareClose'){sharePick=null;refreshShare()}
+ else if(k==='unlinkDay'){const e=state.entries.find(x=>x.id===a.dataset.entry);if(e)unlinkStazkaDay(e,a.dataset.photo)}
+ else if(k==='deleteStazka')deleteStazka(a.dataset.photo)
  else if(k==='view'||k==='slipView'){if(k==='slipView'||slipOwns(a.dataset.id))slipPlain(a.dataset.id);else stView(a.dataset.id)}
  else if(k==='viewClose')$('#photoView').close();
  else if(k==='copyPhoto'){if(slipOwns(a.dataset.id))return;const hit=findPhoto(a.dataset.id);const text=photoCaption(hit?hit.list[hit.i]:{},hit&&hit.entry);copyText(text).then(ok=>toast(ok?'Text pro WhatsApp zkopírován':'Kopírování se nepovedlo'))}
@@ -1060,7 +1108,7 @@ document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.clos
 window.addEventListener('resize',()=>{if(crop)cropDraw()});
 window.__stitek={photoCleanup,photoCutoff,photoCloudQueue,stCaption,photoCaption,photoParts,autoQuad,warp,mildSharpen,toCanvas,toJpeg,pPut,pGet,stShare,cropFinish,openCrop,stPhotoBtns,enqueueCrops,cropZoomToQuad,cropResetView,cropDraw,CROP_FULL_MAX,CROP_PREV_MAX,CROP_JPEG_Q,get crop(){return crop},get formPhotos(){return formPhotos}};
 
-const _stRender=render;render=function(){_stRender.apply(this,arguments);hydrateThumbs()};
+const _stRender=render;render=function(){_stRender.apply(this,arguments);hydrateThumbs();refreshShare()};
 
 /* ================= PDF formuláře: Pracovní výkaz (docházka) + Cestovní příkaz (podle papírových formulářů Alvian) ================= */
 function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[data-src="${src}"]`))return res();const s=document.createElement('script');s.src=src;s.dataset.src=src;s.onload=()=>res();s.onerror=()=>{s.remove();rej(new Error('Nelze načíst '+src))};document.head.appendChild(s)})}
@@ -2060,7 +2108,9 @@ async function saveForm(){
  const e=buildEntry(false);
  const dropped=!editing&&dropDuplicateClaim(e);
  if(!editing&&state.entries.some(x=>x.date===e.date)&&!confirm('V tento den už záznam existuje. Opravdu přidat další?'+(dropped?'\n\nCesťák v tento den už je, druhý se nepřidá.':'')))return;
+ const oldPhotos=editing&&editing.photos?editing.photos.map(p=>Object.assign({},p)):[];
  if(editing){const i=state.entries.findIndex(x=>x.id===editing.id);state.entries[i]=e}else state.entries.push(e);
+ for(const p of oldPhotos){if((e.photos||[]).some(x=>x.id===p.id))continue;const hs=typeof photoHolders==='function'?photoHolders(p.id):[];if(!hs.length){if(typeof pDel==='function')pDel(p.id)}else if(!hs.some(h=>!h.p.ref)){const copy=Object.assign({},p);delete copy.ref;hs[0].e.photos[hs[0].i]=copy}}
  saveData();stitekSaved(e);const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();$('#dlg').close();render();celebrateSave(e);toast('Uloženo','silent');
 }
 function delEntry(id){const e=state.entries.find(x=>x.id===id);if(!e)return;if(!confirm(`Smazat záznam ${fmtDate(e.date)}${entryLabel(e)?' – '+entryLabel(e):''}?`))return;state.entries=state.entries.filter(x=>x.id!==id);saveData();if($('#dlg').open)$('#dlg').close();render();toast('Smazáno')}
