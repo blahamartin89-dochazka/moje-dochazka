@@ -194,7 +194,11 @@ body[data-view="charts"] .intro p{display:none}
 .trip-clock{position:relative;display:flex;align-items:center;justify-content:center;min-height:64px;border-radius:14px;background:#e5f0ff;color:#124b92}
 .trip-clock-v{font:800 34px/1 system-ui,sans-serif;letter-spacing:-.4px}
 .trip-times .trip-clock-v{font-size:26px}
-.trip-clock input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;border:0;font-size:16px}
+.trip-clock.has-value .trip-clock-v{visibility:hidden}
+.trip-clock input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;background:transparent;opacity:1;color:#124b92;font:800 34px/64px system-ui,sans-serif;text-align:center;caret-color:transparent}
+.trip-times .trip-clock input{font-size:26px;line-height:64px}
+.trip-clock:not(.has-value) input{color:transparent}
+.trip-clock input::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;background:transparent;opacity:0;cursor:pointer}
 .trip-time .step-row{margin-top:6px}
 .trip-time .step-row button{flex:1;padding:10px 6px;font-weight:700}
 .trip-leg{margin:8px 0;text-align:center;font:700 15px/1.3 system-ui,sans-serif;color:#124b92}
@@ -309,7 +313,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.6";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.7";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1262,7 +1266,12 @@ function routeBook(){try{return JSON.parse(localStorage.getItem(LS_ROUTES)||'{}'
 function routeKey(a,b){const n=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');return n(a)+'|'+n(b)}
 function routeText(r){return r&&r.km?`↓ ~${r.km} km · ~${r.min} min`:''}
 function paintLegs(ids,r){const t=routeText(r);ids.forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t})}
-function syncTripClocks(root){(root||document).querySelectorAll('.trip-clock').forEach(box=>{const inp=box.querySelector('input');const v=box.querySelector('.trip-clock-v');if(inp&&v)v.textContent=inp.value||'––:––'})}
+function clockText(v){const m=String(v||'').match(/^(\d{1,2}):(\d{2})/);return m?pad(+m[1])+':'+m[2]:'––:––'}
+function syncOneClock(box){const inp=box&&box.querySelector&&box.querySelector('input');const lab=box&&box.querySelector&&box.querySelector('.trip-clock-v');if(!inp||!lab)return;const text=clockText(inp.value);lab.textContent=text;box.classList.toggle('has-value',text!=='––:––')}
+function syncTripClocks(root){const scope=root||document;if(scope.classList&&scope.classList.contains('trip-clock'))syncOneClock(scope);else scope.querySelectorAll('.trip-clock').forEach(syncOneClock)}
+let tripPicking=null;
+function markTripPick(el){const v=clockText(el&&el.value);if(v==='––:––')return false;if(el.id==='rq_leave')rqTouch.leave=true;else if(el.id==='rq_home')rqTouch.home=true;else if(el.dataset&&el.dataset.k==='t.start'){if(typeof fstate!=='undefined'){fstate.startFollow=false;if(fstate.routeTouch)fstate.routeTouch.start=true}}else if(el.dataset&&el.dataset.k==='t.returnArrival'){if(typeof fstate!=='undefined'){fstate.arrFollow=false;if(fstate.routeTouch)fstate.routeTouch.back=true}}return true}
+function onTripClock(el,done){if(!el||el.type!=='time'||!el.closest||!el.closest('.trip-clock'))return;const pull=()=>{if(!el.isConnected)return;syncTripClocks(el.closest('.trip-clock'));if(markTripPick(el)&&(el.id==='rq_arr'||el.id==='rq_dep'))applyRqRoute(rqRoute)};pull();setTimeout(pull,0);setTimeout(pull,80);setTimeout(()=>{pull();if(done)done()},300)}
 function snap30(total,up){if(total==null||isNaN(total))return '';let m=up?Math.ceil(total/30)*30:Math.floor(total/30)*30;m=((m%1440)+1440)%1440;return pad(Math.floor(m/60))+':'+pad(m%60)}
 async function geoPoint(q){const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),8000);
  try{const res=await fetch('https://photon.komoot.io/api/?limit=5&q='+encodeURIComponent(String(q).trim()+', Česko'),{signal:ctrl.signal});
@@ -1292,8 +1301,8 @@ let rqTouch={leave:false,home:false,km:false},rqRoute=null,rqSeq=0,rqTimer=0;
 function applyRqRoute(r){rqRoute=r||null;paintLegs(['rq_leg','rq_leg_back'],r);if(!r){syncTripClocks(document.getElementById('dlg'));return}
  const arr=$('#rq_arr')&&$('#rq_arr').value,dep=$('#rq_dep')&&$('#rq_dep').value;
  const leave=$('#rq_leave'),home=$('#rq_home'),km=$('#rq_km');
- if(leave&&!rqTouch.leave&&arr){const v=snap30(toMin(arr)-r.min,false);if(v)leave.value=v}
- if(home&&!rqTouch.home&&dep){const v=snap30(toMin(dep)+r.min,true);if(v)home.value=v}
+ if(leave&&!rqTouch.leave&&tripPicking!==leave.id&&arr){const v=snap30(toMin(arr)-r.min,false);if(v)leave.value=v}
+ if(home&&!rqTouch.home&&tripPicking!==home.id&&dep){const v=snap30(toMin(dep)+r.min,true);if(v)home.value=v}
  if(km&&!rqTouch.km)km.value=String(r.rtKm)
  syncTripClocks(document.getElementById('dlg'))}
 function scheduleQuickRoute(){clearTimeout(rqTimer);rqTimer=setTimeout(()=>{
@@ -1405,7 +1414,7 @@ function qSave(){if(!qs)return;const{e,errs}=qRefresh();if(!e||errs.length||!e.t
 document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
  if(act==='quickCestak'){ev.stopPropagation();return openQuickCestak(a.dataset.date)}
  if(act==='rqSave'){ev.stopPropagation();return saveQuickCestak(a.dataset.date)}
- if(act==='rqShift'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;const next=addMin(el.value,+a.dataset.m);if(!next)return;el.value=next;syncTripClocks(el.closest('.trip-clock'));if(el.id==='rq_leave')rqTouch.leave=true;else if(el.id==='rq_home')rqTouch.home=true;else if(el.id==='rq_arr'||el.id==='rq_dep')applyRqRoute(rqRoute);return}
+ if(act==='rqShift'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;const next=addMin(el.value||stampNow(),+a.dataset.m);if(!next)return;el.value=next;syncTripClocks(el.closest('.trip-clock'));if(el.id==='rq_leave')rqTouch.leave=true;else if(el.id==='rq_home')rqTouch.home=true;else if(el.id==='rq_arr'||el.id==='rq_dep')applyRqRoute(rqRoute);return}
  if(act==='rqPlace'){ev.stopPropagation();const el=document.getElementById(a.dataset.for);if(!el)return;el.value=a.dataset.val||'';syncRqChips();if(el.id!=='rq_back')scheduleQuickRoute();return}
  if(act==='stamp'||act==='stampUndo'){ev.stopPropagation();const key=a.dataset.k,date=a.dataset.date;if(act==='stampUndo'){setStamp(date,key,'');return}
   const cur=stampsFor(date)[key];const inp=a.parentElement&&a.parentElement.querySelector('[data-stamp-edit]');
@@ -1420,8 +1429,10 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
  if(act==='qFull'){const e=qBuild();delete e.id;if(!travelClaim(e)){e.noTravelOrder=false;e.travel=blankTravel();e.tripHours=0}$('#dlg').close();return openForm(null,e.date,e)}
 },true);
 document.addEventListener('click',ev=>{const el=ev.target.closest('.qtv input');if(el&&el.showPicker)try{el.showPicker()}catch(e){}});
-document.addEventListener('input',ev=>{const el=ev.target;if(el&&el.closest&&el.closest('.trip-clock'))syncTripClocks(el.closest('.trip-clock'));if(el&&(el.id==='rq_from'||el.id==='rq_to'||el.id==='rq_back')){syncRqChips();if(el.id!=='rq_back')scheduleQuickRoute();return}if(el&&(el.id==='rq_arr'||el.id==='rq_dep')){applyRqRoute(rqRoute);return}if(el&&el.id==='rq_leave'){rqTouch.leave=true;return}if(el&&el.id==='rq_home'){rqTouch.home=true;return}if(el&&el.id==='rq_km'){rqTouch.km=true;return}if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
-document.addEventListener('change',ev=>{const el=ev.target;if(el&&el.closest&&el.closest('.trip-clock'))syncTripClocks(el.closest('.trip-clock'));if(el.dataset&&el.dataset.stampEdit){setStamp(el.dataset.date,el.dataset.stampEdit,el.value||'');return}if(el.dataset&&el.dataset.q&&qs){qs[el.dataset.q]=['lunch','commute'].includes(el.dataset.q)?num(el.value):el.value;qRefresh()}});
+document.addEventListener('focusin',ev=>{const el=ev.target;if(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock'))tripPicking=el.id},true);
+document.addEventListener('input',ev=>{const el=ev.target;if(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock')){onTripClock(el);if(String(el.id||'').startsWith('rq_'))return}if(el&&(el.id==='rq_from'||el.id==='rq_to'||el.id==='rq_back')){syncRqChips();if(el.id!=='rq_back')scheduleQuickRoute();return}if(el&&el.id==='rq_km'){rqTouch.km=true;return}if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
+document.addEventListener('change',ev=>{const el=ev.target;if(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock'))onTripClock(el);if(el.dataset&&el.dataset.stampEdit){setStamp(el.dataset.date,el.dataset.stampEdit,el.value||'');return}if(el.dataset&&el.dataset.q&&qs){qs[el.dataset.q]=['lunch','commute'].includes(el.dataset.q)?num(el.value):el.value;qRefresh()}});
+document.addEventListener('focusout',ev=>{const el=ev.target;if(!(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock')))return;onTripClock(el,()=>{if(tripPicking===el.id&&document.activeElement!==el){tripPicking=null;if(String(el.id||'').startsWith('rq_'))applyRqRoute(rqRoute);else if(typeof scheduleFormRoute==='function')scheduleFormRoute()}})},true);
 document.addEventListener('close',ev=>{
  if(ev.target.id!=='dlg')return;
  /* Kamera na iPhonu dialog často zavře sama. Parkování kvůli ořezu taky. Formulář necháme. */
@@ -1893,8 +1904,8 @@ function applyFormRoute(r){
  if(!r||!fstate.routeTouch)return;
  const g=id=>document.getElementById('f_'+id);
  const arr=g('t.arrival')&&g('t.arrival').value,dep=g('t.returnStart')&&g('t.returnStart').value;let changed=false;
- if(!fstate.routeTouch.start&&arr){const v=snap30(toMin(arr)-r.min,false);const el=g('t.start');if(el&&v&&el.value!==v){el.value=v;fstate.startFollow=false;changed=true}}
- if(!fstate.routeTouch.back&&dep){const v=snap30(toMin(dep)+r.min,true);const el=g('t.returnArrival');if(el&&v&&el.value!==v){el.value=v;fstate.arrFollow=false;changed=true}}
+ if(!fstate.routeTouch.start&&tripPicking!=='f_t.start'&&arr){const v=snap30(toMin(arr)-r.min,false);const el=g('t.start');if(el&&v&&el.value!==v){el.value=v;fstate.startFollow=false;changed=true}}
+ if(!fstate.routeTouch.back&&tripPicking!=='f_t.returnArrival'&&dep){const v=snap30(toMin(dep)+r.min,true);const el=g('t.returnArrival');if(el&&v&&el.value!==v){el.value=v;fstate.arrFollow=false;changed=true}}
  if(!fstate.routeTouch.km){const el=g('t.km');if(el&&el.value!==String(r.rtKm)){el.value=String(r.rtKm);changed=true}}
  if(changed)refreshForm();
 }
@@ -2046,7 +2057,7 @@ document.addEventListener('click',ev=>{
   if(act==='delForm')return delEntry(editing.id);
   if(act==='close')return $('#dlg').close();
   if(act==='noteToggle'){const b=$('#noteBox'),t=$('#noteToggle');if(b)b.hidden=false;if(t)t.hidden=true;$('#f_note')?.focus();return}
-  if(act==='tShift'){const el=$('#f_'+String(a.dataset.f||'').replace(/\./g,'\\.'));if(!el)return;const next=addMin(el.value,+a.dataset.m);if(!next)return;el.value=next;el.dispatchEvent(new Event('input',{bubbles:true}));return}
+  if(act==='tShift'){const el=$('#f_'+String(a.dataset.f||'').replace(/\./g,'\\.'));if(!el)return;const next=addMin(el.value||(el.closest('.trip-clock')?stampNow():''),+a.dataset.m);if(!next)return;el.value=next;el.dispatchEvent(new Event('input',{bubbles:true}));return}
   if(act==='saveForm')return saveForm();
   if(act==='hkFill'){const key=a.dataset.hk;const el=key.startsWith('t.')?document.getElementById('f_'+key):document.querySelector(`[data-j="${key}"]`);if(!el)return;el.value=HK_PLACE;fstate.placeFollow=fstate.retFollow=fstate.startFollow=fstate.arrFollow=false;el.dispatchEvent(new Event('input',{bubbles:true}));syncHkChips(document);return}
   if(act==='export')return exportJSON();
