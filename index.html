@@ -181,6 +181,10 @@ body[data-view="charts"] .intro p{display:none}
 .pay-cmp{margin-top:10px;font-size:13px;opacity:.95}.pay-cmp .up{color:#b6f5c8}.pay-cmp .dn{color:#ffd0d0}
 .pay-top .linkbtn{color:#dbe8ff}
 .hk-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip-wrap{display:inline-flex;align-items:center;gap:2px;max-width:100%}
+.chip-x{border:0;background:#fbe3e0;color:#a2332a;width:22px;height:22px;border-radius:999px;font:700 14px/1 system-ui,sans-serif;padding:0;cursor:pointer}
+.place-tools{margin:4px 0 8px}
+.place-tools .linkbtn{padding:0 12px 0 0}
 .hk-chip{border:1px solid #124b92;background:#fff;color:#124b92;border-radius:999px;padding:6px 12px;font:600 13px/1.2 system-ui,sans-serif;cursor:pointer}
 .hk-chip.on{background:#124b92;color:#fff}
 .trip{display:flex;flex-direction:column}
@@ -1254,13 +1258,31 @@ function applyStampsToEntry(e){if(!e||e.id)return e;const st=stampsFor(e.date);i
 function stampRow(date){const st=stampsFor(date);
  const cells=STAMP_KEYS.map(([k,l])=>{const t=st[k]||'';return `<div class="stamp${t?' on':''}"><button type="button" class="stamp-hit" data-act="stamp" data-k="${k}" data-date="${date}"><b>${l}</b><small>${t?hm(t):'—'}</small></button>${t?`<button type="button" class="stamp-x" data-act="stampUndo" data-k="${k}" data-date="${date}" aria-label="Zrušit ${l.replace(/<br>/g,' ')}">×</button>`:''}<input type="time" class="stamp-pick" data-stamp-edit="${k}" data-date="${date}" value="${esc(t)}" tabindex="-1" aria-label="Upravit ${l.replace(/<br>/g,' ')}"></div>`}).join('');
  return `<div class="stamp-row" aria-label="Orientační časy">${cells}</div><p class="muted stamp-note">Orientační časy, zaokrouhlené na ${stampStep()} min. Den se sám neuloží.</p><button type="button" class="tplb sec" data-act="quickCestak" data-date="${date}"><span class="ti">✈</span><span><b>Rychlý cesťák</b><small>příjezd a odjezd · uloží se až po potvrzení</small></span></button>`}
-function recentPlaces(){const seen=[],add=s=>{s=String(s||'').trim();if(!s||seen.some(x=>x.toLowerCase()===s.toLowerCase()))return;seen.push(s)};
- const es=[...state.entries].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+function canonPlace(s){const t=String(s||'').trim().replace(/\s+/g,' ');if(!t)return '';if(t.toLocaleLowerCase('cs')==='zábíří nad labem')return 'Záboří nad Labem';return t}
+function placeKey(s){return canonPlace(s).toLocaleLowerCase('cs').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ')}
+function uniqPlaces(arr){const out=[],keys=[];for(const raw of arr||[]){const s=canonPlace(raw);if(!s)continue;const k=placeKey(s);if(keys.includes(k))continue;keys.push(k);out.push(s)}return out}
+const LS_HIDE='mojeDochazka.hiddenPlaces';
+let hiddenPlaceKeys=[];try{hiddenPlaceKeys=JSON.parse(localStorage.getItem(LS_HIDE)||'[]')||[]}catch(e){hiddenPlaceKeys=[]}
+function saveHiddenPlaces(){try{localStorage.setItem(LS_HIDE,JSON.stringify(hiddenPlaceKeys))}catch(e){}}
+let placeEdit=false,holdFired=false,holdTimer=0;
+function migratePlaces(){if(!state||!Array.isArray(state.entries))return false;let changed=false;
+ for(const e of state.entries){if(!e)continue;if(typeof e.place==='string'){const n=canonPlace(e.place);if(n!==e.place){e.place=n;changed=true}}
+  const t=e.travel;if(t)for(const k of['from','to','returnFrom','returnTo'])if(typeof t[k]==='string'){const n=canonPlace(t[k]);if(n!==t[k]){t[k]=n;changed=true}}}
+ try{const raw=localStorage.getItem(LS_ROUTES);if(raw){const book=JSON.parse(raw)||{},next={};let rc=false;
+  for(const[k,v] of Object.entries(book)){if(!v||typeof v!=='object'){next[k]=v;continue}const a=canonPlace(v.from),b=canonPlace(v.to);if(!a||!b){if(!next[k])next[k]=v;continue}const nk=routeKey(a,b);if(!next[nk])next[nk]=Object.assign({},v,{from:a,to:b});if(nk!==k||v.from!==a||v.to!==b)rc=true}
+  if(rc){localStorage.setItem(LS_ROUTES,JSON.stringify(next));changed=true}}}catch(e){}
+ return changed}
+function recentPlaces(){const seen=[],keys=[],add=s=>{s=canonPlace(s);if(!s)return;const k=placeKey(s);if(!k||k===placeKey(HK_PLACE)||hiddenPlaceKeys.includes(k)||keys.includes(k))return;keys.push(k);seen.push(s)};
+ const es=[...state.entries].sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.id||'').localeCompare(String(a.id||'')));
  for(const e of es){add(typeof entryPlace==='function'?entryPlace(e):e.place);add(e.travel&&e.travel.to);add(e.travel&&e.travel.from);add(e.travel&&e.travel.returnTo);add(e.travel&&e.travel.returnFrom)}
- return seen.filter(s=>s!==HK_PLACE).slice(0,8)}
+ return seen.slice(0,8)}
 function rqChips(inputId){const opts=[HK_PLACE,...recentPlaces()];
- return `<div class="hk-row">${opts.map(p=>`<button type="button" class="hk-chip" data-act="rqPlace" data-for="${inputId}" data-val="${esc(p)}">${esc(p)}</button>`).join('')}</div>`}
-function syncRqChips(){['rq_from','rq_to','rq_back'].forEach(id=>{const v=($('#'+id)&&$('#'+id).value||'').trim();document.querySelectorAll(`[data-for="${id}"]`).forEach(b=>{const on=b.dataset.val===v;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')})})}
+ return `<div class="hk-row" data-place-for="${esc(inputId)}">${opts.map(p=>{const x=placeEdit&&placeKey(p)!==placeKey(HK_PLACE)?`<button type="button" class="chip-x" data-act="placeHide" data-val="${esc(p)}" aria-label="Odebrat ${esc(p)}">×</button>`:'';return `<span class="chip-wrap"><button type="button" class="hk-chip" data-act="rqPlace" data-for="${inputId}" data-val="${esc(p)}">${esc(p)}</button>${x}</span>`}).join('')}</div>`}
+function syncRqChips(){document.querySelectorAll('.hk-chip[data-for]').forEach(b=>{const el=document.getElementById(b.dataset.for);const on=!!(el&&String(el.value||'').trim()===b.dataset.val);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')})}
+function placeToolsHTML(){return `<p class="place-tools" id="placeTools"><button type="button" class="linkbtn" data-act="placeEdit">${placeEdit?'Hotovo':'Upravit místa'}</button>${placeEdit&&hiddenPlaceKeys.length?'<button type="button" class="linkbtn" data-act="placeRestore">Obnovit skrytá</button>':''}</p>`}
+function syncPlaceTools(){const el=document.getElementById('placeTools');if(el)el.outerHTML=placeToolsHTML()}
+function refreshPlaceChips(){document.querySelectorAll('.hk-row[data-place-for]').forEach(row=>{const id=row.dataset.placeFor;const html=rqChips(id);const box=document.createElement('div');box.innerHTML=html;row.replaceWith(box.firstElementChild)});syncRqChips();syncPlaceTools()}
+function hidePlace(name){const k=placeKey(name);if(!k||k===placeKey(HK_PLACE)||hiddenPlaceKeys.includes(k))return;hiddenPlaceKeys.push(k);saveHiddenPlaces();refreshPlaceChips();if(typeof toast==='function')toast('Místo skryto z rychlé volby','silent')}
 const LS_ROUTES='mojeDochazka.routes';
 function routeBook(){try{return JSON.parse(localStorage.getItem(LS_ROUTES)||'{}')||{}}catch(e){return {}}}
 function routeKey(a,b){const n=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');return n(a)+'|'+n(b)}
@@ -1324,11 +1346,12 @@ function openQuickCestak(date){
  const from=String(have.from||'').trim()||HK_PLACE;
  const to=String(have.to||'').trim()||misto;
  const back=String(have.returnTo||'').trim()||HK_PLACE;
- const places=[...new Set([misto,HK_PLACE,...recentPlaces()].filter(Boolean))];
+ const places=uniqPlaces([misto,HK_PLACE,...recentPlaces()]);
+ placeEdit=false;
  const leave0=String(have.start||'').trim()||st.leave||'',home0=String(have.returnArrival||'').trim()||st.home||'',km0=num(have.km)>0?String(num(have.km)):'';
  rqTouch={leave:!!leave0,home:!!home0,km:!!km0};rqRoute=null;
  $('#dlg').classList.remove('qdlg');$('#dlg').classList.add('tripdlg');
- $('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlý cesťák</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Účel Služební cesta. Uloží se až tlačítkem.</p><datalist id="rq_places">${places.map(p=>`<option value="${esc(p)}">`).join('')}</datalist><div class="trip">${rqCard('rq_from','Odkud',from,rqClock('rq_leave','Odjezd',leave0))}<p class="trip-leg" id="rq_leg"></p>${rqCard('rq_to','Kam',to,`<div class="trip-times">${rqClock('rq_arr','Příjezd',st.arrive||'')}${rqClock('rq_dep','Odjezd z místa',st.depart||'')}</div>`)}<p class="trip-leg" id="rq_leg_back"></p>${rqCard('rq_back','Zpět kam',back,rqClock('rq_home','Příjezd',home0))}<div class="trip-km"><label for="rq_km">Km tam a zpět</label><input id="rq_km" inputmode="decimal" value="${esc(km0)}"></div></div></div><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="rqSave" data-date="${date}">Uložit</button></div>`;
+ $('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlý cesťák</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Účel Služební cesta. Uloží se až tlačítkem.</p>${placeToolsHTML()}<datalist id="rq_places">${places.map(p=>`<option value="${esc(p)}">`).join('')}</datalist><div class="trip">${rqCard('rq_from','Odkud',from,rqClock('rq_leave','Odjezd',leave0))}<p class="trip-leg" id="rq_leg"></p>${rqCard('rq_to','Kam',to,`<div class="trip-times">${rqClock('rq_arr','Příjezd',st.arrive||'')}${rqClock('rq_dep','Odjezd z místa',st.depart||'')}</div>`)}<p class="trip-leg" id="rq_leg_back"></p>${rqCard('rq_back','Zpět kam',back,rqClock('rq_home','Příjezd',home0))}<div class="trip-km"><label for="rq_km">Km tam a zpět</label><input id="rq_km" inputmode="decimal" value="${esc(km0)}"></div></div></div><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="rqSave" data-date="${date}">Uložit</button></div>`;
  if(!$('#dlg').open)$('#dlg').showModal();syncRqChips();scheduleQuickRoute();
 }
 function saveQuickCestak(date){
@@ -1415,7 +1438,10 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
  if(act==='quickCestak'){ev.stopPropagation();return openQuickCestak(a.dataset.date)}
  if(act==='rqSave'){ev.stopPropagation();return saveQuickCestak(a.dataset.date)}
  if(act==='rqShift'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;const next=addMin(el.value||stampNow(),+a.dataset.m);if(!next)return;el.value=next;syncTripClocks(el.closest('.trip-clock'));if(el.id==='rq_leave')rqTouch.leave=true;else if(el.id==='rq_home')rqTouch.home=true;else if(el.id==='rq_arr'||el.id==='rq_dep')applyRqRoute(rqRoute);return}
- if(act==='rqPlace'){ev.stopPropagation();const el=document.getElementById(a.dataset.for);if(!el)return;el.value=a.dataset.val||'';syncRqChips();if(el.id!=='rq_back')scheduleQuickRoute();return}
+ if(act==='rqPlace'){ev.stopPropagation();if(holdFired){holdFired=false;return}const el=document.getElementById(a.dataset.for);if(!el)return;el.value=a.dataset.val||'';el.dispatchEvent(new Event('input',{bubbles:true}));syncRqChips();if(el.id==='rq_from'||el.id==='rq_to')scheduleQuickRoute();return}
+ if(act==='placeHide'){ev.stopPropagation();hidePlace(a.dataset.val);return}
+ if(act==='placeEdit'){ev.stopPropagation();placeEdit=!placeEdit;refreshPlaceChips();return}
+ if(act==='placeRestore'){ev.stopPropagation();hiddenPlaceKeys=[];saveHiddenPlaces();refreshPlaceChips();if(typeof toast==='function')toast('Skrytá místa jsou zase v nabídce','silent');return}
  if(act==='stamp'||act==='stampUndo'){ev.stopPropagation();const key=a.dataset.k,date=a.dataset.date;if(act==='stampUndo'){setStamp(date,key,'');return}
   const cur=stampsFor(date)[key];const inp=a.parentElement&&a.parentElement.querySelector('[data-stamp-edit]');
   if(cur||date!==todayISO()){if(inp)try{inp.showPicker()}catch(e){inp.focus()}return}
@@ -1428,6 +1454,10 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
  if(act==='eyeT'){ui.hide=!ui.hide;saveUi();render();return}
  if(act==='qFull'){const e=qBuild();delete e.id;if(!travelClaim(e)){e.noTravelOrder=false;e.travel=blankTravel();e.tripHours=0}$('#dlg').close();return openForm(null,e.date,e)}
 },true);
+document.addEventListener('pointerdown',ev=>{const b=ev.target.closest&&ev.target.closest('.hk-chip[data-val]');if(!b||placeKey(b.dataset.val)===placeKey(HK_PLACE))return;holdFired=false;clearTimeout(holdTimer);holdTimer=setTimeout(()=>{holdFired=true;hidePlace(b.dataset.val)},550)},true);
+document.addEventListener('pointerup',()=>clearTimeout(holdTimer),true);
+document.addEventListener('pointercancel',()=>clearTimeout(holdTimer),true);
+document.addEventListener('contextmenu',ev=>{if(ev.target.closest&&ev.target.closest('.hk-chip[data-val]'))ev.preventDefault()},true);
 document.addEventListener('click',ev=>{const el=ev.target.closest('.qtv input');if(el&&el.showPicker)try{el.showPicker()}catch(e){}});
 document.addEventListener('focusin',ev=>{const el=ev.target;if(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock'))tripPicking=el.id},true);
 document.addEventListener('input',ev=>{const el=ev.target;if(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock')){onTripClock(el);if(String(el.id||'').startsWith('rq_'))return}if(el&&(el.id==='rq_from'||el.id==='rq_to'||el.id==='rq_back')){syncRqChips();if(el.id!=='rq_back')scheduleQuickRoute();return}if(el&&el.id==='rq_km'){rqTouch.km=true;return}if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
@@ -1845,7 +1875,7 @@ function renderMultiBar(){let b=$('#multiBar');if(!multi){if(b)b.remove();return
 function openJobQuick(date){
  const lt=lastTrip();
  const v={date,start:lt?.startTime||'06:00',end:lt?.endTime||'16:00',lunch:lt?num(lt.lunchHours):0,note:lt?.note||'',customer:lt?entryCustomer(lt):'',place:lt?entryPlace(lt):'',from:'',to:'',returnTo:'',commute:lt?num(lt.commuteHours):0};
- const places=[...new Set(state.entries.flatMap(x=>[x.place,x.travel?.from,x.travel?.to]).filter(Boolean))],custs=[...new Set(state.entries.map(entryCustomer).filter(Boolean))].slice(-40),notes=[...new Set(state.entries.map(x=>x.note).filter(Boolean))].slice(-40);
+ const places=uniqPlaces(state.entries.flatMap(x=>[x.place,x.travel?.from,x.travel?.to])),custs=[...new Set(state.entries.map(entryCustomer).filter(Boolean))].slice(-40),notes=[...new Set(state.entries.map(x=>x.note).filter(Boolean))].slice(-40);
  $('#dlg').innerHTML=`<form id="jform" novalidate><div class="dlg-head"><h2>Zakázka · ${fmtDate(date)}</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body">
  <datalist id="dl_places">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_cust">${custs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_notes">${notes.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
  <div class="grid"><div class="f"><label>Datum</label><input type="date" data-j="date" value="${esc(v.date)}"></div><div class="f"><label>Od</label><input type="time" data-j="start" value="${esc(v.start)}"></div><div class="f"><label>Do</label><input type="time" data-j="end" value="${esc(v.end)}"></div><div class="f"><label>Oběd</label><select data-j="lunch">${LUNCH_OPTS.map(o=>`<option value="${o[0]}" ${String(num(v.lunch))===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
@@ -1872,17 +1902,17 @@ function hourOpts(k,total,v){const s=$('#f_'+k);if(!s)return;v=r2(num(v));const 
  const html=vals.map(x=>`<option value="${x}">${fmtH(x)} h</option>`).join('');if(s.dataset.opts!==html){s.innerHTML=html;s.dataset.opts=html}s.value=String(v)}
 const chk=(k,l)=>`<label class="chk"><input type="checkbox" id="f_${k}" data-k="${k}">${l}</label>`;
 function openForm(entry,date,draft){
- editing=entry||null;manual=new Set();$('#dlg').classList.remove('tripdlg');
+ editing=entry||null;manual=new Set();$('#dlg').classList.remove('tripdlg');placeEdit=false;
  const e=entry?clone(entry):draft?clone(draft):{date:date||iso(Y,M,sel),startTime:'',endTime:'',lunchHours:0,note:'',jobHours:0,baseHours:0,commuteHours:0,vacationHours:0,doctorHours:0,sickHours:0,travel:blankTravel()};
  if(!entry){e.travel=Object.assign(blankTravel(),e.travel||{});if(!String(e.travel.purpose||'').trim())e.travel.purpose='Služební cesta';if(typeof applyStampsToEntry==='function')applyStampsToEntry(e)}
- const places=[...new Set(state.entries.flatMap(x=>[x.place,x.travel?.from,x.travel?.to,x.travel?.returnFrom,x.travel?.returnTo]).filter(Boolean))];
+ const places=uniqPlaces(state.entries.flatMap(x=>[x.place,x.travel?.from,x.travel?.to,x.travel?.returnFrom,x.travel?.returnTo]));
  const custs=[...new Set(state.entries.map(x=>entryCustomer(x)).filter(Boolean))].slice(-40);
  const notes=[...new Set(state.entries.map(x=>x.note).filter(Boolean))].slice(-40);
  $('#dlg').innerHTML=`<form method="dialog" id="eform" novalidate><div class="dlg-head"><h2>${entry?'Upravit záznam':'Nový záznam'}</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body">
  <datalist id="dl_places">${places.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_cust">${custs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist><datalist id="dl_notes">${notes.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
  <fieldset><legend>Směna</legend>${!entry&&Object.keys(stampsFor(e.date)||{}).length?'<p class="muted hint wide">Časy z razítek jen předvyplní pole. Konec a příjezd zpět jen po Doma, odjezd zpět jen po Odjezd z místa. Uprav ±30 min a ulož.</p>':''}<div class="grid">${fld('date','Datum',{type:'date'})}${fld('startTime','Začátek',{type:'time',step:1})}${fld('endTime','Konec',{type:'time',step:1})}${fld('lunchHours','Oběd',{sel:LUNCH_OPTS})}${fld('customer','Zákazník',{list:'dl_cust'})}${fld('place','Místo',{list:'dl_places'})}<div class="f wide" id="noteWrap"><button type="button" class="linkbtn" id="noteToggle" data-act="noteToggle" style="padding:0">+ poznámka</button><div id="noteBox" hidden>${fld('note','Poznámka',{wide:1,list:'dl_notes'})}</div></div></div></fieldset>
  <fieldset><legend>Hodiny</legend><div class="grid">${fld('totalHours','Celkem · h',{auto:1})}${fld('overtime','Přesčas · h',{auto:1})}${fld('commuteHours','Dojíždění dům–stavba celkem · h',{sel:COMMUTE_OPTS,wide:1})}<p class="muted hint wide">Vyber součet jízdy autem tam i zpět. Zůstane v hodinách Alvianu, odečte se jen od přesčasu.</p>${fld('jobHours','Zákazník · hodiny',{sel:[['0','0 h']]})}${fld('baseHours','Alvian · hodiny',{sel:[['0','0 h']]})}<p class="muted hint wide">Vyber hodiny zákazníka; Alvian se dopočítá ze zbytku. Nebo vyber hodiny Alvianu; zákazník se dopočítá ze zbytku.</p>${fld('weekendHours','Víkend h',{auto:1})}${fld('vacationHours','Dovolená h',{num:1})}${fld('doctorHours','Lékař h',{num:1})}${fld('sickHours','Sick day h (firemní)',{num:1})}${fld('dpnHours','Nemoc (DPN) h',{num:1})}</div></fieldset>
- ${stitekFormHTML(e)}<fieldset><legend>Pracovní cesta</legend><p class="muted">Cesták se uloží, jen když ho vyplníš. Nový den ho sám nezakládá.</p><div style="margin-bottom:10px">${chk('noTravelOrder','Bez cestovního příkazu (žádné stravné)')}</div><div class="trip"><section class="trip-card"><label class="trip-k" for="f_t.from">Odkud</label><input class="trip-place" id="f_t.from" data-k="t.from" list="dl_places" autocomplete="off">${hkChips('t.from')}${tripWhen('t.start','Odjezd')}</section><p class="trip-leg" id="routeHint"></p><section class="trip-card"><label class="trip-k" for="f_t.to">Kam</label><input class="trip-place" id="f_t.to" data-k="t.to" list="dl_places" autocomplete="off">${hkChips('t.to')}<div class="trip-times">${tripWhen('t.arrival','Příjezd')}${tripWhen('t.returnStart','Odjezd z místa')}</div></section><p class="trip-leg" id="routeHintBack"></p><section class="trip-card"><label class="trip-k" for="f_t.returnTo">Zpět kam</label><input class="trip-place" id="f_t.returnTo" data-k="t.returnTo" list="dl_places" autocomplete="off">${hkChips('t.returnTo')}${tripWhen('t.returnArrival','Příjezd')}</section><div class="trip-km"><label for="f_t.km">Km tam a zpět</label><input id="f_t.km" data-k="t.km" inputmode="decimal"></div></div><div class="grid" style="margin-top:12px"><div class="f wide"><label for="f_t.returnFrom">Zpět odkud</label><input id="f_t.returnFrom" data-k="t.returnFrom" list="dl_places">${hkChips('t.returnFrom')}</div>${fld('tripHours','Doba cesty h',{auto:1})}${fld('t.purpose','Účel')}${fld('t.transport','Doprava',{sel:[['','—'],['AUS','AUS – služební auto'],['AUV','AUV – vlastní auto'],['VLAK','Vlak'],['BUS','Autobus'],['MHD','MHD'],['JINE','Jiné']]})}${fld('t.fare','Jízdné Kč',{num:1})}${fld('t.lodging','Ubytování Kč',{num:1})}${fld('t.other','Ostatní Kč',{num:1})}${fld('t.dietOverride','Stravné ručně Kč (prázdné = auto)',{num:1})}${fld('t.freeMeals','Jídla zdarma',{sel:[['0','žádné'],['1','1 jídlo'],['2','2 jídla'],['3','3 jídla']]})}</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">${chk('t.freeBoard','Bezplatné stravování')}${chk('t.freeLodging','Bezplatné ubytování')}${chk('t.reducedTicket','Snížená jízdenka')}</div><p class="muted hint" id="freeBoardHint" hidden>Při bezplatném stravování uprav stravné: vyber „Jídla zdarma“ nebo zadej „Stravné ručně“.</p></fieldset>
+ ${stitekFormHTML(e)}<fieldset><legend>Pracovní cesta</legend><p class="muted">Cesták se uloží, jen když ho vyplníš. Nový den ho sám nezakládá.</p>${placeToolsHTML()}<div style="margin-bottom:10px">${chk('noTravelOrder','Bez cestovního příkazu (žádné stravné)')}</div><div class="trip"><section class="trip-card"><label class="trip-k" for="f_t.from">Odkud</label><input class="trip-place" id="f_t.from" data-k="t.from" list="dl_places" autocomplete="off">${rqChips('f_t.from')}${tripWhen('t.start','Odjezd')}</section><p class="trip-leg" id="routeHint"></p><section class="trip-card"><label class="trip-k" for="f_t.to">Kam</label><input class="trip-place" id="f_t.to" data-k="t.to" list="dl_places" autocomplete="off">${rqChips('f_t.to')}<div class="trip-times">${tripWhen('t.arrival','Příjezd')}${tripWhen('t.returnStart','Odjezd z místa')}</div></section><p class="trip-leg" id="routeHintBack"></p><section class="trip-card"><label class="trip-k" for="f_t.returnTo">Zpět kam</label><input class="trip-place" id="f_t.returnTo" data-k="t.returnTo" list="dl_places" autocomplete="off">${rqChips('f_t.returnTo')}${tripWhen('t.returnArrival','Příjezd')}</section><div class="trip-km"><label for="f_t.km">Km tam a zpět</label><input id="f_t.km" data-k="t.km" inputmode="decimal"></div></div><div class="grid" style="margin-top:12px"><div class="f wide"><label for="f_t.returnFrom">Zpět odkud</label><input id="f_t.returnFrom" data-k="t.returnFrom" list="dl_places">${rqChips('f_t.returnFrom')}</div>${fld('tripHours','Doba cesty h',{auto:1})}${fld('t.purpose','Účel')}${fld('t.transport','Doprava',{sel:[['','—'],['AUS','AUS – služební auto'],['AUV','AUV – vlastní auto'],['VLAK','Vlak'],['BUS','Autobus'],['MHD','MHD'],['JINE','Jiné']]})}${fld('t.fare','Jízdné Kč',{num:1})}${fld('t.lodging','Ubytování Kč',{num:1})}${fld('t.other','Ostatní Kč',{num:1})}${fld('t.dietOverride','Stravné ručně Kč (prázdné = auto)',{num:1})}${fld('t.freeMeals','Jídla zdarma',{sel:[['0','žádné'],['1','1 jídlo'],['2','2 jídla'],['3','3 jídla']]})}</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">${chk('t.freeBoard','Bezplatné stravování')}${chk('t.freeLodging','Bezplatné ubytování')}${chk('t.reducedTicket','Snížená jízdenka')}</div><p class="muted hint" id="freeBoardHint" hidden>Při bezplatném stravování uprav stravné: vyber „Jídla zdarma“ nebo zadej „Stravné ručně“.</p></fieldset>
  <div class="calc" id="fcalc"></div><div class="msgs" id="fmsgs"></div></div>
  <div class="dlg-foot">${entry?'<button type="button" class="btn danger" data-act="delForm" style="margin-right:auto">Smazat</button>':''}<button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="saveForm">Uložit</button></div></form>`;
  const set=(k,v)=>{const el=$('#f_'+k.replace('.','\\.'));if(!el)return;if(el.type==='checkbox')el.checked=!!v;else el.value=v??''};
@@ -1935,7 +1965,7 @@ function refreshForm(){
  const e=buildEntry(true),{errs,warns,infos}=validate(e);const c=calc(e);
  $('#fcalc').innerHTML=`Výdělek <b>${cash(c.work)}</b> · stravné <b>${cash(c.diet)}</b> (${esc(c.dietWhy)}) · náhrady <b>${cash(c.c.sum)}</b> · celkem <b>${cash(c.all)}</b>${c.hol?` · <span style="color:#b36537">svátek: ${esc(c.hol)}</span>`:''}`;
  $('#fmsgs').innerHTML=errs.map(x=>`<div class="msg err">✖ ${x}</div>`).join('')+warns.map(x=>`<div class="msg warn">⚠ ${x}</div>`).join('')+infos.map(x=>x.startsWith('🎉')?`<div class="msg hol">${x}</div>`:`<div class="msg info">ℹ ${x}</div>`).join('');
- syncHkChips(document);if(typeof syncTripClocks==='function')syncTripClocks(document.getElementById('eform'));
+ syncHkChips(document);if(typeof syncRqChips==='function')syncRqChips();if(typeof syncTripClocks==='function')syncTripClocks(document.getElementById('eform'));
  return{errs,warns}
 }
 function buildEntry(preview){
@@ -2156,7 +2186,7 @@ $('#eye').onclick=()=>{ui.hide=!ui.hide;saveUi();render()};
 $('#mode').onchange=e=>{ui.mode=e.target.value;saveUi();render()};
 document.addEventListener('change',ev=>{const el=ev.target;if(!el||!el.dataset)return;if(el.dataset.ui==='stampRound'){ui.stampRound=[15,30,60].includes(+el.value)?+el.value:30;saveUi();if(view==='dnes')render();return}if(el.dataset.rate||el.dataset.prof||el.dataset.tpl){rememberSettingsField(el);scheduleSettingsSave();return}if(!el.dataset.sound)return;readSoundControls();writeSoundToProfile();saveUi();saveData();});
 const _hdrMute=$('#hdrMute');if(_hdrMute)_hdrMute.addEventListener('click',ev=>{ev.preventDefault();toggleMute()});
-window.addEventListener('storage',e=>{if(e.key===LS_DATA){loadData();render()}});
+window.addEventListener('storage',e=>{if(e.key===LS_DATA){loadData();if(migratePlaces())saveData(false);render()}});
 
 if(IS_IOS)$('#fileIn').removeAttribute('accept'); // iOS Files picker greys out .json with some accept values
 if(window.APP_PWA&&'serviceWorker'in navigator&&location.protocol==='https:'){
@@ -2164,7 +2194,7 @@ if(window.APP_PWA&&'serviceWorker'in navigator&&location.protocol==='https:'){
  navigator.serviceWorker.register('sw.js').then(reg=>{reg.update();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update()})}).catch(e=>console.warn('SW',e));
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadCtrl)return;const b=document.createElement('div');b.className='backup-banner';b.style.cssText='position:fixed;left:12px;right:12px;top:max(12px,env(safe-area-inset-top));z-index:100';b.innerHTML='<span>🔄 Je k dispozici nová verze aplikace.</span><button class="btn small">Načíst znovu</button>';b.querySelector('button').onclick=()=>location.reload();document.body.appendChild(b)});
 }
-const loaded=loadData();syncSoundFromProfile();initialMonth();render();
+const loaded=loadData();if(migratePlaces())saveData(false);syncSoundFromProfile();initialMonth();render();
 window.__app={get state(){return state},calc,balances,dietInfo,holidays,summary,entryCustomer,entryPlace,entryLabel,reducePHV,dpnThresholds,phv,netRatio,toNet,dpnHourlyGross,dpnCalendarDay,leaveAmounts,payslipFor,latestPayslip,loaded,celebrateSave,toggleMute,syncMuteBtn,travelClaim,tripEntries,save:()=>{saveData();render()},get ui(){return ui}};
 /* ================= Výplatnice UI ================= */
 let slipPhotos=[],editingSlip=null;
@@ -2299,6 +2329,7 @@ function mergeDocs(a,b){
 function applyDoc(doc){
  const strip=e=>{const c=Object.assign({},e);delete c.updatedAt;return c};
  state={version:3,entries:(doc.entries||[]).map(strip),rates:doc.rates||clone(DEF_RATES),profile:doc.profile||{},travelOrders:doc.travelOrders||{}};
+ if(typeof migratePlaces==='function')migratePlaces();
  if(doc.templates){tpl=Object.assign(clone(DEF_TPL),doc.templates,{depo:Object.assign({},DEF_TPL.depo,doc.templates.depo||{})});saveTpl()}
  try{typeof syncSoundFromProfile==='function'&&syncSoundFromProfile()}catch(e){}
  meta.stamps={};meta.h={};for(const e of doc.entries||[]){meta.stamps[e.id]=+e.updatedAt||1;meta.h[e.id]=hsh(canon(strip(e)))}
