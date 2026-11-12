@@ -43,6 +43,8 @@ header{padding-top:calc(12px + constant(safe-area-inset-top));padding-top:calc(1
 @media(max-width:700px){.stat.balstat{grid-template-columns:1fr 1fr}.balrow b{font-size:19px}}
 /* v9 štítky */
 .day{position:relative}.day .clip{position:absolute;top:2px;right:3px;font-size:11px;line-height:1}
+.clip.quiet{color:#7d8da3;font-weight:700}
+.st-skip{margin:8px 0 0;color:#5a6b85;font-size:13px}
 .st-photos{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.st-th{position:relative}.st-th img{width:84px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #cfd8e3;background:#eef2f7;cursor:zoom-in;display:block}
 .st-x{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:#c62828;color:#fff;font-size:12px}
 .st-file{cursor:pointer;position:relative;overflow:hidden}.st-file input[type=file]{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;font-size:16px;cursor:pointer}
@@ -317,7 +319,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.8";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.9";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -671,6 +673,11 @@ function findPhoto(id){
 function thumbHTML(p,entry,opt){opt=opt||{};const cap=photoCaption(p,entry);
  return `<div class="st-th"><img data-photo="${esc(p.id)}" alt="${esc(cap||'štítek')}" data-st-act="view" data-id="${esc(p.id)}">${opt.del?`<button type="button" class="st-x" data-st-act="formDel" data-id="${esc(p.id)}" aria-label="Odebrat">✕</button>`:''}<p class="st-cap-mini">${esc(cap||'Štítek')}</p><button type="button" class="btn sec small st-copy" data-st-act="copyPhoto" data-id="${esc(p.id)}">Kopírovat</button></div>`}
 const isJobDay=e=>num(e.jobHours)>0||(e.photos&&e.photos.length>0);
+function dayHasStazka(es){return (es||[]).some(e=>e.photos&&e.photos.length)}
+function dayBezStazky(es){return (es||[]).some(e=>e.noStazka)}
+function dayStazkaOpen(es){es=es||[];return es.some(e=>num(e.jobHours)>0)&&!dayHasStazka(es)&&!dayBezStazky(es)}
+function clearNoStazka(e){if(!e)return;const es=(typeof byDate==='function'&&e.date?byDate()[e.date]:null)||[e];for(const x of es)if(x&&x.noStazka)delete x.noStazka}
+const bezStazkaBox=(checked,extra)=>`<label class="chk st-skip"><input type="checkbox" ${extra||''} ${checked?'checked':''}> Bez stazky</label>`
 
 /* ---------- photo inputs (camera vs gallery; iOS capture forces camera) ---------- */
 function stPhotoBtns(target,opt){
@@ -689,6 +696,7 @@ function stitekFormHTML(e){formPhotos=(e.photos||[]).map(p=>Object.assign({},p))
  <div class="grid"><div class="f wide"><label for="f_machine">Stroj (typ + SPZ)</label><input id="f_machine" data-st="machine" list="dl_mach" placeholder="např. AC40   U01 3139" value="${esc(e.machine||lastM)}"></div></div>
  <div class="st-photos" id="stFormPhotos"></div>
  ${stPhotoBtns("form",{cam:"📷 Vyfotit",gal:"🖼️ Z galerie"})}
+ ${bezStazkaBox(!!e.noStazka&&!(e.photos&&e.photos.length),'id="f_noStazka"')}
  <p class="muted st-note">Fotky se ukládají do tvého účtu${PHOTO_CLOUD?'':' (cloud vypnut – jen v zařízení)'} a v zařízení pro offline. ${PHOTO_NOTE}</p></fieldset>`}
 function renderFormPhotos(){const b=$('#stFormPhotos');if(!b)return;b.innerHTML=formPhotos.map(p=>thumbHTML(p,null,{del:1})).join('');hydrateThumbs(b)}
 function stitekFormInit(){renderFormPhotos();stitekToggle();stitekPreviewUpdate()}
@@ -700,6 +708,8 @@ function stitekBuild(e,src){
  const mel=$('[data-st="machine"]');if(mel){const v=mel.value.trim();if('machine'in src||(v&&(num(e.jobHours)>0||formPhotos.length)))e.machine=v}
  if(formPhotos.length||'photos'in src)e.photos=formPhotos.map(p=>Object.assign({},p));
  if(!e.photos||!e.photos.length){if(!('photos'in src))delete e.photos}
+ const skip=$('#f_noStazka');
+ if(skip){if(formPhotos.length||!skip.checked)delete e.noStazka;else e.noStazka=true}
  return e}
 function stitekPreviewUpdate(){const p=$('#stPreview');if(!p)return;const c=(formVal('customer')||'').trim(),pl=(formVal('place')||'').trim(),m=($('[data-st="machine"]')||{}).value||'';
  p.innerHTML=!c&&!pl?'<span class="muted">Zákazník a místo beru ze sekce Směna výše.</span>':`📋 Ze Směny: <b>${esc(c||'—')}</b> · <b>${esc(pl||'—')}</b>${m?` · stroj se doplní níž`:''}`}
@@ -707,7 +717,7 @@ function stitekSaved(e){if(e.machine)try{localStorage.setItem(LS_MACHINE,e.machi
 
 /* ---------- detail dne ---------- */
 function stitekDetailHTML(e){if(!isJobDay(e))return'';const ps=e.photos||[];
- return `<div class="st-box no-print"><div class="detail-label">ŠTÍTEK</div><p class="muted st-note">${PHOTO_NOTE}</p>${ps.length?`<div class="st-photos">${ps.map(p=>thumbHTML(p,e)).join('')}</div>`:'<p class="muted">Zatím bez fotky štítku.</p>'}
+ return `<div class="st-box no-print"><div class="detail-label">ŠTÍTEK</div><p class="muted st-note">${PHOTO_NOTE}</p>${ps.length?`<div class="st-photos">${ps.map(p=>thumbHTML(p,e)).join('')}</div>`:'<p class="muted">Zatím bez fotky štítku.</p>'}${ps.length?'':bezStazkaBox(!!e.noStazka,`data-act="bezStazka" data-id="${esc(e.id)}"`)}
  ${stCaption(e).includes('\n')?`<pre class="st-cap">${esc(stCaption(e))}</pre>`:''}
  ${stPhotoBtns(e.id,{small:true,cam:"📷 Vyfotit",gal:"🖼️ Z galerie"})}${ps.length?`<div class="btnrow"><button class="btn small" data-st-act="share" data-id="${esc(e.id)}">Poslat do WhatsAppu</button><button class="btn sec small" data-st-act="copy" data-id="${esc(e.id)}">Kopírovat popisek</button></div>`:`<div class="btnrow"><button class="btn sec small" data-st-act="copy" data-id="${esc(e.id)}">Kopírovat popisek</button></div>`}</div>`}
 
@@ -961,9 +971,9 @@ async function cropFinish(){const src=crop.full||crop.cv;const q=crop.q.map(([x,
  const id='ph-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),snap=photoSnap(crop.target),meta=Object.assign({id,w:out.width,h:out.height,ts:new Date().toISOString()},snap);
  try{await pPut(id,blob)}catch(e){toast('Fotku nejde uložit: '+e.message);return}
  const t=crop.target;crop=null;dismissCrop();
- if(t==='form'){formPhotos.push(meta);renderFormPhotos();stitekToggle()}
+ if(t==='form'){formPhotos.push(meta);const skip=$('#f_noStazka'),qs=$('#q_noStazka');if(skip)skip.checked=false;if(qs)qs.checked=false;renderFormPhotos();stitekToggle()}
  else if(t==='slipForm'){slipPhotos.push(meta);if(typeof renderSlipPhotos==='function')renderSlipPhotos();const hint=$('#slipHint');if(hint)hint.hidden=false}
- else{const e=state.entries.find(x=>x.id===t);if(e){(e.photos=e.photos||[]).push(meta);saveData();stitekSaved(e);render()}}
+ else{const e=state.entries.find(x=>x.id===t);if(e){(e.photos=e.photos||[]).push(meta);clearNoStazka(e);saveData();stitekSaved(e);render()}}
  return meta}
 
 /* ---------- sdílení ---------- */
@@ -1033,6 +1043,7 @@ document.addEventListener('change',ev=>{const el=ev.target;if(!el.dataset||!el.d
  const d=ensureCropDlg();if(!d.open){d.innerHTML=cropShell('Načítám fotku…');presentCrop(d)}
  enqueueCrops(fs,target)});
 document.addEventListener('input',ev=>{if(ev.target.id==='f_jobHours')stitekToggle()});
+document.addEventListener('change',ev=>{const el=ev.target;if(!el||el.dataset.act!=='bezStazka')return;const e=state.entries.find(x=>x.id===el.dataset.id);if(!e||(e.photos&&e.photos.length))return;if(el.checked)e.noStazka=true;else delete e.noStazka;saveData();render()});
 document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('[data-st-act]');if(!a)return;const k=a.dataset.stAct,ent=()=>state.entries.find(x=>x.id===a.dataset.id);
  if(!crop&&(k==='cropRot'||k==='cropAuto'||k==='cropFull'||k==='cropOk'))return;
  if(k==='cropRot'){crop.rot++;cropSetup();cropResetView();cropDraw();cropZoomToQuad();cropDraw()}
@@ -1227,16 +1238,16 @@ function tplPreview(e,short){if(!e)return'';const t=e.travel||{};
  if(!short&&num(e.commuteHours))parts.push(fmtH(num(e.commuteHours))+' h cesta');
  return parts.filter(Boolean).join(' · ')}
 function dayState(k,today){const es=byDate()[k]||[];
- if(es.length){const job=es.some(e=>num(e.jobHours)>0),ph=es.some(e=>e.photos&&e.photos.length);return{es,mark:job&&!ph?'📎?':'✓',cls:job&&!ph?'warn':'ok'}}
+ if(es.length){const open=dayStazkaOpen(es),bez=!open&&es.some(e=>num(e.jobHours)>0)&&!dayHasStazka(es)&&dayBezStazky(es);return{es,mark:open?'📎?':(bez?'–':'✓'),cls:open?'warn':'ok'}}
  if(k<today&&!isWeekend(k)&&!holidayName(k))return{es,mark:'!',cls:'miss'};return{es,mark:'',cls:''}}
 function weekStrip(today){const d=parseISO(today),mon=addDays(today,-((d.getDay()+6)%7));let h='',sum=0,sumV=0;
  for(let i=0;i<7;i++){const k=addDays(mon,i),st=dayState(k,today),hrs=st.es.reduce((t,e)=>t+num(e.totalHours),0),ty=st.es[0]?dayType(st.es[0]):'';sum+=hrs;sumV+=st.es.reduce((t,e)=>t+calc(e).all,0);
   h+=`<button class="wd ${st.cls} ${k===today?'today':''} ${k===dnesDay()?'picked':''} ${holidayName(k)?'hol':''}" data-act="dPick" data-date="${k}" aria-label="${DOW_FULL[parseISO(k).getDay()]} ${dm(k)}"><b>${DOW[parseISO(k).getDay()].replace(/^./,c=>c.toUpperCase())}</b><span>${dm(k)}</span><strong>${st.es.length?(hrs?fmtH(hrs)+' h':ty.slice(0,4)+'.'):(k<=today?'—':'')}</strong><i>${st.mark}</i></button>`}
  return `<div class="weekstrip">${h}</div><p class="muted dn-sub">Týden zatím: ${fmtH(sum)} h · ${cash(sumV)}</p>`}
 function reminders(today){const out=[],ym=today.slice(0,7),bd=byDate();
- const noPh=state.entries.filter(e=>e.date.startsWith(ym)&&e.date<=today&&num(e.jobHours)>0&&!(e.photos&&e.photos.length)).sort((a,b)=>a.date.localeCompare(b.date));
- for(const e of noPh.slice(0,3))out.push(`<button class="rem warn" data-act="dCal" data-date="${e.date}">📎 ${DOW[parseISO(e.date).getDay()]} ${dm(e.date)} – chybí štítek</button>`);
- if(noPh.length>3)out.push(`<p class="muted">…a dalších ${noPh.length-3} dní bez štítku</p>`);
+ const seenD=new Set();const noPh=state.entries.filter(e=>{if(!e.date||!e.date.startsWith(ym)||e.date>today||seenD.has(e.date)||!dayStazkaOpen(byDate()[e.date]||[]))return false;seenD.add(e.date);return true}).sort((a,b)=>a.date.localeCompare(b.date));
+ for(const e of noPh.slice(0,3))out.push(`<button class="rem warn" data-act="dCal" data-date="${e.date}">📎 ${DOW[parseISO(e.date).getDay()]} ${dm(e.date)} – chybí stazka</button>`);
+ if(noPh.length>3)out.push(`<p class="muted">…a dalších ${noPh.length-3} dní bez stazky</p>`);
  const miss=[];for(let k=ym+'-01';k<today;k=addDays(k,1))if(!bd[k]&&!isWeekend(k)&&!holidayName(k))miss.push(k);
  if(miss.length)out.push(`<button class="rem miss" data-act="dPick" data-date="${miss[0]}">❗ Nezapsáno: ${miss.slice(0,5).map(dm).join(', ')}${miss.length>5?' …':''} (${miss.length} ${pl(miss.length,'den','dny','dní')})</button>`);
  for(let i=1;i<=14;i++){const k=addDays(today,i),h=holidayName(k);if(h){out.push(`<div class="rem hol">🎉 ${DOW[parseISO(k).getDay()]} ${dm(k)} svátek – ${esc(h)}${i===1?' (zítra)':' (za '+i+' dní)'}</div>`);break}}
@@ -1432,7 +1443,7 @@ function openTpl(kind,date){
  <div class="qcard"><h3>${kind==='manual'?'Zápis':'Šablona'}</h3><b class="qtpl">${label}</b><div class="muted">${kind==='manual'?'doplň zákazníka a místo, uprav časy':'vše vyplněno – zkontroluj jen časy'}</div>${(kind==='copy'||kind==='job')&&typeof travelClaim==='function'&&travelClaim(src)?`<p class="muted">Cesťák se zkopíruje na ${esc(fmtDate(date))}: ${esc([src.travel.from,src.travel.to].filter(Boolean).join(' → '))}${src.travel.purpose||src.travel.transport?` · ${esc([src.travel.purpose,src.travel.transport].filter(Boolean).join(' · '))}`:''}.</p>`:''}</div>
  <div class="qcard"><h3>Čas práce</h3><div class="qtimes"><div class="qt"><label class="qtv"><span id="qv_start"></span><input type="time" data-q="start" value="${esc(qs.start)}" aria-label="Začátek"></label><div><button type="button" data-act="qShift" data-f="start" data-m="-30">−30 min</button><button type="button" data-act="qShift" data-f="start" data-m="30">+30 min</button></div></div><span class="qdash">–</span><div class="qt"><label class="qtv"><span id="qv_end"></span><input type="time" data-q="end" value="${esc(qs.end)}" aria-label="Konec"></label><div><button type="button" data-act="qShift" data-f="end" data-m="-30">−30 min</button><button type="button" data-act="qShift" data-f="end" data-m="30">+30 min</button></div></div></div><p class="qsum" id="qsum"></p></div>
  <div class="qcard"><h3>Předvyplněno</h3>${isJob?row('🏗️','Zákazník',`<input data-q="customer" list="dl_qc" value="${esc(qs.customer)}">`)+row('📍','Místo',`<input data-q="place" list="dl_qp" value="${esc(qs.place)}">`)+row('🚛','Stroj',`<input data-q="machine" list="dl_qm" placeholder="např. AC40" value="${esc(qs.machine)}">`)+row('🚗','Dojíždění',sel('commute',COMMUTE_OPTS,qs.commute)):''}${row('🍽️','Oběd',sel('lunch',LUNCH_OPTS,qs.lunch))}<p class="muted">Klepni na řádek pro změnu</p></div>
- ${isJob?`<div class="qcard"><div class="st-photos" id="stFormPhotos"></div>${stPhotoBtns("form",{cam:"📷 Vyfotit",gal:"🖼️ Z galerie",rowClass:"btnrow st-qphoto"})}</div>`:''}
+ ${isJob?`<div class="qcard"><div class="st-photos" id="stFormPhotos"></div>${stPhotoBtns("form",{cam:"📷 Vyfotit",gal:"🖼️ Z galerie",rowClass:"btnrow st-qphoto"})}${bezStazkaBox(!!src.noStazka,'id="q_noStazka"')}</div>`:''}
  <div class="msgs" id="qmsgs"></div><button type="button" class="linkbtn" data-act="qFull">Více údajů</button></div>
  <div class="qfoot"><button type="button" class="btn qsave" data-act="qSave" id="qSaveBtn"></button></div></div>`;
  $('#dlg').classList.add('qdlg');if(!$('#dlg').open)$('#dlg').showModal();qRefresh();
@@ -1448,6 +1459,7 @@ function qBuild(){const s=qs.src,e=clone(s);e.id=newId();e.date=qs.date;delete e
  else{e.travel=blankTravel();e.tripHours=0;e.noTravelOrder=true}
  if(isJob||qs.kind==='manual'){e.customer=(qs.customer||'').trim();e.place=(qs.place||'').trim();if(e.customer&&!String(e.note||'').trim())e.note=e.customer;if(qs.machine||'machine'in s||qs.kind==='manual')e.machine=(qs.machine||'').trim()}
  if(typeof formPhotos!=='undefined'&&formPhotos.length)e.photos=formPhotos.map(p=>Object.assign({},p));
+ const qSkip=$('#q_noStazka');if(qSkip){if(qSkip.checked&&!(typeof formPhotos!=='undefined'&&formPhotos.length))e.noStazka=true;else delete e.noStazka}
  return e}
 function qRefresh(){if(!qs)return{e:null,errs:[]};const e=qBuild(),c=calc(e),{errs}=validate(e);for(const f of['start','end']){const v=$('#qv_'+f);if(v)v.textContent=hm(qs[f])||'––:––'}
  $('#qsum').innerHTML=`<b>${fmtH(e.totalHours)} h</b>${e.overtime?` · z toho přesčas ${fmtH(e.overtime)} h`:' · bez přesčasu'} · ${typeof lunchTxt==='function'?lunchTxt(e.lunchHours):(num(e.lunchHours)?`oběd ${fmtH(num(e.lunchHours))} h`:'bez oběda')}`;
@@ -1651,7 +1663,8 @@ function render(){
  for(let i=0;i<off;i++)html+='<div></div>';
  for(let d=1;d<=days;d++){const k=iso(Y,M,d),es=bd[k]||[],hol=holidayName(k),v=es.reduce((t,e)=>t+value(e),0),h=es.reduce((t,e)=>t+num(e.totalHours),0),ty=es[0]?dayType(es[0]):'';
   const td=todayISO(),tc=es.length?(es.some(e=>num(e.jobHours)>0)?'t-job':es.some(e=>num(e.totalHours)>0)?'t-depo':es.some(e=>num(e.vacationHours)>0)?'t-vac':(es.some(e=>num(e.sickHours)>0||num(e.dpnHours)>0)?'t-sick':'')):(k<td&&!isWeekend(k)&&!hol?'t-miss':'');
-  html+=`<button class="day ${tc} ${isWeekend(k)?'weekend':''} ${(multi?multi.has(k):d===sel)?'selected':''} ${multi&&multi.has(k)?'multi':''} ${hol?'holiday':''}" data-day="${d}" title="${esc(hol)}" aria-label="${d}. ${MONTHS_GEN[M]}${hol?', '+esc(hol):''}, ${es.length?cash(v):'bez záznamu'}"><span class="num">${d}</span>${es.some(e=>e.photos&&e.photos.length)?'<span class="clip" aria-label="štítek">📎</span>':''}<span class="money ${ty==='Dovolená'?'leave':(ty==='Nemoc'||ty==='Lékař')?'sick':''}">${es.length?(ui.hide?'••••':Math.abs(v)>=10000?(v/1000).toLocaleString('cs-CZ',{maximumFractionDigits:1})+'k':cash(v).replace(' Kč','')):'—'}</span><span class="hours">${es.length?(h>0?fmtH(h)+' h':ty):''}${es.length>1?' ×'+es.length:''}</span></button>`}
+  const clip=dayHasStazka(es)?'<span class="clip" aria-label="stazka">📎</span>':(es.some(e=>num(e.jobHours)>0)&&dayBezStazky(es)?'<span class="clip quiet" aria-label="bez stazky">–</span>':'');
+  html+=`<button class="day ${tc} ${isWeekend(k)?'weekend':''} ${(multi?multi.has(k):d===sel)?'selected':''} ${multi&&multi.has(k)?'multi':''} ${hol?'holiday':''}" data-day="${d}" title="${esc(hol)}" aria-label="${d}. ${MONTHS_GEN[M]}${hol?', '+esc(hol):''}, ${es.length?cash(v):'bez záznamu'}"><span class="num">${d}</span>${clip}<span class="money ${ty==='Dovolená'?'leave':(ty==='Nemoc'||ty==='Lékař')?'sick':''}">${es.length?(ui.hide?'••••':Math.abs(v)>=10000?(v/1000).toLocaleString('cs-CZ',{maximumFractionDigits:1})+'k':cash(v).replace(' Kč','')):'—'}</span><span class="hours">${es.length?(h>0?fmtH(h)+' h':ty):''}${es.length>1?' ×'+es.length:''}</span></button>`}
  $('#calendar').innerHTML=html;
  const det=details();$('#detail').innerHTML=det;
  const vals=Array.from({length:days},(_,i)=>(bd[iso(Y,M,i+1)]||[]).reduce((t,e)=>t+value(e),0));const max=Math.max(1,...vals);
