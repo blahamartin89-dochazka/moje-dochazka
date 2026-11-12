@@ -287,7 +287,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.2";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.3";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1227,7 +1227,28 @@ function commuteFromStamps(st){let m=0,any=false;if(st.leave&&st.arrive){m+=stam
 function applyStampsToEntry(e){if(!e||e.id)return e;const st=stampsFor(e.date);if(!e.travel)e.travel=typeof blankTravel==='function'?blankTravel():{};if(st.leave){e.startTime=st.leave;e.travel.start=st.leave}if(st.arrive)e.travel.arrival=st.arrive;if(st.depart)e.travel.returnStart=st.depart;if(st.home){e.endTime=st.home;e.travel.returnArrival=st.home}const c=commuteFromStamps(st);if(c!=null)e.commuteHours=c;return e}
 function stampRow(date){const st=stampsFor(date);
  const cells=STAMP_KEYS.map(([k,l])=>{const t=st[k]||'';return `<div class="stamp${t?' on':''}"><button type="button" class="stamp-hit" data-act="stamp" data-k="${k}" data-date="${date}"><b>${l}</b><small>${t?hm(t):'—'}</small></button>${t?`<button type="button" class="stamp-x" data-act="stampUndo" data-k="${k}" data-date="${date}" aria-label="Zrušit ${l.replace(/<br>/g,' ')}">×</button>`:''}<input type="time" class="stamp-pick" data-stamp-edit="${k}" data-date="${date}" value="${esc(t)}" tabindex="-1" aria-label="Upravit ${l.replace(/<br>/g,' ')}"></div>`}).join('');
- return `<div class="stamp-row" aria-label="Orientační časy">${cells}</div><p class="muted stamp-note">Orientační časy, zaokrouhlené na ${stampStep()} min. Den se sám neuloží.</p>`}
+ return `<div class="stamp-row" aria-label="Orientační časy">${cells}</div><p class="muted stamp-note">Orientační časy, zaokrouhlené na ${stampStep()} min. Den se sám neuloží.</p><button type="button" class="tplb sec" data-act="quickCestak" data-date="${date}"><span class="ti">✈</span><span><b>Rychlý cesťák</b><small>příjezd a odjezd · uloží se až po potvrzení</small></span></button>`}
+function openQuickCestak(date){
+ const st=stampsFor(date),es=(typeof byDate==='function'?byDate()[date]:[])||[];
+ const src=es.find(e=>(typeof entryPlace==='function'&&entryPlace(e))||custOf(e))||es[0];
+ const misto=src?((typeof entryPlace==='function'&&entryPlace(src))||custOf(src)||''):'';
+ $('#dlg').classList.remove('qdlg');
+ $('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlý cesťák</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Odkud i zpět Hradec Králové, účel Služební cesta${misto?`, místo ${esc(misto)}`:''}. Uloží se až tlačítkem.</p><div class="f"><label for="rq_arr">Příjezd do</label><input id="rq_arr" type="time" value="${esc(st.arrive||'')}"><div class="step-row"><button type="button" data-act="rqShift" data-f="rq_arr" data-m="-30">−30 min</button><button type="button" data-act="rqShift" data-f="rq_arr" data-m="30">+30 min</button></div></div><div class="f" style="margin-top:12px"><label for="rq_dep">Odjezd z</label><input id="rq_dep" type="time" value="${esc(st.depart||'')}"><div class="step-row"><button type="button" data-act="rqShift" data-f="rq_dep" data-m="-30">−30 min</button><button type="button" data-act="rqShift" data-f="rq_dep" data-m="30">+30 min</button></div></div></div><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="rqSave" data-date="${date}">Uložit</button></div>`;
+ if(!$('#dlg').open)$('#dlg').showModal();
+}
+function saveQuickCestak(date){
+ const arr=$('#rq_arr')?$('#rq_arr').value:'',dep=$('#rq_dep')?$('#rq_dep').value:'';
+ const st=stampsFor(date),es=state.entries.filter(e=>e.date===date);
+ const src=es.find(e=>(typeof entryPlace==='function'&&entryPlace(e))||custOf(e))||es[0];
+ const misto=src?((typeof entryPlace==='function'&&entryPlace(src))||custOf(src)||''):'';
+ const cust=src?custOf(src):'';
+ let e=es.find(x=>typeof travelClaim==='function'&&travelClaim(x))||es[0],created=false;
+ if(!e){e={id:newId(),date,startTime:'',endTime:'',lunchHours:0,totalHours:0,note:'',jobHours:0,baseHours:0,commuteHours:0,overtime:0,weekendHours:0,vacationHours:0,sickHours:0,doctorHours:0,tripHours:0,noTravelOrder:false,customer:cust,place:misto,travel:blankTravel()};if(st.leave&&st.home){e.startTime=st.leave;e.endTime=st.home;const c=commuteFromStamps(st);if(c!=null)e.commuteHours=c}created=true}
+ else{e.travel=Object.assign(blankTravel(),e.travel||{});e.noTravelOrder=false;if(!e.place&&misto)e.place=misto;if(!e.customer&&cust)e.customer=cust}
+ const t=e.travel;if(!String(t.from||'').trim())t.from=HK_PLACE;if(!String(t.returnTo||'').trim())t.returnTo=HK_PLACE;if(!String(t.purpose||'').trim())t.purpose='Služební cesta';if(!String(t.to||'').trim()&&misto)t.to=misto;if(st.leave&&!String(t.start||'').trim())t.start=st.leave;if(st.home&&!String(t.returnArrival||'').trim())t.returnArrival=st.home;t.arrival=arr;t.returnStart=dep;
+ if(created)state.entries.push(e);
+ saveData();$('#dlg').close();render();toast('Cesťák uložen','silent');
+}
 function renderDnes(){
  const today=todayISO(),k=dnesDay(),es=byDate()[k]||[],d=parseISO(k),hol=holidayName(k);
  const title=(k===today?'Dnes · ':'')+DOW_FULL[d.getDay()]+' '+dm(k);
@@ -1294,6 +1315,9 @@ function qSave(){if(!qs)return;const{e,errs}=qRefresh();if(!e||errs.length||!e.t
  if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?${dropped?'\n\nCesťák v tento den už je, druhý se nepřidá.':''}`))return;
  state.entries.push(e);saveData();if(typeof stitekSaved==='function')stitekSaved(e);qs=null;$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();if(typeof celebrateSave==='function')celebrateSave(e);toast(dropped?'Uloženo, druhý cesťák se nepřidal':'Uloženo','silent')}
 document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
+ if(act==='quickCestak'){ev.stopPropagation();return openQuickCestak(a.dataset.date)}
+ if(act==='rqSave'){ev.stopPropagation();return saveQuickCestak(a.dataset.date)}
+ if(act==='rqShift'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;const next=addMin(el.value,+a.dataset.m);if(!next)return;el.value=next;return}
  if(act==='stamp'||act==='stampUndo'){ev.stopPropagation();const key=a.dataset.k,date=a.dataset.date;if(act==='stampUndo'){setStamp(date,key,'');return}
   const cur=stampsFor(date)[key];const inp=a.parentElement&&a.parentElement.querySelector('[data-stamp-edit]');
   if(cur||date!==todayISO()){if(inp)try{inp.showPicker()}catch(e){inp.focus()}return}
@@ -1591,7 +1615,7 @@ function renderOrders(){
  const bal=r2(tot.s-num(o.advance));
  const hz=n=>num(n)?fmtH(n):'–';
  const tabBtn=(id,label)=>`<button type="button" data-act="ordTab" data-tab="${id}" class="${ordersTab===id?'on':''}" aria-pressed="${ordersTab===id?'true':'false'}">${label}</button>`;
- const bar=`<div class="order-actions no-print"><div class="ord-seg" role="tablist" aria-label="Přehled">${tabBtn('cestak','Cesťák')}${tabBtn('dochazka','Docházka')}</div><span>PDF → Tisk, Soubory, WhatsApp</span><span class="ord-btns"><button type="button" class="btn" data-act="print" id="printTop">🖨 Tisk / PDF</button><button type="button" class="btn sec" data-act="printBoth">Obojí</button></span></div>`;
+ const bar=`<div class="order-actions no-print"><div class="ord-seg" role="tablist" aria-label="Přehled">${tabBtn('cestak','Cesťák')}${tabBtn('dochazka','Docházka')}</div><span>PDF → Tisk, Soubory, WhatsApp</span><span class="ord-btns"><button type="button" class="btn sec" data-act="quickCestak" data-date="${todayISO()}">Rychlý cesťák</button><button type="button" class="btn" data-act="print" id="printTop">🖨 Tisk / PDF</button><button type="button" class="btn sec" data-act="printBoth">Obojí</button></span></div>`;
  const dmth=dochazkaMonthRows();
  const drows=dmth.rows.map(r=>{const nem=[num(r.sick)?fmtH(r.sick)+' h':'',num(r.dpn)?'DPN '+fmtH(r.dpn)+' h':''].filter(Boolean).join('<br>')||'–';
   return `<tr><td>${fmtDate(r.date)}</td><td>${esc(r.label)}</td><td>${r.start||r.end?esc(r.start)+'–'+esc(r.end):'–'}</td><td class="n">${hz(r.job)}</td><td class="n">${hz(r.base)}</td><td class="n">${hz(r.com)}</td><td class="n">${hz(r.ot)}</td><td class="n">${hz(r.vac)}</td><td class="n">${nem}</td><td>${r.holName?esc(r.holName)+(num(r.holH)?'<br>'+fmtH(r.holH)+' h':''):'–'}</td></tr>`}).join('');
