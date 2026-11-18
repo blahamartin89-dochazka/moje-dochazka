@@ -56,35 +56,40 @@ create policy allowed_emails_owner_all on public.allowed_emails
 revoke all on table public.allowed_emails from anon, public;
 grant select, insert, update, delete on table public.allowed_emails to authenticated;
 
--- Další přihlášený uživatel si nesmí vložit vlastní řádek, jakmile už tabulku vlastní Martin.
-create or replace function public.allowed_emails_guard()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
+-- Vlastník seznamu je napevno Martin (jediný řádek v public.user_data v okamžiku spuštění).
+-- Nikdo jiný nemůže vložit řádek, ani když Martin smaže všechny e-maily.
+do $mig$
 declare
-  boss uuid;
+  v_owner uuid;
+  v_cnt int;
 begin
-  if auth.uid() is null then
-    raise exception 'not allowed';
+  select count(*), min(user_id::text)::uuid into v_cnt, v_owner from public.user_data;
+  if v_cnt <> 1 or v_owner is null then
+    raise exception 'Čekal jsem přesně jeden řádek v user_data (Martin), našel %', v_cnt;
   end if;
-  if new.owner is null then
-    new.owner := auth.uid();
-  end if;
-  if new.owner <> auth.uid() then
-    raise exception 'not allowed';
-  end if;
-  select e.owner into boss from public.allowed_emails e limit 1;
-  if boss is not null and boss <> auth.uid() then
-    raise exception 'not allowed';
-  end if;
-  if new.email is not null then
-    new.email := lower(trim(new.email::text))::citext;
-  end if;
-  return new;
-end;
-$$;
+  execute format($f$
+    create or replace function public.allowed_emails_guard()
+    returns trigger
+    language plpgsql
+    security definer
+    set search_path = public
+    as $body$
+    begin
+      if auth.uid() is null or auth.uid() <> %L::uuid then
+        raise exception 'not allowed';
+      end if;
+      new.owner := auth.uid();
+      if new.email is not null then
+        new.email := lower(trim(new.email::text))::citext;
+      end if;
+      return new;
+    end;
+    $body$
+  $f$, v_owner);
+end
+$mig$;
+
+revoke all on function public.allowed_emails_guard() from public, anon, authenticated;
 
 drop trigger if exists allowed_emails_guard on public.allowed_emails;
 create trigger allowed_emails_guard
@@ -148,60 +153,3 @@ $$;
 
 revoke all on function public.hook_kolega_before_user_created(jsonb) from public, anon, authenticated;
 grant execute on function public.hook_kolega_before_user_created(jsonb) to supabase_auth_admin;
-
--- Docházka Martina: kolega se přihlásí vlastním účtem a nesmí číst cizí řádky.
--- Živé politiky odtud nešly přečíst. Tohle smaže stávající politiky na public.user_data
--- a na objektech bucketu stazky a nasadí přístup jen pro auth.uid().
-do $$
-declare
-  r record;
-begin
-  if to_regclass('public.user_data') is not null
-     and exists (
-       select 1 from information_schema.columns
-       where table_schema = 'public' and table_name = 'user_data' and column_name = 'user_id'
-     ) then
-    execute 'alter table public.user_data enable row level security';
-    for r in select policyname from pg_policies where schemaname = 'public' and tablename = 'user_data'
-    loop
-      execute format('drop policy if exists %I on public.user_data', r.policyname);
-    end loop;
-    execute 'create policy user_data_owner_all on public.user_data for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid())';
-    execute 'revoke all on table public.user_data from anon, public';
-    execute 'grant select, insert, update, delete on table public.user_data to authenticated';
-    raise notice 'user_data: politiky nahrazeny pravidlem user_id = auth.uid()';
-  else
-    raise notice 'user_data: tabulka nebo sloupec user_id chybí, politika se neměnila';
-  end if;
-end $$;
-
-do $$
-declare
-  r record;
-  expr text;
-begin
-  if to_regclass('storage.objects') is null then
-    raise notice 'storage.objects chybí';
-    return;
-  end if;
-  for r in
-    select pol.polname as policyname,
-           pg_get_expr(pol.polqual, pol.polrelid) as qual,
-           pg_get_expr(pol.polwithcheck, pol.polrelid) as chk
-    from pg_policy pol
-    join pg_class cls on cls.oid = pol.polrelid
-    join pg_namespace nsp on nsp.oid = cls.relnamespace
-    where nsp.nspname = 'storage' and cls.relname = 'objects'
-  loop
-    expr := lower(coalesce(r.qual, '') || ' ' || coalesce(r.chk, ''));
-    if expr like '%stazky%' or expr ~ '(^|[^a-z])true([^a-z]|$)' then
-      execute format('drop policy if exists %I on storage.objects', r.policyname);
-      raise notice 'storage.objects: zrušena politika %', r.policyname;
-    end if;
-  end loop;
-
-  execute 'create policy stazky_owner_select on storage.objects for select to authenticated using (bucket_id = ''stazky'' and (storage.foldername(name))[1] = auth.uid()::text)';
-  execute 'create policy stazky_owner_insert on storage.objects for insert to authenticated with check (bucket_id = ''stazky'' and (storage.foldername(name))[1] = auth.uid()::text)';
-  execute 'create policy stazky_owner_update on storage.objects for update to authenticated using (bucket_id = ''stazky'' and (storage.foldername(name))[1] = auth.uid()::text) with check (bucket_id = ''stazky'' and (storage.foldername(name))[1] = auth.uid()::text)';
-  execute 'create policy stazky_owner_delete on storage.objects for delete to authenticated using (bucket_id = ''stazky'' and (storage.foldername(name))[1] = auth.uid()::text)';
-end $$;
