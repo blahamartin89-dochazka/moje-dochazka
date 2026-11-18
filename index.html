@@ -162,6 +162,27 @@ body[data-view="dnes"] #addBtn,body[data-view="dnes"] .intro p{display:none}
 .rd-foot .btn:last-child{flex:1;font-size:18px;padding:14px}
 .ov-hours .step-row{margin-top:6px}
 .ov-hours .step-row button{flex:1;padding:8px 4px;font-weight:700;font-size:12px}
+.ov-hours .step-row button[data-act="workNow"],.trip-time .step-row button[data-act="rdNow"]{font-weight:800}
+.ov-payrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 0}
+.ov-payrow .ov-pay{margin:0;flex:1;min-width:0}
+.ov-payrow .chk{margin:0;font-weight:750;color:#124b92;white-space:nowrap}
+.ov-payrow .chk input{width:22px;height:22px;accent-color:#124b92}
+.staz-ok{font-weight:800;color:#1b7f3b;white-space:nowrap}
+.alv-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 0;font-size:14px;font-weight:700;color:#14233b}
+.alv-row .step-row{margin:0}
+.alv-row .step-row button{padding:8px 10px;font-weight:700;min-width:52px}
+.lunch-seg{margin:10px 0 4px}
+.crane-row{margin:10px 0 0}
+.crane-chips{display:flex;flex-wrap:wrap;gap:6px}
+.crane-chips button{border:0;background:#e7eef8;color:#124b92;border-radius:999px;padding:7px 10px;font:700 13px/1.2 inherit}
+.crane-chips button.on{background:#124b92;color:#fff}
+.crane-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.crane-add input{flex:1;min-width:120px;border:1px solid #d3e2f4;border-radius:8px;padding:8px}
+.crane-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.crane-item{display:flex;gap:6px;align-items:center;background:#f4f7fb;border-radius:12px;padding:8px}
+.crane-item input{flex:1;min-width:0;border:1px solid #d3e2f4;border-radius:8px;padding:8px}
+.trip-hint{margin:6px 0 0;font-size:12px;color:#8a7340;text-align:center}
+.day .clip.ok{color:#1b7f3b;font-weight:800}
 .ov-col{min-width:0}
 .ov-pick{position:relative;display:flex;align-items:center;justify-content:center;margin-top:4px;min-height:44px;border-radius:10px;background:#f4f8fd;box-shadow:inset 0 -2px 0 #8eadd4,inset 0 0 0 1px #d3e2f4;cursor:pointer}
 .ov-pick .ov-clock{margin:0;font-size:22px;text-decoration:underline;text-decoration-thickness:1px;text-decoration-color:#8eadd4;text-underline-offset:4px}
@@ -378,7 +399,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-12.19";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-18.1";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -464,7 +485,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
     "cash register chching" by disman, https://freesound.org/s/728224/
     https://creativecommons.org/publicdomain/zero/1.0/ */
  let chimeAb=null,chimeBuf=null,chimeLoading=null;
- const SAVE_ACTS=new Set(['qSave','saveForm','jobSave','qDepo','qVac','qSick','qDpn']);
+ const SAVE_ACTS=new Set(['qSave','saveForm','jobSave','qDepo','qVac','qSick','qDpn','saveDay','rdSave','rqSave']);
  function preloadChime(){
   if(chimeAb)return Promise.resolve(chimeAb);
   if(chimeLoading)return chimeLoading;
@@ -521,21 +542,53 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
    preloadChime().then(()=>decodeChime(c)).then(buf=>{if(buf)whenRunning(go)}).catch(()=>{});
   });
  }
+ let htmlChime=null,chimeArmed=0;
+ function htmlChimeEl(){
+  if(!htmlChime){htmlChime=new Audio(CHIME_URL);htmlChime.preload='auto';htmlChime.setAttribute('playsinline','');try{htmlChime.load()}catch(e){}}
+  return htmlChime;
+ }
+ function freshCtx(){
+  const old=ctx;
+  ctx=null;master=null;comp=null;chimeBuf=null;musicGain=null;musicOn=false;
+  try{if(old&&old.close)old.close()}catch(e){}
+  return ensure(false);
+ }
+ function wakeCtx(){
+  if(!ctx||ctx.state==='closed'||ctx.state==='interrupted')return freshCtx();
+  if(ctx.state==='suspended'){try{const p=ctx.resume();if(p&&p.catch)p.catch(()=>{})}catch(e){}}
+  return ctx;
+ }
+ /* Cash-register chime must start inside the tap, before any await.
+    HTMLAudio.play() is the iOS-safe path; Web Audio is the fallback. */
  function playChaChing(){
   const p=prefs();
-  if(!p.fx){chimeSkippedMute++;return}
+  if(!p.fx){chimeSkippedMute++;return false}
   const now=performance.now();
-  if(now-lastChimeAt<CHIME_GAP)return;
+  if(now-lastChimeAt<CHIME_GAP)return false;
   lastChimeAt=now;
+  wakeCtx();
   unlock();
-  const mark=chimeCount;
-  const tryPlay=()=>{
-   if(!prefs().fx||chimeCount>mark)return;
-   const c=ensure(false);if(!c||!chimeBuf)return;
-   whenRunning(cc=>{if(!prefs().fx||chimeCount>mark)return;try{emitChime(cc)}catch(e){}});
-  };
-  try{tryPlay()}catch(e){}
-  if(!chimeBuf)preloadChime().then(()=>{const c=ensure(false);return c?decodeChime(c):null}).then(()=>tryPlay()).catch(()=>{});
+  let ok=false;
+  try{
+   const a=htmlChimeEl();
+   a.volume=Math.max(0.01,Math.min(1,p.vol||1));
+   try{if(a.currentTime>0.05)a.currentTime=0}catch(e){}
+   const pr=a.play();
+   if(pr&&pr.then)pr.then(()=>{chimeCount++}).catch(()=>{
+    try{const c=wakeCtx();if(c&&chimeBuf)emitChime(c)}catch(e){}
+   });
+   else chimeCount++;
+   ok=true;
+  }catch(e){}
+  if(!ok){try{const c=ensure(false);if(c&&c.state==='running'&&chimeBuf){emitChime(c);ok=true}}catch(e){}}
+  if(!chimeBuf)preloadChime().then(ab=>{const c=wakeCtx();return c?decodeChime(c):null}).catch(()=>{});
+  chimeArmed=ok?performance.now():0;
+  return ok;
+ }
+ function cancelChaChing(){
+  if(!chimeArmed||performance.now()-chimeArmed>500){chimeArmed=0;return}
+  try{const a=htmlChimeEl();a.pause();try{a.currentTime=0}catch(e){}}catch(e){}
+  chimeArmed=0;
  }
  function playShutter(){
   const c=ensure();if(!c||!master||!prefs().fx)return;
@@ -633,8 +686,15 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
  },{capture:true});
 
  document.addEventListener('visibilitychange',()=>{
-  if(document.hidden)pauseMusic();
-  else if(prefs().music){unlock();startMusic()}
+  if(document.hidden){pauseMusic();return}
+  if(!ctx||ctx.state==='closed'||ctx.state==='interrupted')freshCtx();
+  else wakeCtx();
+  try{htmlChimeEl()}catch(e){}
+  if(prefs().music){unlock();startMusic()}
+ });
+ window.addEventListener('pageshow',()=>{
+  if(!ctx||ctx.state==='closed'||ctx.state==='interrupted')freshCtx();
+  else wakeCtx();
  });
 
  ['touchstart','pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,unlock,{once:false,passive:true,capture:true}));
@@ -644,7 +704,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
   if(master&&ctx&&ctx.destination&&master.connect&&comp===master){try{master.connect(ctx.destination)}catch(e){}}
  }
  function resetChimeCount(){chimeCount=0;chimeSkippedMute=0;lastChimeAt=-1e9;oscLog.length=0}
- window.__sounds={unlock,playTap,playDing,playError,playShutter,playChaChing,startMusic,pauseMusic,applyPrefs,prefs,ensure,installCtx,preloadChime,
+ window.__sounds={unlock,playTap,playDing,playError,playShutter,playChaChing,cancelChaChing,startMusic,pauseMusic,applyPrefs,prefs,ensure,installCtx,preloadChime,wakeCtx,
   tapStyle:'ios-click',
   get ctx(){return ctx}, get tapCount(){return tapCount}, get tapPlayed(){return tapPlayed}, resetTapCount(){tapCount=0;tapPlayed=0},
   get chimeCount(){return chimeCount}, get chimeSkippedMute(){return chimeSkippedMute},
@@ -1091,7 +1151,7 @@ function shareDateText(iso){const s=String(iso||'').trim();const isoM=s.match(/^
 function splitCrane(s){const t=String(s||'').trim();if(!t)return {crane:'',spz:''};const tri=t.split(/\s{3,}/);if(tri.length>=2&&tri[0].trim()&&tri.slice(1).join(' ').trim())return {crane:tri[0].trim(),spz:tri.slice(1).join(' ').trim().toUpperCase()};const m=t.match(/^(.*\S)\s+((?:[A-Z]\d{2}|\d[A-Z]\d)\s?\d{3,4})$/i);if(m)return {crane:m[1].trim(),spz:m[2].replace(/\s+/g,' ').trim().toUpperCase()};return {crane:t,spz:''}}
 function shareCaption(v){const lines=[];const d=shareDateText(v.date);if(d)lines.push(d);const place=String(v.place||'').trim();if(place)lines.push(place);const extra=String(v.extra||'').trim().replace(/^\+\s*/,'');if(extra)lines.push('+ '+extra);const cust=String(v.customer||'').trim().toLocaleUpperCase('cs');if(cust)lines.push(cust);const crane=String(v.crane||'').trim(),spz=String(v.spz||'').trim().toUpperCase();if(crane&&spz)lines.push(crane+'   '+spz);else if(crane||spz)lines.push(crane||spz);return lines.join('\n')}
 function recentShareCustomers(){const out=[],add=s=>{const u=String(s||'').trim().toLocaleUpperCase('cs');if(!u||out.includes(u))return;out.push(u)};const mem=shareMemory();add(mem.customer);(mem.customers||[]).forEach(add);const es=[...(state.entries||[])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));for(const e of es)add(typeof entryCustomer==='function'?entryCustomer(e):e.customer);return out.slice(0,6)}
-function recentShareCranes(){const out=[],key=c=>(c.crane+'|'+c.spz).toUpperCase(),add=(crane,spz)=>{crane=String(crane||'').trim();spz=String(spz||'').trim().toUpperCase();if(!crane&&!spz)return;const row={crane,spz};if(out.some(x=>key(x)===key(row)))return;out.push(row)};const mem=shareMemory();add(mem.crane,mem.spz);(mem.cranes||[]).forEach(c=>add(c&&c.crane,c&&c.spz));const es=[...(state.entries||[])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));for(const e of es){const s=splitCrane(e.machine);add(s.crane,s.spz)}return out.slice(0,6)}
+function recentShareCranes(){const out=[],key=c=>(c.crane+'|'+c.spz).toUpperCase(),add=(crane,spz)=>{crane=String(crane||'').trim();spz=String(spz||'').trim().toUpperCase();if(!crane&&!spz)return;const row={crane,spz};if(out.some(x=>key(x)===key(row)))return;out.push(row)};const mem=shareMemory();add(mem.crane,mem.spz);(mem.cranes||[]).forEach(c=>add(c&&c.crane,c&&c.spz));const es=[...(state.entries||[])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));for(const e of es){const s=splitCrane(e.machine);add(s.crane,s.spz)}if(typeof recentCranes==='function')recentCranes().forEach(c=>add(c.type,c.spz));return out.slice(0,8)}
 function shareRead(){return {date:($('#sh_date')&&$('#sh_date').value)||'',place:($('#sh_place')&&$('#sh_place').value)||'',extra:($('#sh_extra')&&$('#sh_extra').value)||'',customer:($('#sh_cust')&&$('#sh_cust').value)||'',crane:($('#sh_crane')&&$('#sh_crane').value)||'',spz:($('#sh_spz')&&$('#sh_spz').value)||''}}
 function sharePreview(){const el=$('#sh_cap');if(el)el.textContent=shareCaption(shareRead())}
 function shareRemember(v){const mem=shareMemory();const customers=[],addC=s=>{const u=String(s||'').trim().toLocaleUpperCase('cs');if(u&&!customers.includes(u))customers.push(u)};addC(v.customer);(mem.customers||[]).forEach(addC);addC(mem.customer);const cranes=[],addR=(crane,spz)=>{crane=String(crane||'').trim();spz=String(spz||'').trim().toUpperCase();if(!crane&&!spz)return;if(cranes.some(x=>x.crane.toUpperCase()===crane.toUpperCase()&&x.spz===spz))return;cranes.push({crane,spz})};addR(v.crane,v.spz);(mem.cranes||[]).forEach(c=>addR(c&&c.crane,c&&c.spz));addR(mem.crane,mem.spz);saveShareMemory({customer:String(v.customer||'').trim(),crane:String(v.crane||'').trim(),spz:String(v.spz||'').trim().toUpperCase(),customers:customers.slice(0,6),cranes:cranes.slice(0,6)})}
@@ -1362,7 +1422,7 @@ function tplPreview(e,short){if(!e)return'';const t=e.travel||{};
 function entryLogged(e){return !!(e&&(num(e.totalHours)>0||num(e.vacationHours)>0||num(e.sickHours)>0||num(e.dpnHours)>0||num(e.doctorHours)>0))}
 function dayLogged(es){return (es||[]).some(entryLogged)}
 function dayState(k,today){const es=byDate()[k]||[];
- if(dayLogged(es)){const open=dayStazkaOpen(es),bez=!open&&es.some(e=>num(e.jobHours)>0)&&!dayHasStazka(es)&&dayBezStazky(es);return{es,mark:open?'📎?':(bez?'–':'✓'),cls:open?'warn':'ok'}}
+ if(dayLogged(es)){const open=dayStazkaOpen(es);return{es,mark:open?'📎?':'✓',cls:open?'warn':'ok'}}
  if(k<today&&!isWeekend(k)&&!holidayName(k))return{es,mark:'!',cls:'miss'};return{es,mark:'',cls:''}}
 function weekStrip(today){const d=parseISO(today),mon=addDays(today,-((d.getDay()+6)%7));let h='',sum=0,sumV=0;
  for(let i=0;i<7;i++){const k=addDays(mon,i),st=dayState(k,today),hrs=st.es.reduce((t,e)=>t+num(e.totalHours),0),ty=st.es[0]?dayType(st.es[0]):'';sum+=hrs;sumV+=st.es.reduce((t,e)=>t+calc(e).all,0);
@@ -1396,7 +1456,15 @@ function applyStampsToEntry(e){if(!e||e.id)return e;const st=stampsFor(e.date);i
 function dayCestak(es){return (es||[]).find(e=>typeof travelClaim==='function'&&travelClaim(e))||null}
 function cestakFacts(e){const t=e.travel||{};let km=num(t.km),mins=null,est=!km;if(!km&&t.from&&t.to&&typeof routeBook==='function'){const r=routeBook()[routeKey(canonPlace(t.from)||t.from,canonPlace(t.to)||t.to)];if(r&&r.km){km=r.rtKm||r.km;mins=r.min}}let dur=num(e.tripHours);if(!dur&&t.start&&t.returnArrival)dur=spanH(t.start,t.returnArrival)||0;const bits=[];if(km>0)bits.push((est?'~':'')+fmtH(km)+' km');if(dur)bits.push(fmtH(dur)+' h');else if(mins)bits.push('~'+mins+' min');return bits.join(' · ')}
 function cestakOverview(date,es){const e=dayCestak(es);if(!e)return `<div class="ov ov-empty"><span>Žádný cesťák</span><button type="button" class="btn sec small" data-act="quickCestak" data-date="${date}">Rychlý cesťák</button></div>`;const t=e.travel||{},part=cestakPartial(e);const cell=(label,time)=>`<div class="ov-t ${String(time||'').trim()?'':'empty'}"><small>${label}</small><b>${String(time||'').trim()?hm(time):'— doplnit'}</b></div>`;const meta=cestakFacts(e);return `<button type="button" class="ov ov-cest" data-act="quickCestak" data-date="${date}"><div class="ov-h"><span>✈ Cesťák</span><i class="${part?'part':'done'}">${part?'rozpracovaný':'hotový'}</i></div><div class="ov-grid">${cell('Odjezd',t.start)}${cell('Příjezd',t.arrival)}${cell('Z místa',t.returnStart)}${cell('Návrat',t.returnArrival)}</div>${meta?`<p class="ov-meta">${esc(meta)}</p>`:''}</button>`}
-function hoursOverview(date,es){const st=stampsFor(date);const saved=es.filter(e=>num(e.totalHours)>0||num(e.jobHours)>0||num(e.baseHours)>0);const showIn=st.workIn||(saved.find(e=>e.startTime)||{}).startTime||'';const showOut=st.workOut||(saved.find(e=>e.endTime)||{}).endTime||'';const draft=!!(st.workIn||st.workOut);let hourLine='',payLine='';if(saved.length&&!draft){const job=saved.reduce((s,e)=>s+num(e.jobHours),0),base=saved.reduce((s,e)=>s+num(e.baseHours),0),com=saved.reduce((s,e)=>s+num(e.commuteHours),0),ot=saved.reduce((s,e)=>s+num(e.overtime),0),work=saved.reduce((s,e)=>s+calc(e).work,0),rt=R();const bits=[];if(job)bits.push(`zákazník ${fmtH(job)} h × ${rt.job}`);if(base)bits.push(`Alvian ${fmtH(base)} h × ${rt.base}`);if(ot)bits.push(`přesčas ${fmtH(ot)} h`);hourLine=bits.join(' · ')||`${fmtH(saved.reduce((s,e)=>s+num(e.totalHours),0))} h`;if(com)hourLine+=` · dojíždění ${fmtH(com)} h v Alvianu`;payLine=`Výdělek ${cash(work)}`}else if(showIn&&showOut){const span=spanH(showIn,showOut)||0,rt=R();hourLine=`odhad ${fmtH(span)} h · zákazník × ${rt.job}`;payLine=`odhad ${cash(r2(span*num(rt.job)))} · Uloží se až tlačítkem Uložit den dole.`}else{hourLine='Hodiny se dopočítají po odchodu.';payLine='Uloží se až tlačítkem Uložit den dole.'}let staz='Stazka —';if(!es.length)staz='Stazka — až bude záznam';else if(dayHasStazka(es))staz='Stazka máš';else if(dayBezStazky(es))staz='Bez stazky';else if(dayStazkaOpen(es))staz='Stazka chybí';const col=(key,label,shown)=>{const raw=shown&&clockText(shown)!=='––:––'?clockText(shown):'';return `<div class="ov-col"><small>${label}</small><label class="ov-pick${raw?' has-value':''}"><span class="ov-clock">${raw?hm(raw):'—'}</span><input type="time" data-stamp-edit="${key}" data-date="${date}" data-seed="${esc(raw)}" value="${esc(raw)}" aria-label="${label}"></label><div class="step-row"><button type="button" data-act="workNow" data-k="${key}" data-date="${date}">Teď</button><button type="button" data-act="workShift" data-k="${key}" data-date="${date}" data-m="-30">−30</button><button type="button" data-act="workShift" data-k="${key}" data-date="${date}" data-m="30">+30</button></div></div>`};return `<div class="ov ov-hours" data-act="quickDay" data-date="${date}"><div class="ov-h"><span>Docházka</span>${draft?'<i class="part">není uloženo</i>':''}</div><div class="ov-grid ov-2">${col('workIn','Příchod do práce',showIn)}${col('workOut','Odchod',showOut)}</div><p class="ov-meta">${esc(hourLine)}</p><p class="ov-pay">${esc(payLine)}</p><p class="ov-staz">${esc(staz)}</p>${stazkaBlock(date,es,'cardStaz')}</div>`}
+function paySplitLine(job,base,com,ot,total){const rt=R();const parts=[];if(job)parts.push(`zákazník ${fmtH(job)} h × ${rt.job}`);if(base)parts.push(`Alvian ${fmtH(base)} h × ${rt.base}`);let s=parts.join(' + ')||`${fmtH(total)} h`;if(com)s+=` · dojíždění ${fmtH(com)} h v Alvianu`;if(ot)s+=` · přesčas ${fmtH(ot)} h`;return s}
+function alvianExtra(e){return e?r2(Math.max(0,num(e.baseHours)-num(e.commuteHours))):0}
+function stazToggleHTML(date,es){if(typeof dayHasStazka==='function'&&dayHasStazka(es))return '<span class="staz-ok">Stazka ✓</span>';const on=!!(rd&&rd.date===date&&rd.skip);return `<label class="chk st-skip"><input type="checkbox" data-act="cardSkip" data-date="${esc(date)}" ${on?'checked':''}> Bez stazky</label>`}
+function alvianRowHTML(date,es){const v=rd&&rd.date===date?num(rd.alvian):alvianExtra(typeof rdTarget==='function'?rdTarget(es):null);return `<div class="alv-row"><span>Z toho Alvian: <b>${fmtH(v)} h</b></span><div class="step-row"><button type="button" data-act="cardAlv" data-date="${esc(date)}" data-m="-0.5">−0,5</button><button type="button" data-act="cardAlv" data-date="${esc(date)}" data-m="0.5">+0,5</button></div></div>`}
+function hoursOverview(date,es){const st=stampsFor(date);const saved=es.filter(e=>num(e.totalHours)>0||num(e.jobHours)>0||num(e.baseHours)>0);const showIn=st.workIn||(saved.find(e=>e.startTime)||{}).startTime||'';const showOut=st.workOut||(saved.find(e=>e.endTime)||{}).endTime||'';const draft=!!(st.workIn||st.workOut);let hourLine='',payLine='';if(!rd||rd.date===date)ensureRd(date);
+ const mine=rd&&rd.date===date,live=!!(mine&&rd.touched&&showIn&&showOut);
+ if(live||(showIn&&showOut&&!(saved.length&&!draft))){const m=rdHours(showIn,showOut),c=calc(rdPreview(m));hourLine=(saved.length&&!draft?'': 'odhad ')+paySplitLine(m.jobH,m.base,m.com,m.ot,m.total);payLine=(saved.length&&!draft?`Výdělek ${cash(c.work)}`:`odhad ${cash(c.work)} · Uloží se až tlačítkem Uložit den dole.`)}
+ else if(saved.length&&!draft){const job=saved.reduce((s,e)=>s+num(e.jobHours),0),base=saved.reduce((s,e)=>s+num(e.baseHours),0),com=saved.reduce((s,e)=>s+num(e.commuteHours),0),ot=saved.reduce((s,e)=>s+num(e.overtime),0),work=saved.reduce((s,e)=>s+calc(e).work,0);hourLine=paySplitLine(job,base,com,ot,saved.reduce((s,e)=>s+num(e.totalHours),0));payLine=`Výdělek ${cash(work)}`}
+ else{hourLine='Hodiny se dopočítají po odchodu.';payLine='Uloží se až tlačítkem Uložit den dole.'}const col=(key,label,shown)=>{const raw=shown&&clockText(shown)!=='––:––'?clockText(shown):'';return `<div class="ov-col"><small>${label}</small><label class="ov-pick${raw?' has-value':''}"><span class="ov-clock">${raw?hm(raw):'—'}</span><input type="time" data-stamp-edit="${key}" data-date="${date}" data-seed="${esc(raw)}" value="${esc(raw)}" aria-label="${label}"></label><div class="step-row"><button type="button" data-act="workNow" data-k="${key}" data-date="${date}">Teď</button><button type="button" data-act="workShift" data-k="${key}" data-date="${date}" data-m="-30">−30</button><button type="button" data-act="workShift" data-k="${key}" data-date="${date}" data-m="30">+30</button></div></div>`};return `<div class="ov ov-hours" data-act="quickDay" data-date="${date}"><div class="ov-h"><span>Docházka</span>${draft?'<i class="part">není uloženo</i>':''}</div><div class="ov-grid ov-2">${col('workIn','Příchod do práce',showIn)}${col('workOut','Odchod',showOut)}</div><p class="ov-meta">${esc(hourLine)}</p><div class="ov-payrow"><p class="ov-pay">${esc(payLine)}</p>${stazToggleHTML(date,es)}</div>${alvianRowHTML(date,es)}${typeof craneRowHTML==='function'?craneRowHTML(date):''}${stazkaBlock(date,es,'cardStaz')}</div>`}
 const PLACE_SMALL=new Set(['nad','pod','u','v','ve','na','při','a','za']);
 const PLACE_ABBR={hk:'HK'};
 function foldPlace(s){return String(s||'').trim().toLocaleLowerCase('cs').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ')}
@@ -1498,6 +1566,9 @@ function scheduleQuickRoute(){clearTimeout(rqTimer);rqTimer=setTimeout(()=>{
 },400)}
 function rqClock(id,label,value){const v=value||'';return `<div class="trip-time"><span class="trip-time-l">${label}</span><div class="trip-clock"><span class="trip-clock-v">${esc(v||'––:––')}</span><input id="${id}" type="time" value="${esc(v)}" aria-label="${label}"></div><div class="step-row"><button type="button" data-act="rqShift" data-f="${id}" data-m="-30">−30 min</button><button type="button" data-act="rqShift" data-f="${id}" data-m="30">+30 min</button></div></div>`}
 function rqCard(id,label,value,times){return `<section class="trip-card"><label class="trip-k" for="${id}">${label}</label><input class="trip-place" id="${id}" list="rq_places" value="${esc(value)}" autocomplete="off">${rqChips(id)}${times}</section>`}
+function cestakInsideNote(e){if(!e)return '';const t=e.travel||{};const a=toMin(e.startTime),b=toMin(e.endTime);if(a===null||b===null)return '';const len=(spanH(e.startTime,e.endTime)||0)*60;if(!(len>0))return '';const inside=tm=>{if(tm===null)return false;const o=(tm-a+1440)%1440;return o>0&&o<len};if([t.start,t.arrival,t.returnStart,t.returnArrival].some(x=>inside(toMin(x))))return 'Časy cesty jsou uvnitř docházky. Uložit to nebrání.';return ''}
+function paintRqHint(){const el=$('#rq_hint');if(!el)return;const btn=document.querySelector('[data-act="rqSave"]');const date=btn&&btn.dataset.date;const es=date?(state.entries||[]).filter(e=>e.date===date):[];const work=es.find(e=>e.startTime&&e.endTime)||{};el.textContent=cestakInsideNote({startTime:work.startTime,endTime:work.endTime,travel:{start:normClock($('#rq_leave')&&$('#rq_leave').value),arrival:normClock($('#rq_arr')&&$('#rq_arr').value),returnStart:normClock($('#rq_dep')&&$('#rq_dep').value),returnArrival:normClock($('#rq_home')&&$('#rq_home').value)}})}
+
 function openQuickCestak(date){
  const st=stampsFor(date),es=(typeof byDate==='function'?byDate()[date]:[])||[];
  const src=(es.find(e=>typeof travelClaim==='function'&&travelClaim(e)))||es.find(e=>(typeof entryPlace==='function'&&entryPlace(e))||custOf(e))||es[0];
@@ -1511,35 +1582,58 @@ function openQuickCestak(date){
  const leave0=String(have.start||'').trim()||st.leave||'',arr0=String(have.arrival||'').trim()||st.arrive||'',dep0=String(have.returnStart||'').trim()||st.depart||'',home0=String(have.returnArrival||'').trim()||st.home||'',km0=num(have.km)>0?String(num(have.km)):'';
  rqTouch={leave:!!leave0,home:!!home0,km:!!km0};rqRoute=null;
  $('#dlg').classList.remove('qdlg');$('#dlg').classList.add('tripdlg');
- $('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlý cesťák</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Účel Služební cesta. Uloží se až tlačítkem.</p>${placeToolsHTML()}<datalist id="rq_places">${places.map(p=>`<option value="${esc(p)}">`).join('')}</datalist><div class="trip">${rqCard('rq_from','Odkud',from,rqClock('rq_leave','Odjezd',leave0))}<p class="trip-leg" id="rq_leg"></p>${rqCard('rq_to','Kam',to,`<div class="trip-times">${rqClock('rq_arr','Příjezd',arr0)}${rqClock('rq_dep','Odjezd z místa',dep0)}</div>`)}<p class="trip-leg" id="rq_leg_back"></p>${rqCard('rq_back','Zpět kam',back,rqClock('rq_home','Příjezd',home0))}<div class="trip-km"><label for="rq_km">Km tam a zpět</label><input id="rq_km" inputmode="decimal" value="${esc(km0)}"></div></div></div><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="rqSave" data-date="${date}">Uložit</button></div>`;
- if(!$('#dlg').open)$('#dlg').showModal();syncRqChips();scheduleQuickRoute();
+ $('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlý cesťák</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Účel Služební cesta. Uloží se až tlačítkem.</p>${placeToolsHTML()}<datalist id="rq_places">${places.map(p=>`<option value="${esc(p)}">`).join('')}</datalist><div class="trip">${rqCard('rq_from','Odkud',from,rqClock('rq_leave','Odjezd',leave0))}<p class="trip-leg" id="rq_leg"></p>${rqCard('rq_to','Kam',to,`<div class="trip-times">${rqClock('rq_arr','Příjezd',arr0)}${rqClock('rq_dep','Odjezd z místa',dep0)}</div>`)}<p class="trip-leg" id="rq_leg_back"></p>${rqCard('rq_back','Zpět kam',back,rqClock('rq_home','Příjezd',home0))}<div class="trip-km"><label for="rq_km">Km tam a zpět</label><input id="rq_km" inputmode="decimal" value="${esc(km0)}"></div></div></div><p class="trip-hint" id="rq_hint"></p><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zrušit</button><button type="button" class="btn" data-act="rqSave" data-date="${date}">Uložit</button></div>`;
+ if(!$('#dlg').open)$('#dlg').showModal();syncRqChips();scheduleQuickRoute();paintRqHint();
 }
 let rqSaving=false;
 async function saveQuickCestak(date){
- if(rqSaving)return;rqSaving=true;
- try{await Promise.all(['rq_from','rq_to','rq_back'].map(id=>commitPlaceInput(document.getElementById(id))));
- const arr=$('#rq_arr')?$('#rq_arr').value:'',dep=$('#rq_dep')?$('#rq_dep').value:'';
- const st=stampsFor(date),es=state.entries.filter(e=>e.date===date);
- const src=es.find(e=>(typeof entryPlace==='function'&&entryPlace(e))||custOf(e))||es[0];
- const misto=src?((typeof entryPlace==='function'&&entryPlace(src))||custOf(src)||''):'';
- const cust=src?custOf(src):'';
- let e=es.find(x=>typeof travelClaim==='function'&&travelClaim(x))||es[0],created=false;
- if(!e){e={id:newId(),date,startTime:'',endTime:'',lunchHours:0,totalHours:0,note:'',jobHours:0,baseHours:0,commuteHours:0,overtime:0,weekendHours:0,vacationHours:0,sickHours:0,doctorHours:0,tripHours:0,noTravelOrder:false,customer:cust,place:misto,travel:blankTravel()};if(st.leave&&st.home){e.startTime=st.leave;e.endTime=st.home;const c=commuteFromStamps(st);if(c!=null)e.commuteHours=c}created=true}
- else{e.travel=Object.assign(blankTravel(),e.travel||{});e.noTravelOrder=false;if(!e.place&&misto)e.place=misto;if(!e.customer&&cust)e.customer=cust}
- const from=canonPlace($('#rq_from')&&$('#rq_from').value)||HK_PLACE,to=canonPlace($('#rq_to')&&$('#rq_to').value),back=canonPlace($('#rq_back')&&$('#rq_back').value)||HK_PLACE;
- const leave=($('#rq_leave')&&$('#rq_leave').value||'').trim(),home=($('#rq_home')&&$('#rq_home').value||'').trim(),kmRaw=$('#rq_km')?$('#rq_km').value:'';
- const partial=!(dep||home);
- if(!from||!to||!(leave||arr||dep||home)){toast('Vyplň odkud, kam a aspoň jeden čas.','err');return}
- const t=e.travel;t.from=from;t.to=to;t.returnTo=back;if(!String(t.purpose||'').trim())t.purpose='Služební cesta';if(to&&!e.place)e.place=to;if(leave)t.start=leave;else if(st.leave&&!String(t.start||'').trim())t.start=st.leave;if(home)t.returnArrival=home;else if(st.home&&!String(t.returnArrival||'').trim())t.returnArrival=st.home;if(String(kmRaw).trim()!=='')t.km=num(kmRaw);t.arrival=arr;t.returnStart=dep;
- if(to&&!e.place)e.place=to;if(e.place)e.place=canonPlace(e.place);
- if(created)state.entries.push(e);
- saveData();$('#dlg').close();render();toast(partial?'Cesťák uložen (rozpracovaný)':'Cesťák uložen','silent');
- }finally{rqSaving=false}
+ if(rqSaving)return false;
+ const grab=id=>normClock(document.getElementById(id)&&document.getElementById(id).value);
+ const from0=canonPlace($('#rq_from')&&$('#rq_from').value)||HK_PLACE;
+ const to0=canonPlace($('#rq_to')&&$('#rq_to').value);
+ const back0=canonPlace($('#rq_back')&&$('#rq_back').value)||HK_PLACE;
+ const leave0=grab('rq_leave'),arr0=grab('rq_arr'),dep0=grab('rq_dep'),home0=grab('rq_home');
+ if(!from0||!to0||!(leave0||arr0||dep0||home0)){toast('Vyplň odkud, kam a aspoň jeden čas.','err');return false}
+ try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}
+ rqSaving=true;
+ try{
+  await Promise.all(['rq_from','rq_to','rq_back'].map(id=>commitPlaceInput(document.getElementById(id))));
+  const from=canonPlace($('#rq_from')&&$('#rq_from').value)||from0;
+  const to=canonPlace($('#rq_to')&&$('#rq_to').value)||to0;
+  const back=canonPlace($('#rq_back')&&$('#rq_back').value)||back0;
+  const leave=grab('rq_leave')||leave0,arr=grab('rq_arr')||arr0,dep=grab('rq_dep')||dep0,home=grab('rq_home')||home0;
+  const es=state.entries.filter(e=>e.date===date);
+  const src=es.find(e=>(typeof entryPlace==='function'&&entryPlace(e))||custOf(e))||es[0];
+  const misto=src?((typeof entryPlace==='function'&&entryPlace(src))||custOf(src)||''):'';
+  const cust=src?custOf(src):'';
+  let e=es.find(x=>typeof travelClaim==='function'&&travelClaim(x))||es[0],created=false;
+  if(!e){e={id:newId(),date,startTime:'',endTime:'',lunchHours:0,totalHours:0,note:'',jobHours:0,baseHours:0,commuteHours:0,overtime:0,weekendHours:0,vacationHours:0,sickHours:0,doctorHours:0,tripHours:0,noTravelOrder:false,customer:cust,place:misto,travel:blankTravel()};created=true}
+  else{e.travel=Object.assign(blankTravel(),e.travel||{});e.noTravelOrder=false;if(!e.place&&misto)e.place=misto;if(!e.customer&&cust)e.customer=cust}
+  const partial=!(dep||home);
+  const t=e.travel;
+  t.from=from;t.to=to;t.returnTo=back;
+  if(!String(t.purpose||'').trim())t.purpose='Služební cesta';
+  if(to&&!e.place)e.place=to;
+  t.start=leave||'';t.arrival=arr||'';t.returnStart=dep||'';t.returnArrival=home||'';
+  const kmRaw=$('#rq_km')?$('#rq_km').value:'';
+  if(String(kmRaw).trim()!=='')t.km=num(kmRaw);
+  if(e.place)e.place=canonPlace(e.place);
+  if(t.start&&t.returnArrival)e.tripHours=r2(spanH(t.start,t.returnArrival)||0);
+  else if(partial)e.tripHours=0;
+  if(created)state.entries.push(e);
+  saveData();$('#dlg').close();render();
+  toast((partial?'Cesťák uložen (rozpracovaný)':'Cesťák uložen')+(cestakInsideNote(e)?' · časy uvnitř docházky':''),'silent');
+  return true;
+ }catch(err){try{window.__sounds&&window.__sounds.cancelChaChing()}catch(x){}toast('Cesťák se nepodařilo uložit.','err');return false}
+ finally{rqSaving=false}
 }
+
+
 let rd=null,rdSaving=false,skipWorkStamp=false;
 function rdLeaveOnly(e){return !!(e&&!num(e.totalHours)&&!num(e.jobHours)&&!num(e.baseHours)&&(num(e.vacationHours)||num(e.sickHours)||num(e.dpnHours)||num(e.doctorHours)))}
 function rdTarget(es){es=es||[];return es.find(e=>num(e.totalHours)>0||num(e.jobHours)>0||num(e.baseHours)>0)||es.find(e=>typeof travelClaim==='function'&&travelClaim(e)&&!rdLeaveOnly(e))||es.find(e=>!rdLeaveOnly(e))||null}
-function rdHours(start,end){const span=spanH(start,end);const lunch=num(rd&&rd.lunch);const total=span==null?0:Math.max(0,r2(span-lunch));const job=!rd||rd.kind!=='depo';const com=job?Math.min(num(rd&&rd.commute),total):0;const base=job?r2(com):total;const jobH=r2(Math.max(0,total-base));const ot=r2(Math.max(0,total-8-com));return {total,com:r2(com),base,jobH,ot,lunch}}
+function normClock(v){const c=clockText(v);return c==='––:––'?'':c}
+function rdHours(start,end){const span=spanH(normClock(start),normClock(end));const lunch=num(rd&&rd.lunch);const total=span==null?0:Math.max(0,r2(span-lunch));const depo=!!(rd&&rd.kind==='depo');const com=depo?0:Math.min(num(rd&&rd.commute),total);const room=r2(Math.max(0,total-com));const alv=depo?room:Math.min(room,r2(Math.max(0,num(rd&&rd.alvian))));const base=r2(com+alv);const jobH=r2(Math.max(0,total-base));const ot=r2(Math.max(0,total-8-com));return {total,com:r2(com),base,jobH,ot,lunch,alv}}
 function rdRead(){const start=($('#rd_in')&&$('#rd_in').value||'').trim(),end=($('#rd_out')&&$('#rd_out').value||'').trim(),skip=!!($('#rd_noStazka')&&$('#rd_noStazka').checked&&!$('#rd_noStazka').disabled);return Object.assign({start,end,skip},rdHours(start,end))}
 let dayDraftPhotos=[];
 function dayDraftFor(date){return dayDraftPhotos.filter(p=>p&&p._date===date)}
@@ -1551,15 +1645,16 @@ function stazkaBlock(date,es,id){const target=rdTarget(es);const fileTarget=targ
 function refreshRdPhotos(){if(!rd||!$('#rdPhotos'))return;const es=byDate()[rd.date]||[],target=rdTarget(es),box=$('#rdPhotos .rd-thumbs');if(!box)return;const photos=(target&&target.photos&&target.photos.length)?target.photos:dayDraftFor(rd.date);const thumbs=photos.length&&typeof thumbHTML==='function'?`<div class="st-photos">${photos.map(p=>thumbHTML(p,target||null)).join('')}</div>`:'';const share=target&&photos.length&&typeof shareAreaHTML==='function'?shareAreaHTML(photos,target.id):'';box.innerHTML=thumbs+share;if(typeof hydrateThumbs==='function')hydrateThumbs(box);const skip=$('#rd_noStazka');if(skip&&photos.length){skip.checked=false;skip.disabled=true}}
 function dayTiles(date){return typeof quickButtons==='function'?quickButtons([date],{tilesOnly:1,compact:1}):''}
 function daySaveBtn(date,es){const st=stampsFor(date);const saved=es.filter(e=>num(e.totalHours)>0||num(e.jobHours)>0||num(e.baseHours)>0);const showIn=st.workIn||(saved.find(e=>e.startTime)||{}).startTime||'';const showOut=st.workOut||(saved.find(e=>e.endTime)||{}).endTime||'';const ready=!!(showIn&&showOut);return `<button type="button" class="btn ov-save" data-act="saveDay" data-date="${date}" ${ready?'':'disabled'} title="${ready?'Uložit příchod a odchod':'Nejdřív vyplň příchod a odchod'}">Uložit den</button>`}
-function ensureRd(date){if(rd&&rd.date===date)return;const es=byDate()[date]||[],target=rdTarget(es),last=typeof tplJobSrc==='function'?tplJobSrc(date):null;let customer='';if(target&&custOf(target))customer=custOf(target);else if(last)customer=custOf(last);const worked=target&&(num(target.totalHours)>0||num(target.jobHours)>0||num(target.baseHours)>0||target.startTime);const lunch=worked?num(target.lunchHours):num(tpl.depo&&tpl.depo.lunch);const commute=worked?num(target.commuteHours):0;let kind='job';if(worked)kind=num(target.jobHours)>0?'job':'depo';else if(last&&!num(last.jobHours)&&num(last.baseHours)>0)kind='depo';rd={date,kind,lunch,commute,customer,machine:(target&&target.machine)||'',copyTravel:null,copyTrip:0,copyPlace:''}}
-function saveDayFromCard(date){ensureRd(date);const es=byDate()[date]||[],st=stampsFor(date),target=rdTarget(es);const start=st.workIn||(target&&target.startTime)||'',end=st.workOut||(target&&target.endTime)||'';if(!start||!end){toast('Nejdřív vyplň příchod a odchod.','err');return}return saveQuickDay({start,end,skip:!!(target&&target.noStazka)})}
-function rdFill(e,m){e.date=rd.date;e.startTime=m.start||'';e.endTime=m.end||'';e.lunchHours=m.lunch;e.totalHours=m.total;e.jobHours=m.jobH;e.baseHours=m.base;e.commuteHours=m.com;e.overtime=m.ot;e.weekendHours=isWeekend(rd.date)?m.total:0;if(rd.kind==='job'){if(!custOf(e)&&rd.customer)e.customer=rd.customer;if(rd.machine&&!e.machine&&(e.customer||custOf(e)))e.machine=rd.machine;if(e.note==='Depo')e.note=''}else if(!String(e.note||'').trim())e.note='Depo';if(!(e.photos&&e.photos.length)){if(m.skip)e.noStazka=true;else delete e.noStazka}if(!e.travel)e.travel=blankTravel();if(typeof travelClaim!=='function'||!travelClaim(e))e.noTravelOrder=true;return e}
+function ensureRd(date){if(rd&&rd.date===date)return;const es=byDate()[date]||[],target=rdTarget(es),last=typeof tplJobSrc==='function'?tplJobSrc(date):null;let customer='';if(target&&custOf(target))customer=custOf(target);else if(last)customer=custOf(last);const worked=target&&(num(target.totalHours)>0||num(target.jobHours)>0||num(target.baseHours)>0||target.startTime);const lunch=worked?num(target.lunchHours):num(tpl.depo&&tpl.depo.lunch);const commute=worked?num(target.commuteHours):0;let kind='job';if(worked)kind=num(target.jobHours)>0?'job':'depo';else if(last&&!num(last.jobHours)&&num(last.baseHours)>0)kind='depo';const has=typeof dayHasStazka==='function'&&dayHasStazka(es);rd={date,kind,lunch,commute,alvian:worked?alvianExtra(target):0,skip:!!(target&&target.noStazka)&&!has,touched:false,craneTouched:false,customer,machine:(target&&target.machine)||'',copyTravel:null,copyTrip:0,copyPlace:''}}
+function saveDayFromCard(date){ensureRd(date);const es=byDate()[date]||[],st=stampsFor(date),target=rdTarget(es);const start=normClock(st.workIn||(target&&target.startTime)||''),end=normClock(st.workOut||(target&&target.endTime)||'');if(!start||!end){toast('Nejdřív vyplň příchod a odchod.','err');return false}return saveQuickDay({start,end,skip:!!rd.skip})}
+function rdFill(e,m){e.date=rd.date;e.startTime=m.start||'';e.endTime=m.end||'';e.lunchHours=m.lunch;e.totalHours=m.total;e.jobHours=m.jobH;e.baseHours=m.base;e.commuteHours=m.com;e.overtime=m.ot;e.weekendHours=isWeekend(rd.date)?m.total:0;if(rd.kind==='job'){if(!custOf(e)&&rd.customer)e.customer=rd.customer;if(e.note==='Depo')e.note=''}else if(!String(e.note||'').trim())e.note='Depo';if(rd.craneTouched&&rd.machine&&typeof applyCraneNote==='function')applyCraneNote(e,rd.machine);else if(rd.machine&&!e.machine)e.machine=rd.machine;if(!(e.photos&&e.photos.length)){if(m.skip)e.noStazka=true;else delete e.noStazka}if(!e.travel)e.travel=blankTravel();if(typeof travelClaim!=='function'||!travelClaim(e))e.noTravelOrder=true;return e}
 function rdPreview(m){const target=rdTarget(state.entries.filter(e=>e.date===rd.date));const e=target?clone(target):{date:rd.date,travel:blankTravel(),vacationHours:0,sickHours:0,doctorHours:0,tripHours:0,noTravelOrder:true};if(!target){e.travel=blankTravel();e.noTravelOrder=true;e.vacationHours=0;e.sickHours=0;e.doctorHours=0;e.tripHours=0}return rdFill(e,m)}
-function rdRefresh(){if(!rd||!$('#rd_in'))return;const m=rdRead(),sum=$('#rd_sum'),pay=$('#rd_pay'),st=$('#rd_staz');if(!m.start||!m.end){if(sum)sum.textContent='Vyplň příchod a odchod.';if(pay)pay.textContent='Uloží se až tlačítkem Uložit.'}else{const rt=R(),bits=[fmtH(m.total)+' h',lunchTxt(m.lunch)];if(rd.kind==='depo')bits.push(`Alvian ${fmtH(m.base)} h × ${rt.base}`);else bits.push(`zákazník ${fmtH(m.jobH)} h × ${rt.job}`);if(m.com)bits.push(`dojíždění ${fmtH(m.com)} h v Alvianu`);if(m.ot)bits.push(`přesčas ${fmtH(m.ot)} h`);if(sum)sum.textContent=bits.join(' · ').replace(/ h/g,'\u00a0h');if(pay){const c=calc(rdPreview(m));pay.innerHTML=`<b>${cash(c.work)}</b>${c.diet?` · stravné ${cash(c.diet)}`:''}`}}const es=byDate()[rd.date]||[],has=typeof dayHasStazka==='function'&&dayHasStazka(es);if(st)st.textContent=has?'Stazka máš':(m.skip?'Bez stazky':(rd.kind==='job'?'Stazka chybí':'Stazka —'));document.querySelectorAll('[data-act="rdKind"]').forEach(b=>{const on=b.dataset.k===rd.kind;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')})}
+function rdRefresh(){if(!rd||!$('#rd_in'))return;const m=rdRead(),sum=$('#rd_sum'),pay=$('#rd_pay'),st=$('#rd_staz'),av=$('#rd_alv');if(av)av.textContent=fmtH(rd.kind==='depo'?m.alv:Math.min(num(rd.alvian),m.total||num(rd.alvian)))+' h';if(!m.start||!m.end){if(sum)sum.textContent='Vyplň příchod a odchod.';if(pay)pay.textContent='Uloží se až tlačítkem Uložit.'}else{const bits=[fmtH(m.total)+' h',lunchTxt(m.lunch),paySplitLine(m.jobH,m.base,m.com,m.ot,m.total)];if(sum)sum.textContent=bits.join(' · ').replace(/ h/g,'\u00a0h');if(pay){const c=calc(rdPreview(m));pay.innerHTML=`<b>${cash(c.work)}</b>${c.diet?` · stravné ${cash(c.diet)}`:''}`}}const es=byDate()[rd.date]||[],has=typeof dayHasStazka==='function'&&dayHasStazka(es);if(st)st.textContent=has?'Stazka ✓':(!m.skip&&rd.kind==='job'?'Stazka chybí':'');document.querySelectorAll('[data-act="rdKind"]').forEach(b=>{const on=b.dataset.k===rd.kind;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')});document.querySelectorAll('[data-act="rdLunch"]').forEach(b=>{const want=num(b.dataset.l),have=num(rd.lunch);const on=want===0?have===0:have>0;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')})}
+
 function rdClock(id,label,value){const v=value||'';return `<div class="trip-time"><span class="trip-time-l">${label}</span><div class="trip-clock${v?' has-value':''}"><span class="trip-clock-v">${esc(clockText(v)==='––:––'?'––:––':clockText(v))}</span><input id="${id}" type="time" value="${esc(clockText(v)==='––:––'?'':clockText(v))}" aria-label="${label}"></div><div class="step-row"><button type="button" data-act="rdNow" data-f="${id}">Teď</button><button type="button" data-act="rdShift" data-f="${id}" data-m="-30">−30</button><button type="button" data-act="rdShift" data-f="${id}" data-m="30">+30</button></div></div>`}
-function openQuickDay(date){const es=byDate()[date]||[],target=rdTarget(es),last=typeof tplJobSrc==='function'?tplJobSrc(date):null;let customer='';if(target&&custOf(target))customer=custOf(target);else if(last)customer=custOf(last);const worked=target&&(num(target.totalHours)>0||num(target.jobHours)>0||num(target.baseHours)>0||target.startTime);const lunch=worked?num(target.lunchHours):num(tpl.depo&&tpl.depo.lunch);const commute=worked?num(target.commuteHours):0;let kind='job';if(worked)kind=num(target.jobHours)>0?'job':'depo';else if(last&&!num(last.jobHours)&&num(last.baseHours)>0)kind='depo';const st=stampsFor(date);const showIn=st.workIn||(target&&target.startTime)||'',showOut=st.workOut||(target&&target.endTime)||'';const has=typeof dayHasStazka==='function'&&dayHasStazka(es);const rt=R();rd={date,kind,lunch,commute,customer,machine:(target&&target.machine)||(last&&customer&&custOf(last)===customer?last.machine:'')||'',copyTravel:null,copyTrip:0,copyPlace:''};$('#dlg').classList.remove('qdlg');$('#dlg').classList.add('tripdlg');$('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlá docházka</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Uloží se až tlačítkem Uložit.</p><div class="trip"><div class="ord-seg rd-kind" role="tablist" aria-label="Typ dne"><button type="button" data-act="rdKind" data-k="job" class="${kind==='job'?'on':''}" aria-pressed="${kind==='job'?'true':'false'}">Zákazník ${esc(String(rt.job))}</button><button type="button" data-act="rdKind" data-k="depo" class="${kind==='depo'?'on':''}" aria-pressed="${kind==='depo'?'true':'false'}">Depo · Alvian ${esc(String(rt.base))}</button></div><p class="muted rd-note">Příprava a nakládka pro zákazníka je zákazník.</p><section class="trip-card"><div class="trip-times">${rdClock('rd_in','Příchod do práce',showIn)}${rdClock('rd_out','Odchod',showOut)}</div></section><div class="trip-km rd-live"><p id="rd_sum"></p><p id="rd_pay"></p></div><p class="rd-staz" id="rd_staz"></p><div class="rd-skip">${bezStazkaBox(!!(target&&target.noStazka)&&!has,`id="rd_noStazka"${has?' disabled':''}`)}</div>${stazkaBlock(date,es,'rdPhotos')}</div></div><div class="dlg-foot rd-foot"><button type="button" class="btn sec" data-act="rdFull">Podrobnější</button><button type="button" class="btn" data-act="rdSave">Uložit</button></div>`;if(!$('#dlg').open)$('#dlg').showModal();syncTripClocks(document.getElementById('dlg'));rdRefresh()}
+function openQuickDay(date){const es=byDate()[date]||[],target=rdTarget(es),last=typeof tplJobSrc==='function'?tplJobSrc(date):null;let customer='';if(target&&custOf(target))customer=custOf(target);else if(last)customer=custOf(last);const worked=target&&(num(target.totalHours)>0||num(target.jobHours)>0||num(target.baseHours)>0||target.startTime);const lunch=worked?num(target.lunchHours):num(tpl.depo&&tpl.depo.lunch);const commute=worked?num(target.commuteHours):0;let kind='job';if(worked)kind=num(target.jobHours)>0?'job':'depo';else if(last&&!num(last.jobHours)&&num(last.baseHours)>0)kind='depo';const st=stampsFor(date);const showIn=st.workIn||(target&&target.startTime)||'',showOut=st.workOut||(target&&target.endTime)||'';const has=typeof dayHasStazka==='function'&&dayHasStazka(es);ensureRd(date);const rt=R();$('#dlg').classList.remove('qdlg');$('#dlg').classList.add('tripdlg');$('#dlg').innerHTML=`<div class="dlg-head"><h2>Rychlá docházka</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><p class="muted">${esc(fmtDate(date))}. Uloží se až tlačítkem Uložit.</p><div class="trip"><div class="ord-seg rd-kind" role="tablist" aria-label="Typ dne"><button type="button" data-act="rdKind" data-k="job" class="${rd.kind==='job'?'on':''}" aria-pressed="${rd.kind==='job'?'true':'false'}">Zákazník ${esc(String(rt.job))}</button><button type="button" data-act="rdKind" data-k="depo" class="${rd.kind==='depo'?'on':''}" aria-pressed="${rd.kind==='depo'?'true':'false'}">Depo · Alvian ${esc(String(rt.base))}</button></div><p class="muted rd-note">Příprava a nakládka pro zákazníka je zákazník. Dojezd není přesčas.</p><section class="trip-card"><div class="trip-times">${rdClock('rd_in','Příchod do práce',showIn)}${rdClock('rd_out','Odchod',showOut)}</div></section><div class="ord-seg lunch-seg" role="group" aria-label="Oběd"><button type="button" data-act="rdLunch" data-l="0.5">Oběd −30 min</button><button type="button" data-act="rdLunch" data-l="0">Bez oběda</button></div><div class="alv-row"><span>Z toho Alvian: <b id="rd_alv">${fmtH(rd.alvian)} h</b></span><div class="step-row"><button type="button" data-act="rdAlv" data-m="-0.5">−0,5</button><button type="button" data-act="rdAlv" data-m="0.5">+0,5</button></div></div><div class="trip-km rd-live"><p id="rd_sum"></p><p id="rd_pay"></p></div><p class="rd-staz" id="rd_staz"></p><div class="rd-skip">${bezStazkaBox(!!rd.skip&&!has,`id="rd_noStazka"${has?' disabled':''}`)}</div>${stazkaBlock(date,es,'rdPhotos')}</div></div><div class="dlg-foot rd-foot"><button type="button" class="btn sec" data-act="rdFull">Podrobnější</button><button type="button" class="btn" data-act="rdSave">Uložit</button></div>`;if(!$('#dlg').open)$('#dlg').showModal();syncTripClocks(document.getElementById('dlg'));rdRefresh()}
 function clearWorkStamps(date){const cur=Object.assign({},stampsFor(date));if(!cur.workIn&&!cur.workOut)return;delete cur.workIn;delete cur.workOut;if(Object.keys(cur).length)stampBook[date]=cur;else delete stampBook[date];saveStamps()}
-async function saveQuickDay(preset){if(!rd||rdSaving)return;rdSaving=true;try{const raw=preset||rdRead();const m=Object.assign({},raw,rdHours(raw.start,raw.end));if(preset)m.skip=!!preset.skip;if(!m.start||!m.end){toast('Vyplň příchod i odchod.','err');return}if(!m.total){toast('Zkontroluj časy.','err');return}const date=rd.date,es=state.entries.filter(e=>e.date===date),target=rdTarget(es);if(!target&&es.length&&es.every(rdLeaveOnly)){toast('Tenhle den je volno. Nic jsem neměnil.','err');return}const created=!target;const e=target||{id:newId(),date,travel:blankTravel(),vacationHours:0,sickHours:0,doctorHours:0,tripHours:0,noTravelOrder:true};if(created){e.travel=blankTravel();e.noTravelOrder=true;e.vacationHours=0;e.sickHours=0;e.doctorHours=0;e.tripHours=0}rdFill(e,m);if(rd.copyTravel&&(typeof travelClaim!=='function'||!travelClaim(e))){e.travel=clone(rd.copyTravel);e.tripHours=num(rd.copyTrip)||0;e.noTravelOrder=false;if(!e.customer&&rd.customer)e.customer=rd.customer;if(!e.place&&rd.copyPlace)e.place=rd.copyPlace;if(!e.machine&&rd.machine)e.machine=rd.machine}attachDayDraft(e,date);if(created)state.entries.push(e);clearWorkStamps(date);saveData();$('#dlg').close();render();toast('Docházka uložena','silent');if(typeof celebrateSave==='function')celebrateSave(e)}finally{rdSaving=false}}
+async function saveQuickDay(preset){if(!rd||rdSaving)return;rdSaving=true;try{const raw=preset||rdRead();const m=Object.assign({},raw,rdHours(raw.start,raw.end));if(preset)m.skip=!!preset.skip;if(!m.start||!m.end){toast('Vyplň příchod i odchod.','err');return false}if(!m.total){toast('Zkontroluj časy.','err');return false}const date=rd.date,es=state.entries.filter(e=>e.date===date),target=rdTarget(es);if(!target&&es.length&&es.every(rdLeaveOnly)){toast('Tenhle den je volno. Nic jsem neměnil.','err');return false}try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}const created=!target;const e=target||{id:newId(),date,travel:blankTravel(),vacationHours:0,sickHours:0,doctorHours:0,tripHours:0,noTravelOrder:true};if(created){e.travel=blankTravel();e.noTravelOrder=true;e.vacationHours=0;e.sickHours=0;e.doctorHours=0;e.tripHours=0}rdFill(e,m);if(rd.copyTravel&&(typeof travelClaim!=='function'||!travelClaim(e))){e.travel=clone(rd.copyTravel);e.tripHours=num(rd.copyTrip)||0;e.noTravelOrder=false;if(!e.customer&&rd.customer)e.customer=rd.customer;if(!e.place&&rd.copyPlace)e.place=rd.copyPlace;if(!e.machine&&rd.machine)e.machine=rd.machine}attachDayDraft(e,date);if(created)state.entries.push(e);clearWorkStamps(date);saveData();$('#dlg').close();render();toast('Docházka uložena','silent');if(typeof celebrateSave==='function')celebrateSave(e)}finally{rdSaving=false}}
 function rdFull(){if(!rd)return;const m=rdRead(),es=state.entries.filter(e=>e.date===rd.date),target=rdTarget(es);const e=target?clone(target):{date:rd.date,travel:blankTravel(),vacationHours:0,sickHours:0,doctorHours:0,tripHours:0,noTravelOrder:true};if(!target){e.travel=blankTravel();e.noTravelOrder=true;e.vacationHours=0;e.sickHours=0;e.doctorHours=0;e.tripHours=0}rdFill(e,m);skipWorkStamp=true;if(target)openForm(e);else openForm(null,rd.date,e)}
 function cestakPlace(s,short){const n=typeof canonPlace==='function'?canonPlace(s):String(s||'').trim();if(short&&n==='Hradec Králové')return 'HK';return n}
 function cestakPartial(e){const t=e&&e.travel||{};return !String(t.returnStart||'').trim()&&!String(t.returnArrival||'').trim()}
@@ -1633,17 +1728,26 @@ function qRefresh(){if(!qs)return{e:null,errs:[]};const e=qBuild(),c=calc(e),{er
  $('#qSaveBtn').innerHTML=`✓ Uložit · ${cash(c.all)}<small>výdělek ${cash(c.work)}${c.diet?` + stravné ${cash(c.diet)}`:''}${c.hol?' · svátek':isWeekend(e.date)&&e.totalHours?' · víkend':''}</small>`;
  $('#qmsgs').innerHTML=errs.map(x=>`<div class="msg err">✖ ${x}</div>`).join('');return{e,errs}}
 function qSave(){if(!qs)return;const{e,errs}=qRefresh();if(!e||errs.length||!e.totalHours){if(e&&!errs.length)$('#qmsgs').innerHTML='<div class="msg err">✖ Zkontroluj časy.</div>';return}
+ try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}
  const dropped=(qs.kind==='copy'||qs.kind==='job')&&dropDuplicateClaim(e);
- if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?${dropped?'\n\nCesťák v tento den už je, druhý se nepřidá.':''}`))return;
+ if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?${dropped?'\n\nCesťák v tento den už je, druhý se nepřidá.':''}`)){try{window.__sounds&&window.__sounds.cancelChaChing()}catch(x){}return}
  state.entries.push(e);saveData();if(typeof stitekSaved==='function')stitekSaved(e);qs=null;$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();if(typeof celebrateSave==='function')celebrateSave(e);toast(dropped?'Uloženo, druhý cesťák se nepřidal':'Uloženo','silent')}
 document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
  if(act==='close'&&rdHasUnsavedPhoto()){ev.stopPropagation();ev.preventDefault();if(confirm('Stazka ještě není uložená u dne. Zavřít a zahodit fotku?')){discardDayDraft();$('#dlg').close()}return}
- if(act==='quickDay'){if(ev.target.closest&&ev.target.closest('input,button,.ov-pick,.step-row,.st-file,.staz-up'))return;ev.stopPropagation();return openQuickDay(a.dataset.date)}
+ if(act==='quickDay'){if(ev.target.closest&&ev.target.closest('input,button,.ov-pick,.step-row,.st-file,.staz-up,.ov-payrow,.alv-row,.crane-row,.chk'))return;ev.stopPropagation();return openQuickDay(a.dataset.date)}
  if(act==='saveDay'){ev.stopPropagation();return saveDayFromCard(a.dataset.date)}
  if(act==='quickCestak'){ev.stopPropagation();return openQuickCestak(a.dataset.date)}
  if(act==='rdSave'){ev.stopPropagation();return saveQuickDay()}
  if(act==='rdFull'){ev.stopPropagation();return rdFull()}
- if(act==='rdKind'){ev.stopPropagation();if(!rd)return;rd.kind=a.dataset.k==='depo'?'depo':'job';rdRefresh();return}
+ if(act==='rdKind'){ev.stopPropagation();if(!rd)return;const next=a.dataset.k==='depo'?'depo':'job';if(next==='job'&&rd.kind==='depo')rd.alvian=0;rd.kind=next;rd.touched=true;rdRefresh();return}
+ if(act==='rdLunch'){ev.stopPropagation();if(!rd)return;rd.lunch=num(a.dataset.l);rd.touched=true;rdRefresh();return}
+ if(act==='rdAlv'||act==='cardAlv'){ev.stopPropagation();nudgeAlvian(act==='cardAlv'?a.dataset.date:(rd&&rd.date),num(a.dataset.m));return}
+ if(act==='pickCrane'){ev.stopPropagation();selectCrane(a.dataset.date,a.dataset.crane);return}
+ if(act==='craneMore'){ev.stopPropagation();openCranePicker(a.dataset.date);return}
+ if(act==='craneAdd'){ev.stopPropagation();addCraneFromPicker(a.dataset.date);return}
+ if(act==='craneCreate'){ev.stopPropagation();addCraneFromSettings();return}
+ if(act==='craneUpdate'){ev.stopPropagation();updateCraneRow(a);return}
+ if(act==='craneDelete'){ev.stopPropagation();deleteCraneRow(a.dataset.i);return}
  if(act==='rdNow'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;el.value=stampNow();syncTripClocks(el.closest('.trip-clock'));rdRefresh();return}
  if(act==='rdShift'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;const next=addMin(el.value||stampNow(),+a.dataset.m);if(!next)return;el.value=next;syncTripClocks(el.closest('.trip-clock'));rdRefresh();return}
  if(act==='rqSave'){ev.stopPropagation();return saveQuickCestak(a.dataset.date)}
@@ -1672,8 +1776,8 @@ document.addEventListener('pointercancel',()=>clearTimeout(holdTimer),true);
 document.addEventListener('contextmenu',ev=>{if(ev.target.closest&&ev.target.closest('.hk-chip[data-val]'))ev.preventDefault()},true);
 document.addEventListener('click',ev=>{const el=ev.target.closest('.qtv input');if(el&&el.showPicker)try{el.showPicker()}catch(e){}});
 document.addEventListener('focusin',ev=>{const el=ev.target;if(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock'))tripPicking=el.id},true);
-document.addEventListener('input',ev=>{const el=ev.target;if(el&&(el.id==='rd_in'||el.id==='rd_out')){onTripClock(el);rdRefresh();return}if(el&&el.dataset&&el.dataset.stampEdit){onWorkClock(el);return}if(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock')){onTripClock(el);if(String(el.id||'').startsWith('rq_'))return}if(el&&(el.id==='rq_from'||el.id==='rq_to'||el.id==='rq_back')){syncRqChips();if(el.id!=='rq_back')scheduleQuickRoute();return}if(el&&el.id==='rq_km'){rqTouch.km=true;return}if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
-document.addEventListener('change',ev=>{const el=ev.target;if(el&&(el.id==='rd_in'||el.id==='rd_out'||el.id==='rd_noStazka')){if(el.type==='time')onTripClock(el);rdRefresh();return}if(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock'))onTripClock(el);if(el&&el.dataset&&el.dataset.stampEdit){onWorkClock(el);return}if(el.dataset&&el.dataset.q&&qs){qs[el.dataset.q]=['lunch','commute'].includes(el.dataset.q)?num(el.value):el.value;qRefresh()}});
+document.addEventListener('input',ev=>{const el=ev.target;if(el&&(el.id==='rd_in'||el.id==='rd_out')){onTripClock(el);rdRefresh();return}if(el&&el.dataset&&el.dataset.stampEdit){onWorkClock(el);return}if(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock')){onTripClock(el);if(String(el.id||'').startsWith('rq_')){paintRqHint();return}}if(el&&(el.id==='rq_from'||el.id==='rq_to'||el.id==='rq_back')){syncRqChips();if(el.id!=='rq_back')scheduleQuickRoute();return}if(el&&el.id==='rq_km'){rqTouch.km=true;return}if(!el.dataset||!el.dataset.q||!qs)return;const k=el.dataset.q;qs[k]=['lunch','commute'].includes(k)?num(el.value):el.value;qRefresh()});
+document.addEventListener('change',ev=>{const el=ev.target;if(el&&el.dataset&&el.dataset.act==='cardSkip'){setCardSkip(el.dataset.date,!!el.checked);return}if(el&&(el.id==='rd_in'||el.id==='rd_out'||el.id==='rd_noStazka')){if(el.id==='rd_noStazka'&&rd){rd.skip=!!(el.checked&&!el.disabled);rd.touched=true}if(el.type==='time')onTripClock(el);rdRefresh();return}if(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock'))onTripClock(el);if(el&&el.dataset&&el.dataset.stampEdit){onWorkClock(el);return}if(el.dataset&&el.dataset.q&&qs){qs[el.dataset.q]=['lunch','commute'].includes(el.dataset.q)?num(el.value):el.value;qRefresh()}});
 document.addEventListener('focusout',ev=>{const el=ev.target;if(!(el&&el.type==='time'&&el.closest&&el.closest('.trip-clock')))return;onTripClock(el,()=>{if(el.id==='rd_in'||el.id==='rd_out')rdRefresh();if(tripPicking===el.id&&document.activeElement!==el){tripPicking=null;if(String(el.id||'').startsWith('rq_'))applyRqRoute(rqRoute);else if((el.id!=='rd_in'&&el.id!=='rd_out')&&typeof scheduleFormRoute==='function')scheduleFormRoute()}})},true);
 document.addEventListener('focusout',ev=>{const el=ev.target;if(el&&el.type==='time'&&el.dataset&&el.dataset.stampEdit)onWorkClock(el)},true);
 document.addEventListener('focusout',ev=>{const el=ev.target;if(!isPlaceField(el))return;const raw=el.value;const quick=canonPlace(raw);if(quick&&el.value!==quick){el.value=quick;el.dispatchEvent(new Event('input',{bubbles:true}));syncRqChips()}fetchOfficialPlace(raw).then(name=>{if(!name||!el.isConnected)return;if(foldPlace(el.value)!==foldPlace(raw)&&foldPlace(el.value)!==foldPlace(quick))return;if(el.value===name)return;el.value=name;el.dispatchEvent(new Event('input',{bubbles:true}));syncRqChips()})},true);
@@ -1706,7 +1810,7 @@ const addDays=(s,n)=>{const d=parseISO(s);d.setDate(d.getDate()+n);return iso(d.
 const fmtH=n=>(+r2(n)).toLocaleString('cs-CZ');
 const fmtDate=s=>{const d=parseISO(s);return `${d.getDate()}. ${d.getMonth()+1}. ${d.getFullYear()}`};
 function pl(n,one,few,many){if(!Number.isInteger(n))return few==='dny'?'dne':many;const a=Math.abs(n);return a===1?one:(a>=2&&a<=4?few:many)}
-const toMin=t=>{if(!t||!/^\d{1,2}:\d{2}$/.test(t))return null;const[h,m]=t.split(':').map(Number);return h*60+m};
+const toMin=t=>{const m=String(t||'').trim().match(/^(\d{1,2}):(\d{2})/);if(!m)return null;const h=+m[1],mm=+m[2];if(h>47||mm>59)return null;return h*60+mm};
 function spanH(a,b){const x=toMin(a),y=toMin(b);if(x===null||y===null)return null;let d=y-x;if(d<0)d+=1440;return d/60}
 
 /* ---------- svátky ---------- */
@@ -1842,7 +1946,7 @@ function render(){
  for(let i=0;i<off;i++)html+='<div></div>';
  for(let d=1;d<=days;d++){const k=iso(Y,M,d),es=bd[k]||[],hol=holidayName(k),v=es.reduce((t,e)=>t+value(e),0),h=es.reduce((t,e)=>t+num(e.totalHours),0),ty=es[0]?dayType(es[0]):'';
   const td=todayISO(),logged=typeof dayLogged==='function'?dayLogged(es):!!es.length,tc=logged?(es.some(e=>num(e.jobHours)>0)?'t-job':es.some(e=>num(e.totalHours)>0)?'t-depo':es.some(e=>num(e.vacationHours)>0)?'t-vac':(es.some(e=>num(e.sickHours)>0||num(e.dpnHours)>0||num(e.doctorHours)>0)?'t-sick':'')):(k<td&&!isWeekend(k)&&!hol?'t-miss':'');
-  const clip=dayHasStazka(es)?'<span class="clip" aria-label="stazka">📎</span>':(es.some(e=>num(e.jobHours)>0)&&dayBezStazky(es)?'<span class="clip quiet" aria-label="bez stazky">–</span>':'');
+  const clip=dayHasStazka(es)?'<span class="clip" aria-label="stazka">📎</span>':(logged&&!dayStazkaOpen(es)?'<span class="clip ok" aria-label="hotovo">✓</span>':'');
   const plane=es.some(e=>travelClaim(e))?'<span class="plane" aria-label="cesťák">✈</span>':'';
   html+=`<button class="day ${tc} ${isWeekend(k)?'weekend':''} ${(multi?multi.has(k):d===sel)?'selected':''} ${multi&&multi.has(k)?'multi':''} ${hol?'holiday':''}" data-day="${d}" title="${esc(hol)}" aria-label="${d}. ${MONTHS_GEN[M]}${hol?', '+esc(hol):''}, ${es.length?cash(v):'bez záznamu'}"><span class="num">${d}</span>${clip}${plane}<span class="money ${ty==='Dovolená'?'leave':(ty==='Nemoc'||ty==='Lékař')?'sick':''}">${logged?(ui.hide?'••••':Math.abs(v)>=10000?(v/1000).toLocaleString('cs-CZ',{maximumFractionDigits:1})+'k':cash(v).replace(' Kč','')):'—'}</span><span class="hours">${logged?(h>0?fmtH(h)+' h':ty):(es.length?'—':'')}${logged&&es.length>1?' ×'+es.length:''}</span></button>`}
  $('#calendar').innerHTML=html;
@@ -1997,6 +2101,25 @@ function balances(today){
  return{old:r2(old),nw:r2(nw),vac:r2(old+nw),year:cy,ann,usedOld:r2(usedOld),usedNew:r2(usedNew),planned,sick,sickAnnual:ann_s,usedS}
 }
 function balCard(){const b=balances();return `<div class="stat balstat"><div><small>DOVOLENÁ</small><div class="balrow"><span><b>${fmtH(b.old)} h</b><i>stará${b.old?' (z '+(b.year-1)+')':''}</i></span><span><b>${fmtH(b.nw)} h</b><i>nová ${b.year}</i></span></div><em>Čerpá se nejdřív ze staré. 1. 1. ${b.year+1} přibude ${fmtH(b.ann)} h.</em></div><div><small>SICK DAYS ${b.year}</small><div class="balrow"><span><b>${b.sick}</b><i>zbývá z ${b.sickAnnual}</i></span></div><em>Nepřevádějí se, 1. 1. znovu ${b.sickAnnual}.</em></div></div>`}
+function nudgeAlvian(date,delta){if(!date)return;ensureRd(date);const es=byDate()[date]||[],st=stampsFor(date),target=rdTarget(es);const showIn=normClock(st.workIn||(target&&target.startTime)||''),showOut=normClock(st.workOut||(target&&target.endTime)||'');const probe=rdHours(showIn,showOut);const room=probe.total>0?r2(Math.max(0,probe.total-probe.com)):24;let cur=rd.kind==='depo'&&probe.total>0?probe.alv:num(rd.alvian);cur=r2(cur+num(delta));if(cur<0)cur=0;if(probe.total>0&&cur>room)cur=room;if(rd.kind==='depo'&&probe.total>0&&cur<room-0.001)rd.kind='job';rd.alvian=cur;rd.touched=true;if($('#rd_in'))rdRefresh();if(typeof renderDnes==='function'&&view==='dnes')renderDnes()}
+function setCardSkip(date,on){ensureRd(date);const es=byDate()[date]||[];if(typeof dayHasStazka==='function'&&dayHasStazka(es)){rd.skip=false;return}rd.skip=!!on;const st=stampsFor(date),saved=es.filter(e=>num(e.totalHours)>0||num(e.jobHours)>0||num(e.baseHours)>0),draft=!!(st.workIn||st.workOut);if(saved.length&&!draft){const target=rdTarget(es);if(target){if(rd.skip)target.noStazka=true;else delete target.noStazka;saveData()}}if(view==='dnes')renderDnes();else render()}
+const LS_CRANES='mojeDochazka.cranes';
+function craneBook(){try{const d=JSON.parse(localStorage.getItem(LS_CRANES)||'null');if(d&&Array.isArray(d.items))return d}catch(e){}return {items:[],hidden:[],seeded:false}}
+function saveCraneBook(b){try{localStorage.setItem(LS_CRANES,JSON.stringify(b))}catch(e){}}
+function craneKey(c){return (String((c&&(c.type||c.crane))||'').trim()+'|'+String((c&&c.spz)||'').trim()).toUpperCase()}
+function craneText(c){const type=String((c&&(c.type||c.crane))||'').trim(),spz=String((c&&c.spz)||'').trim().toUpperCase();return type&&spz?type+'   '+spz:(type||spz)}
+function absorbCranes(){const b=craneBook();const hidden=new Set(b.hidden||[]);let changed=!b.seeded;b.seeded=true;const add=(type,spz)=>{type=String(type||'').trim();spz=String(spz||'').trim().toUpperCase();if(!type&&!spz)return;const row={type,spz};if(hidden.has(craneKey(row)))return;if(b.items.some(x=>craneKey(x)===craneKey(row)))return;b.items.push(row);changed=true};try{const mem=typeof shareMemory==='function'?shareMemory():{};if(mem.crane||mem.spz)add(mem.crane,mem.spz);(mem.cranes||[]).forEach(c=>c&&add(c.crane,c.spz))}catch(e){}(state.entries||[]).forEach(e=>{const s=splitCrane(e&&e.machine||'');add(s.crane,s.spz);(e.photos||[]).forEach(ph=>{const s2=splitCrane(ph&&ph.machine||'');add(s2.crane,s2.spz)})});if(changed)saveCraneBook(b);return b}
+function recentCranes(){const b=absorbCranes();const items=b.items.slice();const seen=[],push=c=>{if(!c)return;const k=craneKey(c);if(seen.some(x=>craneKey(x)===k))return;seen.push(c)};const es=[...(state.entries||[])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));for(const e of es){const s=splitCrane(e.machine||'');const hit=items.find(x=>craneKey(x)===craneKey({type:s.crane,spz:s.spz}));if(hit)push(hit)}items.forEach(push);return seen}
+function craneRowHTML(date){if(!rd||rd.date!==date)return '';const all=recentCranes(),top=all.slice(0,5),cur=String(rd.machine||'');const chips=top.map(c=>{const t=craneText(c),on=cur===t;return `<button type="button" data-act="pickCrane" data-date="${esc(date)}" data-crane="${esc(t)}" class="${on?'on':''}" aria-pressed="${on?'true':'false'}">${esc((c.type||'')+(c.spz?' '+c.spz:''))}</button>`}).join('');const extra=cur&&!top.some(c=>craneText(c)===cur)?`<button type="button" class="on" data-act="pickCrane" data-date="${esc(date)}" data-crane="${esc(cur)}">${esc(splitCrane(cur).crane+' '+(splitCrane(cur).spz||''))}</button>`:'';return `<div class="crane-row"><p class="staz-label">Jeřáb</p><div class="crane-chips">${chips}${extra}<button type="button" data-act="craneMore" data-date="${esc(date)}">Vybrat / přidat</button></div></div>`}
+function applyCraneNote(e,label){if(!e||!label)return;e.machine=label;const note=String(e.note||'');if(note.includes(label))return;const s=splitCrane(label);if(s.crane&&note.includes(s.crane)&&(!s.spz||note.toUpperCase().includes(s.spz)))return;const base=note.trim();e.note=base?base+' · '+label:label}
+function selectCrane(date,label){if(!date||!label)return;ensureRd(date);rd.machine=label;rd.craneTouched=true;const es=byDate()[date]||[],target=rdTarget(es),saved=es.some(e=>num(e.totalHours)>0||num(e.jobHours)>0||num(e.baseHours)>0);if(target&&saved){applyCraneNote(target,label);saveData()}const h=$('#dlg h2');if(h&&h.textContent==='Jeřáb'&&$('#dlg').open)$('#dlg').close();if(view==='dnes')renderDnes();else render()}
+function openCranePicker(date){const items=recentCranes();const rows=items.map(c=>{const t=craneText(c);return `<button type="button" class="btn sec" data-act="pickCrane" data-date="${esc(date)}" data-crane="${esc(t)}">${esc(c.type||'')} ${esc(c.spz||'')}</button>`}).join('')||'<p class="muted">Zatím žádný jeřáb. Přidej ho níž.</p>';$('#dlg').classList.remove('qdlg');$('#dlg').classList.add('tripdlg');$('#dlg').innerHTML=`<div class="dlg-head"><h2>Jeřáb</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body"><div class="crane-list">${rows}</div><div class="crane-add"><input id="craneNewType" placeholder="Typ, např. AC100 4L" autocomplete="off"><input id="craneNewSpz" placeholder="SPZ, např. U01 3098" autocomplete="off"></div></div><div class="dlg-foot"><button type="button" class="btn sec" data-act="close">Zavřít</button><button type="button" class="btn" data-act="craneAdd" data-date="${esc(date)}">Přidat a vybrat</button></div>`;if(!$('#dlg').open)$('#dlg').showModal()}
+function addCraneFromPicker(date){const type=($('#craneNewType')&&$('#craneNewType').value||'').trim(),spz=($('#craneNewSpz')&&$('#craneNewSpz').value||'').trim().toUpperCase();if(!type&&!spz){toast('Vyplň typ nebo SPZ.','err');return}const b=absorbCranes();const row={type,spz};if(!b.items.some(x=>craneKey(x)===craneKey(row))){b.items.push(row);saveCraneBook(b)}selectCrane(date,craneText(row))}
+function craneSettingsHTML(){const items=absorbCranes().items;const rows=items.map((c,i)=>`<div class="crane-item"><input data-crane-type value="${esc(c.type||'')}" aria-label="Typ"><input data-crane-spz value="${esc(c.spz||'')}" aria-label="SPZ"><button type="button" class="btn small" data-act="craneUpdate" data-i="${i}">Uložit</button><button type="button" class="btn danger small" data-act="craneDelete" data-i="${i}">Smazat</button></div>`).join('')||'<p class="muted">Zatím tu žádný jeřáb není. Doplní se i z dřívějších záznamů, pokud v nich typ a SPZ jsou.</p>';return `<div class="panel" style="grid-column:1/-1"><h2>Jeřáby</h2><p class="muted">Typ a SPZ, uložené v tomto zařízení. Na kartě Docházka je vybereš jedním klepnutím. Naposledy použité jsou nahoře.</p><div class="crane-list">${rows}</div><div class="crane-add"><input id="setCraneType" placeholder="Typ, např. AC100 4L" autocomplete="off"><input id="setCraneSpz" placeholder="SPZ, např. U01 3098" autocomplete="off"><button type="button" class="btn" data-act="craneCreate">Přidat</button></div></div>`}
+function addCraneFromSettings(){const type=($('#setCraneType')&&$('#setCraneType').value||'').trim(),spz=($('#setCraneSpz')&&$('#setCraneSpz').value||'').trim().toUpperCase();if(!type&&!spz){toast('Vyplň typ nebo SPZ.','err');return}const b=absorbCranes();const row={type,spz};if(!b.items.some(x=>craneKey(x)===craneKey(row)))b.items.push(row);saveCraneBook(b);renderSettings()}
+function updateCraneRow(btn){const i=+btn.dataset.i,row=btn.closest('.crane-item');if(!row)return;const type=(row.querySelector('[data-crane-type]').value||'').trim(),spz=(row.querySelector('[data-crane-spz]').value||'').trim().toUpperCase();const b=absorbCranes();if(!b.items[i])return;const prev=craneKey(b.items[i]);b.hidden=b.hidden||[];if(!b.hidden.includes(prev))b.hidden.push(prev);b.items[i]={type,spz};const nk=craneKey(b.items[i]);b.hidden=b.hidden.filter(k=>k!==nk);saveCraneBook(b);renderSettings();toast('Jeřáb uložen','silent')}
+function deleteCraneRow(i){const b=absorbCranes();i=+i;if(!b.items[i])return;b.hidden=b.hidden||[];const k=craneKey(b.items[i]);if(!b.hidden.includes(k))b.hidden.push(k);b.items.splice(i,1);saveCraneBook(b);renderSettings()}
+
 function renderSettings(){
  const r=R(),p=P(),b=balances();const vd=r2(b.vac/8);
  $('#settings').innerHTML=`<div class="settings-grid"><div class="panel"><div class="detail-label">DOVOLENÁ</div><div class="bal">${fmtH(b.vac)} h</div><p class="muted">Stará ${fmtH(b.old)} h · nová ${b.year} ${fmtH(b.nw)} h (= ${fmtH(vd)} ${pl(vd,'den','dny','dní')} po 8 h). Letos vyčerpáno ze staré ${fmtH(b.usedOld)} h, z nové ${fmtH(b.usedNew)} h${b.planned?`, z toho naplánováno ${fmtH(b.planned)} h`:''}. Výchozí ${fmtH(num(p.vacationBalanceHours))} h k ${p.vacationBalanceFrom?fmtDate(p.vacationBalanceFrom):'?'}; každý 1. 1. přibude ${fmtH(b.ann)} h a zbytek se převede jako stará.</p></div>
@@ -2004,7 +2127,7 @@ function renderSettings(){
  <div class="panel"><h2>Sazby</h2><div class="grid" style="margin-top:12px">${RATE_F.map(([k,l])=>`<div class="f"><label>${l}</label><input data-rate="${k}" inputmode="decimal" placeholder="${k.startsWith('diet')?'':k==='holidayPct'?'%':'Kč/h'}" value="${['job','base','ot','weekend'].includes(k)&&!num(r[k])?'':esc(r[k])}"></div>`).join('')}</div><p class="muted">Dojíždění = sazba Alvian (Alvian / Depo), do přesčasu se nepočítá. Stravné 2026 (vyhl. 573/2025 Sb.) – minimum v soukromé firmě: 155 / 236 / 370 Kč.</p></div>
  <div class="panel"><h2>Profil</h2><div class="grid" style="margin-top:12px">${PROF_F.map(([k,l,t])=>`<div class="f ${t==='text'&&k!=='employeeNo'?'wide':''}"><label>${l}</label><input data-prof="${k}" data-type="${t}" ${t==='date'?'type="date"':t==='number'?'inputmode="decimal"':''} value="${esc(k==='vacationAnnualHours'?annualVac(p):(p[k]??''))}"></div>`).join('')}</div></div>
  <div class="panel" style="grid-column:1/-1"><h2>Rychlé přidání</h2><div class="grid" style="margin-top:12px"><div class="f"><label>Depo od</label><input type="time" data-tpl="depo.start" value="${esc(tpl.depo.start)}"></div><div class="f"><label>Depo do</label><input type="time" data-tpl="depo.end" value="${esc(tpl.depo.end)}"></div><div class="f"><label>Depo pauza (h) · 0 = bez oběda</label><input inputmode="decimal" data-tpl="depo.lunch" value="${esc(tpl.depo.lunch)}"></div><div class="f"><label>Depo poznámka</label><input data-tpl="depo.note" value="${esc(tpl.depo.note)}"></div><div class="f"><label>Sazba Depo = základ (Kč/h)</label><input inputmode="decimal" data-tpl="rate" placeholder="Kč/h" value="${num(r.base)?esc(r.base):''}"></div><div class="f"><label>Dovolená h/den</label><input inputmode="decimal" data-tpl="vacHours" value="${esc(tpl.vacHours)}"></div><div class="f"><label>Nemoc h/den</label><input inputmode="decimal" data-tpl="sickHours" value="${esc(tpl.sickHours)}"></div><div class="f"><label for="stampRound">Zaokrouhlení razítek</label><select id="stampRound" data-ui="stampRound"><option value="15" ${stampStep()===15?'selected':''}>15 min</option><option value="30" ${stampStep()===30?'selected':''}>30 min</option><option value="60" ${stampStep()===60?'selected':''}>60 min</option></select></div></div><p class="muted">Depo = všechny hodiny jako základ, bez přesčasu, bez cestovního příkazu a stravného. Šablony se ukládají v tomto zařízení. Razítka jsou jen orientační a den samy neuloží.</p></div>
- ${typeof renderSlipsPanel==='function'?renderSlipsPanel():''}${hooks.account?hooks.account():''}<div class="panel" style="grid-column:1/-1"><h2>Zvuky</h2>
+ ${typeof renderSlipsPanel==='function'?renderSlipsPanel():''}${hooks.account?hooks.account():''}${craneSettingsHTML()}<div class="panel" style="grid-column:1/-1"><h2>Zvuky</h2>
  <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
   <label class="chk"><input type="checkbox" data-sound="fx" ${ui.soundFx!==false?'checked':''}> Zvuky tlačítek</label>
   <label class="chk"><input type="checkbox" data-sound="music" ${ui.soundMusic?'checked':''}> Hudba na pozadí</label>
@@ -2025,7 +2148,7 @@ function toast(t,kind){let d=document.createElement('div');d.textContent=t;d.sty
 /* Celebratory day-save overlay: earnings + cha-ching (overlay always, sound if fx on) */
 function celebrateSave(e){
  if(!e)return;const c=calc(e);const all=Math.round(c.all),work=Math.round(c.work),diet=Math.round(c.diet||0);
- try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}
+ /* Zvuk se spouští v handleru klepnutí, ještě před await. Tady už jen obrazovka. */
  let ov=$('#saveCeleb');if(ov)ov.remove();
  ov=document.createElement('div');ov.id='saveCeleb';ov.className='save-celeb';ov.setAttribute('role','status');
  const bits=[['money/czk-20-note.webp','note',-140,-200,140,0],['money/czk-50-note.webp','note',150,-180,-120,.05],['money/czk-20.webp','coin',-20,-240,200,.02],['money/czk-50.webp','coin',90,-210,-80,.06],['money/czk-20-note.webp','note',190,-60,70,.08],['money/czk-50-note.webp','note',-190,-40,-100,.03],['money/czk-20.webp','coin',40,-150,30,.1],['money/czk-50.webp','coin',-80,-130,-180,.07]];
@@ -2069,7 +2192,7 @@ function quickAdd(kind,dates){
  const mk=d=>kind==='depo'?makeDepo(d):makeLeave(d,kind);let added=0,skipped=[];
  if(dates.length===1){const d=dates[0];if(state.entries.some(x=>x.date===d)&&!confirm(`${fmtDate(d)} už má záznam. Přidat další?`))return;state.entries.push(mk(d));added=1}
  else for(const d of dates){if(state.entries.some(x=>x.date===d)){skipped.push(fmtDate(d));continue}state.entries.push(mk(d));added++}
- if(added)saveData();multi=null;if($('#dlg').open)$('#dlg').close();
+ if(added){try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}saveData()}multi=null;if($('#dlg').open)$('#dlg').close();
  const d=parseISO(dates[dates.length-1]);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();
  if(added){const last=state.entries.filter(x=>dates.includes(x.date)).slice(-1)[0];if(last)celebrateSave(last);toast(`Přidáno: ${added} ${pl(added,'den','dny','dní')}${skipped.length?` · přeskočeno ${skipped.length} (už mají záznam)`:''}`,'silent')}
  else toast(`Přidáno: ${added} ${pl(added,'den','dny','dní')}${skipped.length?` · přeskočeno ${skipped.length} (už mají záznam)`:''}`);
@@ -2106,7 +2229,7 @@ const jobVals=()=>{const v={};$$('[data-j]').forEach(i=>v[i.dataset.j]=i.value);
 function refreshJob(){const v=jobVals(),e=makeJob(v),c=calc(e),{errs,warns,infos}=validate(e);if(!v.start||!v.end)errs.unshift('Vyplň čas od–do.');
  $('#jcalc').innerHTML=`${fmtH(e.totalHours)} h (zakázka ${fmtH(e.jobHours)} + základ ${fmtH(e.baseHours)}${e.overtime?`, přesčas ${fmtH(e.overtime)}`:''}) · výdělek <b>${cash(c.work)}</b> · stravné <b>${cash(c.diet)}</b> · celkem <b>${cash(c.all)}</b>`;
  $('#jmsgs').innerHTML=errs.map(x=>`<div class="msg err">✖ ${x}</div>`).join('')+warns.map(x=>`<div class="msg warn">⚠ ${x}</div>`).join('')+infos.map(x=>x.startsWith('🎉')?`<div class="msg hol">${x}</div>`:`<div class="msg info">ℹ ${x}</div>`).join('');return{e,errs}}
-async function saveJob(){await Promise.all([...document.querySelectorAll('[data-j]')].filter(el=>['place','from','to','returnTo'].includes(el.dataset.j)).map(commitPlaceInput));const{e,errs}=refreshJob();if(errs.length)return;if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?`))return;state.entries.push(e);saveData();$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();celebrateSave(e);toast('Uloženo','silent')}
+async function saveJob(){const pre=refreshJob();if(pre.errs.length)return;try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}await Promise.all([...document.querySelectorAll('[data-j]')].filter(el=>['place','from','to','returnTo'].includes(el.dataset.j)).map(commitPlaceInput));const{e,errs}=refreshJob();if(errs.length){try{window.__sounds&&window.__sounds.cancelChaChing()}catch(x){}return}if(state.entries.some(x=>x.date===e.date)&&!confirm(`${fmtDate(e.date)} už má záznam. Přidat další?`)){try{window.__sounds&&window.__sounds.cancelChaChing()}catch(x){}return}state.entries.push(e);saveData();$('#dlg').close();const d=parseISO(e.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();celebrateSave(e);toast('Uloženo','silent')}
 
 /* ---------- formulář ---------- */
 let editing=null,manual=new Set();
@@ -2220,10 +2343,8 @@ function validate(e){
  if(Math.abs(num(e.jobHours)+num(e.baseHours)-num(e.totalHours))>0.001)errs.push(`Zakázka (${fmtH(num(e.jobHours))} h) + základ (${fmtH(num(e.baseHours))} h) musí dát celkem ${fmtH(num(e.totalHours))} h.`);
  if(num(e.totalHours)>16)warns.push('Směna delší než 16 hodin – zkontroluj časy.');
  const t=e.travel||{},sm=toMin(e.startTime),ts=toMin(t.start),ra=toMin(t.returnArrival);
- if(sm!==null&&toMin(e.endTime)!==null&&ts!==null&&ra!==null&&!e.noTravelOrder){const len=spanH(e.startTime,e.endTime)*60,o1=(ts-sm+1440)%1440,o2=(ra-sm+1440)%1440;
-  if(o1>0&&o1<720)warns.push(`Cesta začíná (${t.start}) až po začátku směny (${e.startTime}).`);
-  if(o2<len&&o2>=0&&!(o1>0&&o1>=720))warns.push(`Cesta končí (${t.returnArrival}) před koncem směny (${e.endTime}).`)}
- if((t.start||t.returnArrival)&&!(t.start&&t.returnArrival))warns.push('U cesty vyplň odjezd i příjezd zpět, jinak se nespočítá doba cesty.');
+ if(sm!==null&&toMin(e.endTime)!==null&&!e.noTravelOrder){const len=spanH(e.startTime,e.endTime)*60;const inside=t0=>{if(t0===null||!(len>0))return false;const o=(t0-sm+1440)%1440;return o>0&&o<len};const bits=[];if(ts!==null&&inside(ts))bits.push('odjezd '+t.start);if(ra!==null&&inside(ra))bits.push('návrat '+t.returnArrival);if(bits.length)infos.push('Cesta ('+bits.join(', ')+') je uvnitř docházky '+e.startTime+'–'+e.endTime+'. Uložit to nebrání.');}
+ if((t.start||t.arrival||t.returnStart||t.returnArrival)&&!(t.start&&t.returnArrival))infos.push('Rozpracovaný cesťák – bez návratu se doba cesty doplní později.');
  if(e.noTravelOrder&&num(e.tripHours)>0)infos.push('Den je bez cestovního příkazu – stravné se nepočítá.');
  if(e.date){const others=state.entries.filter(x=>x.id!==e.id);
   if(others.some(x=>x.date===e.date))warns.push('V tento den už existuje jiný záznam.');
@@ -2238,11 +2359,13 @@ function validate(e){
  return{errs,warns,infos}
 }
 async function saveForm(){
+ const pre=refreshForm();if(pre.errs.length){$('#fmsgs').scrollIntoView({block:'nearest'});return}
+ try{window.__sounds&&window.__sounds.playChaChing()}catch(x){}
  await Promise.all(['f_place','f_t.from','f_t.to','f_t.returnTo','f_t.returnFrom'].map(id=>commitPlaceInput(document.getElementById(id))));
- const{errs,warns}=refreshForm();if(errs.length){$('#fmsgs').scrollIntoView({block:'nearest'});return}
+ const{errs,warns}=refreshForm();if(errs.length){try{window.__sounds&&window.__sounds.cancelChaChing()}catch(x){}$('#fmsgs').scrollIntoView({block:'nearest'});return}
  const e=buildEntry(false);
  const dropped=!editing&&dropDuplicateClaim(e);
- if(!editing&&state.entries.some(x=>x.date===e.date)&&!confirm('V tento den už záznam existuje. Opravdu přidat další?'+(dropped?'\n\nCesťák v tento den už je, druhý se nepřidá.':'')))return;
+ if(!editing&&state.entries.some(x=>x.date===e.date)&&!confirm('V tento den už záznam existuje. Opravdu přidat další?'+(dropped?'\n\nCesťák v tento den už je, druhý se nepřidá.':''))){try{window.__sounds&&window.__sounds.cancelChaChing()}catch(x){}return}
  const oldPhotos=editing&&editing.photos?editing.photos.map(p=>Object.assign({},p)):[];
  if(editing){const i=state.entries.findIndex(x=>x.id===editing.id);state.entries[i]=e}else state.entries.push(e);
  for(const p of oldPhotos){if((e.photos||[]).some(x=>x.id===p.id))continue;const hs=typeof photoHolders==='function'?photoHolders(p.id):[];if(!hs.length){if(typeof pDel==='function')pDel(p.id)}else if(!hs.some(h=>!h.p.ref)){const copy=Object.assign({},p);delete copy.ref;hs[0].e.photos[hs[0].i]=copy}}
@@ -2418,7 +2541,7 @@ if(window.APP_PWA&&'serviceWorker'in navigator&&location.protocol==='https:'){
  navigator.serviceWorker.register('sw.js').then(reg=>{reg.update();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update()})}).catch(e=>console.warn('SW',e));
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadCtrl)return;const b=document.createElement('div');b.className='backup-banner';b.style.cssText='position:fixed;left:12px;right:12px;top:max(12px,env(safe-area-inset-top));z-index:100';b.innerHTML='<span>🔄 Je k dispozici nová verze aplikace.</span><button class="btn small">Načíst znovu</button>';b.querySelector('button').onclick=()=>location.reload();document.body.appendChild(b)});
 }
-const loaded=loadData();if(migratePlaces())saveData(false);polishStoredPlaces();syncSoundFromProfile();initialMonth();render();
+const loaded=loadData();if(migratePlaces())saveData(false);if(typeof absorbCranes==='function')absorbCranes();polishStoredPlaces();syncSoundFromProfile();initialMonth();render();
 window.__app={get state(){return state},calc,balances,dietInfo,holidays,summary,entryCustomer,entryPlace,entryLabel,reducePHV,dpnThresholds,phv,netRatio,toNet,dpnHourlyGross,dpnCalendarDay,leaveAmounts,payslipFor,latestPayslip,loaded,celebrateSave,toggleMute,syncMuteBtn,travelClaim,tripEntries,save:()=>{saveData();render()},get ui(){return ui}};
 /* ================= Výplatnice UI ================= */
 let slipPhotos=[],editingSlip=null;
