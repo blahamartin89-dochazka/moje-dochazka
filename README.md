@@ -14,7 +14,7 @@ cp index.html kolega/index.html
 `config.js` v kořeni se nepřepisuje. Service worker v kořeni nesahá na `/kolega/` a worker v `kolega/` nesahá na kořen.
 
 ## Přístup kolegů e-mailem
-Zámek je vypnutý. V `index.html` je `window.KOLEGA_ACCESS=false`. Zapne se až po spuštění `supabase/kolega_access.sql` a po zapnutí hooku v Authentication > Hooks > Before user created (`public.hook_kolega_before_user_created`).
+Zámek je zapnutý. V `index.html` je `window.KOLEGA_ACCESS=true`. SQL `supabase/kolega_access.sql` běží, hook Before user created je `public.hook_kolega_before_user_created`.
 
 Bez hooku si kdokoli může založit účet. Aplikace ho odhlásí, účet v Auth ale zůstane. Hook nový účet odmítne, pokud e-mail není aktivní v `allowed_emails`. Už existující účet Martina hook nemění.
 
