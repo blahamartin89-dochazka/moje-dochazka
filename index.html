@@ -97,7 +97,7 @@ dialog.crop-dlg.crop-force{position:fixed;z-index:2147483000;width:100%;height:1
   font:600 12px/1.1 inherit;font-family:inherit;touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,97,164,.12);cursor:pointer;position:relative}
  nav.bottom button *{pointer-events:none}
  nav.bottom .ico{font-size:23px;line-height:24px;height:24px}
- nav.bottom .lbl{font-size:12px;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+ nav.bottom .lbl{font-size:10px;letter-spacing:-.35px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
  nav.bottom button.active{color:#0061a4}
  nav.bottom button.active::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;border-radius:0 0 3px 3px;background:#0061a4}
  nav.bottom button.active .ico{transform:scale(1.08)}
@@ -114,6 +114,14 @@ dialog.crop-dlg.crop-force{position:fixed;z-index:2147483000;width:100%;height:1
 .ord-seg button{flex:1;border:0;background:transparent;border-radius:9px;min-height:36px;font:700 15px/1 inherit;color:#3d5678;cursor:pointer}
 .ord-seg button.on{background:#fff;color:#124b92;box-shadow:0 1px 3px #0b254a22}
 .ord-btns{display:flex;gap:8px;flex-wrap:wrap}
+.cest-card{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;border:1px solid #e4ebf5;background:#fff;border-radius:14px;padding:12px;margin:0 0 8px;font:inherit;color:#14233b;cursor:pointer}
+.cest-card b{font-size:15px}.cest-card span{color:#3d5678}.cest-card strong{color:#124b92;margin-top:4px}
+.cest-top{display:flex;align-items:center;justify-content:flex-start;gap:8px;margin:0 0 12px}
+.cest-top h2{margin:0;font-size:20px}
+.cest-top .btn{width:auto;min-height:40px;padding:8px 12px}
+.print-screen h2{margin:0;font-size:22px}
+.print-go{width:100%;margin:14px 0 6px;font-size:18px;font-weight:800;min-height:52px}
+#ordersView .panel,#printView .panel{padding-top:14px}
 
 /* v14 form hints */
 #eform .grid .hint.wide{grid-column:1/-1;margin:-6px 0 4px;font-size:12.5px}
@@ -286,12 +294,18 @@ button.ov{font:inherit;cursor:pointer}
 /* v18 Výdělky vs Kalendář */
 body[data-view="calendar"] #stats,body[data-view="calendar"] #chartPanel{display:none!important}
 body[data-view="charts"] #calendarView,body[data-view="charts"] #detail,body[data-view="charts"] #monthcontrol,body[data-view="charts"] #stats,body[data-view="charts"] #chartPanel,body[data-view="charts"] #addBtn{display:none!important}
-body[data-view="charts"] .intro p{display:none}
+body[data-view="charts"] .intro h1,body[data-view="charts"] .intro p,body[data-view="charts"] #eye{display:none!important}
+body[data-view="charts"] .intro{display:none!important}
+body[data-view="charts"] .intro:has(#badge:not([hidden])){display:flex!important}
+body[data-view="charts"] #badge[hidden]{display:none!important}
+body[data-view="charts"] #badge:not([hidden]){display:inline-block;text-transform:none;letter-spacing:0;font-size:13px;font-weight:700}
 #pay{max-width:640px;margin:0 auto}
 .pay-top{background:#124b92;color:#fff;border-radius:18px;padding:16px;margin:0 0 12px}
 .pay-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .pay-nav h2{margin:0;font-size:20px;color:#fff;text-align:center;flex:1}
 .pay-nav button{width:40px;height:40px;border-radius:12px;border:0;background:#ffffff22;color:#fff;font-size:22px}
+.nav-plain h2{color:#14233b}
+.nav-plain button{background:#e7eef8;color:#124b92}
 .pay-total small{opacity:.85;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
 .pay-total strong{display:block;font-size:34px;letter-spacing:-.5px;margin:2px 0}
 .pay-total em{display:block;font-style:normal;opacity:.9;font-size:13px}
@@ -471,24 +485,25 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <div class="intro"><div><span class="badge" id="badge">Moje docházka</span><h1>Můj pracovní měsíc</h1><p>Každá směna. Každá hodina. Přehledně.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="btn no-print" id="addBtn">+ Přidat den</button><button class="plain eye" id="eye">◉ Skrýt částky</button></div></div>
 <div id="backupBanner" class="backup-banner hidden"></div>
 <aside class="panel" id="detail"></aside>
-<nav class="tabs"><button data-view="dnes">Dnes</button><button data-view="calendar">Kalendář</button><button data-view="charts">Výdělky</button><button data-view="orders">Cestovní příkaz</button><button data-view="settings">Nastavení</button></nav>
-<div id="monthcontrol" class="monthbar"><h2 id="monthtitle"></h2><div class="arrows"><button id="dochPdf" class="plain no-print" style="width:auto;font-size:12px" aria-label="Docházka PDF – pracovní výkaz za měsíc">📄 Docházka PDF</button><button id="today" class="plain" style="width:auto;font-size:12px" aria-label="Dnes">Dnes</button><button id="prev" aria-label="Předchozí měsíc">‹</button><button id="next" aria-label="Další měsíc">›</button></div></div>
+<nav class="tabs"><button data-view="dnes">Dnes</button><button data-view="calendar">Kalendář</button><button data-view="charts">Výdělky</button><button data-view="orders">Cesťák</button><button data-view="print">Tisk</button><button data-view="settings">Nastavení</button></nav>
+<div id="monthcontrol" class="monthbar"><h2 id="monthtitle"></h2><div class="arrows"><button id="dochPdf" class="plain no-print" style="width:auto;font-size:12px" aria-label="Otevřít tisk pro tento měsíc">Tisk</button><button id="today" class="plain" style="width:auto;font-size:12px" aria-label="Dnes">Dnes</button><button id="prev" aria-label="Předchozí měsíc">‹</button><button id="next" aria-label="Další měsíc">›</button></div></div>
 <section id="dnesView" class="hidden"></section>
 <section id="calendarView"><div class="layout"><div class="panel"><div class="week"><span>PO</span><span>ÚT</span><span>ST</span><span>ČT</span><span>PÁ</span><span>SO</span><span>NE</span></div><div class="calendar" id="calendar"></div><div class="legend"><span><i class="dot" style="background:#3b7be0"></i>Zakázka</span><span><i class="dot" style="background:#2e9e5b"></i>Depo</span><span><i class="dot" style="background:#e0b000"></i>Dovolená</span><span><i class="dot" style="background:#9d83b5"></i>Nemoc</span><span><i class="dot" style="background:#e05555"></i>Svátek</span><span><i class="dot" style="background:#b8bec8"></i>Víkend</span><span style="color:#c0392b;font-weight:700">! nezapsáno</span><span><i class="gd st"></i>chybí stazka</span><span><i class="gd ce"></i>chybí cesťák</span></div></div></div></section>
 <div class="stats" id="stats"></div>
 <section id="chartsView" class="hidden"><div id="pay"></div><div id="history" class="history-grid" style="margin-top:16px"></div></section>
 <section id="ordersView" class="hidden"><div class="panel" id="orders"></div></section>
+<section id="printView" class="hidden"><div class="panel" id="print"></div></section>
 <section id="settingsView" class="hidden"><div id="settings"></div></section>
 <section class="panel chart-panel" id="chartPanel"><div class="chart-head"><div><h2>Výdělek po dnech</h2><p class="muted">Klepni na sloupec pro detail dne</p></div><select id="mode" aria-label="Co zobrazit"><option value="work">Výdělek bez diet a náhrad</option><option value="all">Celkem včetně diet a náhrad</option></select></div><div id="chartSummary" class="muted"></div><div class="chart-scroll"><div class="chart" id="chart"></div></div><p class="chart-note">Výška sloupce odpovídá částce. Dny bez záznamu jsou prázdné.</p></section>
 <section id="historyView" class="hidden"></section>
 <p class="footnote">Částky = hodiny × sazby. Stravné dle vyhl. 573/2025 Sb. Data jsou v zařízení a při přihlášení i v účtu.</p>
 </main>
-<nav class="bottom" aria-label="Hlavní navigace"><button type="button" data-view="dnes" aria-label="Dnes"><span class="ico" aria-hidden="true">☀</span><span class="lbl">Dnes</span></button><button type="button" data-view="calendar" aria-label="Kalendář"><span class="ico" aria-hidden="true">▦</span><span class="lbl">Kalendář</span></button><button type="button" data-view="charts" aria-label="Výdělky"><span class="ico" aria-hidden="true">▥</span><span class="lbl">Výdělky</span></button><button type="button" data-view="orders" aria-label="Cesťák"><span class="ico" aria-hidden="true">✈︎</span><span class="lbl">Cesťák</span></button><button type="button" data-view="settings" aria-label="Nastavení"><span class="ico" aria-hidden="true">⚙︎</span><span class="lbl">Nastavení</span></button></nav>
+<nav class="bottom" aria-label="Hlavní navigace"><button type="button" data-view="dnes" aria-label="Dnes"><span class="ico" aria-hidden="true">☀</span><span class="lbl">Dnes</span></button><button type="button" data-view="calendar" aria-label="Kalendář"><span class="ico" aria-hidden="true">▦</span><span class="lbl">Kalendář</span></button><button type="button" data-view="charts" aria-label="Výdělky"><span class="ico" aria-hidden="true">▥</span><span class="lbl">Výdělky</span></button><button type="button" data-view="orders" aria-label="Cesťák"><span class="ico" aria-hidden="true">✈︎</span><span class="lbl">Cesťák</span></button><button type="button" data-view="print" aria-label="Tisk"><span class="ico" aria-hidden="true">🖨</span><span class="lbl">Tisk</span></button><button type="button" data-view="settings" aria-label="Nastavení"><span class="ico" aria-hidden="true">⚙︎</span><span class="lbl">Nastavení</span></button></nav>
 <dialog id="dlg"></dialog>
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1"><input type="file" id="bakFile" accept=".json,.zip,application/json,application/zip" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-18.17";const APPF=window.APP_PROFILE||{};const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-18.18";const APPF=window.APP_PROFILE||{};const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -2076,7 +2091,7 @@ const dim=()=>new Date(Y,M+1,0).getDate();
 function go(delta){M+=delta;if(M<0){M=11;Y--}if(M>11){M=0;Y++}sel=Math.min(sel,dim());render()}
 
 /* ---------- render ---------- */
-function paintBadge(){const el=$('#badge');if(!el)return;if(view==='calendar'){const warn=window.__calSyncWarn||'';el.hidden=!warn;el.textContent=warn;return}el.hidden=false;el.textContent=`${state.entries.length} ${pl(state.entries.length,'záznam','záznamy','záznamů')} · ${hooks.cloudOn()?'synchronizováno s účtem':'uloženo v prohlížeči'}`}
+function paintBadge(){const el=$('#badge');if(!el)return;if(view==='calendar'||view==='charts'){const warn=window.__calSyncWarn||'';el.hidden=!warn;el.textContent=warn;return}el.hidden=false;el.textContent=`${state.entries.length} ${pl(state.entries.length,'záznam','záznamy','záznamů')} · ${hooks.cloudOn()?'synchronizováno s účtem':'uloženo v prohlížeči'}`}
 function render(){
  const s=summary(Y,M),p=P();
  $('#pname').textContent=p.name||'';$('#pcompany').textContent=[p.company,p.employeeNo&&('os. č. '+p.employeeNo)].filter(Boolean).join(' · ');
@@ -2098,8 +2113,8 @@ function render(){
  const total=vals.reduce((a,b)=>a+b,0);
  $('#chartSummary').textContent=ui.hide?'Částky a výšky sloupců jsou skryté.':`Součet: ${cash(total)} · Nejvyšší den: ${cash(Math.max(0,...vals))} · ${ui.mode==='work'?'Kalendář ukazuje výdělek bez diet a náhrad.':'Kalendář ukazuje celkovou částku od firmy.'}`;
  $('#mode').value=ui.mode;
- if(view==='dnes')renderDnes();if(view==='charts'){renderPay();renderHistory()}if(view==='orders')renderOrders();if(view==='settings')renderSettings();
- ['dnes','calendar','charts','history','orders','settings'].forEach(v=>$('#'+v+'View').classList.toggle('hidden',v!==view));
+ if(view==='dnes')renderDnes();if(view==='charts'){renderPay();renderHistory()}if(view==='orders')renderOrders();if(view==='print')renderPrint();if(view==='settings')renderSettings();
+ ['dnes','calendar','charts','history','orders','print','settings'].forEach(v=>$('#'+v+'View').classList.toggle('hidden',v!==view));
  $('#chartPanel').classList.add('hidden');
  $('#monthcontrol').classList.toggle('hidden',view!=='calendar');
  $('#stats').classList.add('hidden');
@@ -2175,10 +2190,10 @@ function renderPay(){
  const days=monthEntries(Y,M).map(e=>{const c=calc(e),ty=dayType(e),label=entryLabel(e)||ty;
   const hrs=num(e.totalHours)||num(e.vacationHours)||num(e.sickHours)||num(e.dpnHours)||num(e.doctorHours);
   const pn=paperNote(e);return `<button class="pay-day" data-act="goDay" data-date="${e.date}"><span><b>${DOW[parseISO(e.date).getDay()]} ${dm(e.date)}</b><small>${esc(label)}${e.startTime?` · ${hm(e.startTime)}–${hm(e.endTime)}`:''}</small>${pn?`<small class="pay-note">${esc(pn)}</small>`:''}</span><span class="pay-day-r"><b>${cash(c.all)}</b><small>${fmtH(hrs)} h</small></span></button>`}).join('')||'<p class="muted">V tomto měsíci zatím nic.</p>';
- $('#pay').innerHTML=`<div class="pay-top"><div class="pay-nav"><button type="button" data-act="payPrev" aria-label="Předchozí měsíc">‹</button><h2>${title}</h2><button type="button" data-act="payNext" aria-label="Další měsíc">›</button></div><div class="pay-actions"><button type="button" class="btn small" id="dochPdfPay" data-act="dochPdf" style="background:#fff;color:#124b92">📄 Docházka PDF</button></div>
+ $('#pay').innerHTML=`<div class="pay-top"><div class="pay-nav"><button type="button" data-act="payPrev" aria-label="Předchozí měsíc">‹</button><h2>${title}</h2><button type="button" data-act="payNext" aria-label="Další měsíc">›</button></div>
  <div class="pay-total"><small>Celkem od firmy</small><strong>${cash(s.allK)}</strong><em>výdělek ${cash(s.workK)} + diety a náhrady ${cash(s.allK-s.workK)}</em>
  <div class="pay-cmp">${MONTHS[pm][0].toUpperCase()+MONTHS[pm].slice(1)} ${py}: <b>${cash(ps.allK)}</b> · rozdíl <b class="${diff>=0?'up':'dn'}">${diffTxt}</b></div>
- <button type="button" class="linkbtn" data-act="eyeT" style="padding:8px 0 0">${ui.hide?'◉ Zobrazit částky':'◉ Skrýt částky'}</button></div></div>
+ <div style="display:flex;gap:14px;align-items:center"><button type="button" class="linkbtn" data-act="eyeT" style="padding:8px 0 0">${ui.hide?'◉ Zobrazit částky':'◉ Skrýt částky'}</button><button type="button" class="linkbtn" data-act="openPrint" style="padding:8px 0 0">Tisk</button></div></div></div>
  ${payInsightsHTML(Y,M)}
  <div class="pay-box"><h3>Rozklad</h3>${row('Zákazník',s.jobH,rt.job,s.jobK)}${row('Alvian / Depo',s.alvH,rt.base,s.alvK)}${row('Dojíždění',s.comH,rt.base,s.comK)}${row('Příplatek přesčas',s.otH,rt.ot,s.otK)}${row('Příplatek víkend',s.wkH,rt.weekend,s.wkK)}${row('Příplatek svátek',0,null,s.holK)}${row('Dovolená',s.vacH,null,s.vacK)}${row('Sick day',s.sickH,null,s.sickK)}${row('Nemoc (DPN)',s.dpnH,null,s.dpnK)}${row('Stravné (diety)',0,null,s.dietK)}${row('Náhrady (jízdné, ubyt.)',0,null,s.costK)}
  <div class="pay-row total"><span>Celkem</span><b>${cash(s.allK)}</b></div>
@@ -2218,27 +2233,23 @@ function dochazkaMonthRows(){
  return{rows,tot};
 }
 function renderOrders(){
- const key=`${Y}-${pad(M+1)}`,o=Object.assign({advance:0,orderNo:'',companions:'',receipts:0},(state.travelOrders||{})[key]||{}),p=P(),es=tripEntries(Y,M);
- let tot={d:0,f:0,l:0,o:0,k:0,s:0,h:0};
- const rows=es.map(e=>{const c=calc(e),t=e.travel||{};tot.d+=c.diet;tot.f+=c.c.fare;tot.l+=c.c.lodging;tot.o+=c.c.other;tot.k+=c.c.km;tot.h+=num(e.tripHours);const s=c.diet+c.c.sum;tot.s+=s;
-  return `<tr><td>${fmtDate(e.date)}</td><td>${esc(t.from)}<br>${esc(t.start)}</td><td>${esc(t.to)}<br>${esc(t.arrival)}</td><td>${esc(t.returnFrom)} ${esc(t.returnStart)}<br>→ ${esc(t.returnTo)} ${esc(t.returnArrival)}</td><td>${esc(t.purpose)}${e.note?'<br><span class="muted">'+esc(e.note)+'</span>':''}</td><td>${esc(t.transport)}${num(t.km)?'<br>'+fmtH(num(t.km))+' km':''}</td><td class="n">${fmtH(num(e.tripHours))}</td><td class="n">${c.diet}</td><td class="n">${c.c.fare}</td><td class="n">${c.c.lodging}</td><td class="n">${c.c.other}</td><td class="n">${c.c.km}</td><td class="n">${r2(s)}</td></tr>`}).join('');
- const bal=r2(tot.s-num(o.advance));
- const hz=n=>num(n)?fmtH(n):'–';
- const tabBtn=(id,label)=>`<button type="button" data-act="ordTab" data-tab="${id}" class="${ordersTab===id?'on':''}" aria-pressed="${ordersTab===id?'true':'false'}">${label}</button>`;
- const bar=`<div class="order-actions no-print"><div class="ord-seg" role="tablist" aria-label="Přehled">${tabBtn('cestak','Cesťák')}${tabBtn('dochazka','Docházka')}</div><span>Tisk nebo sdílení</span><span class="ord-btns"><button type="button" class="btn sec" data-act="quickCestak" data-date="${todayISO()}">Rychlý cesťák</button><button type="button" class="btn" data-act="print" id="printTop">🖨 Tisk / PDF</button><button type="button" class="btn sec" data-act="printBoth">Obojí</button></span></div>`;
- const dmth=dochazkaMonthRows();
- const drows=dmth.rows.map(r=>{const nem=[num(r.sick)?fmtH(r.sick)+' h':'',num(r.dpn)?'DPN '+fmtH(r.dpn)+' h':''].filter(Boolean).join('<br>')||'–';
-  return `<tr><td>${fmtDate(r.date)}</td><td>${esc(r.label)}</td><td>${r.start||r.end?esc(r.start)+'–'+esc(r.end):'–'}</td><td class="n">${hz(r.job)}</td><td class="n">${hz(r.base)}</td><td class="n">${hz(r.com)}</td><td class="n">${hz(r.ot)}</td><td class="n">${hz(r.vac)}</td><td class="n">${nem}</td><td>${r.holName?esc(r.holName)+(num(r.holH)?'<br>'+fmtH(r.holH)+' h':''):'–'}</td></tr>`}).join('');
- const dt=dmth.tot;
- const doch=`<h2>Docházka · ${MONTHS[M]} ${Y}</h2><p class="muted no-print">Alvian zahrnuje dojíždění. Přesčas dojíždění neobsahuje.</p><div class="tscroll"><table class="t"><thead><tr><th>Datum</th><th>Den</th><th>Od–do</th><th class="n" title="Zákazník">Zák. h</th><th class="n" title="Alvian a depo">Alvian h</th><th class="n" title="Dojíždění">Dojížd. h</th><th class="n">Přesčas</th><th class="n">Dovolená</th><th class="n">Nemoc</th><th>Svátek</th></tr></thead><tbody>${drows||'<tr><td colspan="10" class="empty">V tomto měsíci není žádný záznam.</td></tr>'}</tbody><tfoot><tr><td colspan="3">Celkem ${dmth.rows.length} ${pl(dmth.rows.length,'den','dny','dní')} · ${fmtH(dt.h)} h</td><td class="n">${fmtH(dt.job)}</td><td class="n">${fmtH(dt.base)}</td><td class="n">${fmtH(dt.com)}</td><td class="n">${fmtH(dt.ot)}</td><td class="n">${fmtH(dt.vac)}</td><td class="n">${fmtH(dt.sick+dt.dpn)}</td><td class="n">${fmtH(dt.hol)}</td></tr></tfoot></table></div>`;
- const cest=`<div class="print-only"><h1>Cestovní příkaz – vyúčtování pracovních cest</h1><p>${esc(p.name)}${p.employeeNo?', os. č. '+esc(p.employeeNo):''} · ${esc(p.company)} · bydliště ${esc(p.homeAddress)} · pravidelné pracoviště ${esc(p.place)}</p></div>
- <h2>Cestovní příkaz · ${MONTHS[M]} ${Y}</h2><p class="muted no-print">Bez cestovního příkazu se cesta nepočítá.</p>
- <div class="grid no-print" style="margin:14px 0"><div class="f"><label>Číslo příkazu</label><input data-to="orderNo" value="${esc(o.orderNo)}"></div><div class="f"><label>Záloha (Kč)</label><input data-to="advance" inputmode="decimal" value="${esc(o.advance)}"></div><div class="f"><label>Spolucestující</label><input data-to="companions" value="${esc(o.companions)}"></div><div class="f"><label>Počet příloh / dokladů</label><input data-to="receipts" inputmode="numeric" value="${esc(o.receipts)}"></div></div>
- <p class="print-only">Číslo příkazu: <b>${esc(o.orderNo)||'—'}</b> · Spolucestující: ${esc(o.companions)||'—'} · Přílohy: ${esc(o.receipts)}</p>
- <div class="tscroll"><table class="t"><thead><tr><th>Datum</th><th>Odjezd</th><th>Příjezd</th><th>Návrat</th><th>Účel / poznámka</th><th>Doprava</th><th class="n">Hod.</th><th class="n">Stravné</th><th class="n">Jízdné</th><th class="n">Ubyt.</th><th class="n">Ostatní</th><th class="n">Km náhr.</th><th class="n">Celkem</th></tr></thead><tbody>${rows||'<tr><td colspan="13" class="empty">V tomto měsíci nejsou žádné pracovní cesty.</td></tr>'}</tbody><tfoot><tr><td colspan="6">Celkem ${es.length} ${pl(es.length,'cesta','cesty','cest')}</td><td class="n">${fmtH(tot.h)}</td><td class="n">${tot.d}</td><td class="n">${r2(tot.f)}</td><td class="n">${r2(tot.l)}</td><td class="n">${r2(tot.o)}</td><td class="n">${r2(tot.k)}</td><td class="n">${r2(tot.s)}</td></tr></tfoot></table></div>
- <div class="rows" style="max-width:380px;margin-left:auto"><div class="row"><span>Náhrady celkem</span><b>${r2(tot.s).toLocaleString('cs-CZ')} Kč</b></div><div class="row"><span>Záloha</span><b>${num(o.advance).toLocaleString('cs-CZ')} Kč</b></div><div class="row total"><span>${bal>=0?'Doplatek zaměstnanci':'Přeplatek (vrátit)'}</span><b>${Math.abs(bal).toLocaleString('cs-CZ')} Kč</b></div></div>
- <div class="print-only sign-row"><span>Datum: ____________</span><span>Podpis zaměstnance: ____________</span><span>Schválil: ____________</span></div>`;
- $('#orders').innerHTML=bar+(ordersTab==='dochazka'?doch:cest);
+ const title=MONTHS[M][0].toUpperCase()+MONTHS[M].slice(1)+' '+Y,es=tripEntries(Y,M);
+ const cards=es.map(e=>{const c=calc(e),line=typeof cestakSummaryText==='function'?cestakSummaryText(e):'';const money=c.diet+(c.c&&c.c.sum||0);
+  return `<button type="button" class="cest-card" data-act="quickCestak" data-date="${esc(e.date)}"><b>${DOW[parseISO(e.date).getDay()]} ${fmtDate(e.date)}</b><span>${esc(line||'Cesťák')}</span><strong>${cash(money)}</strong></button>`}).join('')||'<p class="muted">V tomto měsíci nejsou žádné pracovní cesty.</p>';
+ $('#orders').innerHTML=`<div class="pay-nav nav-plain"><button type="button" data-act="payPrev" aria-label="Předchozí měsíc">‹</button><h2>${title}</h2><button type="button" data-act="payNext" aria-label="Další měsíc">›</button></div><div class="cest-top"><button type="button" class="btn" data-act="quickCestak" data-date="${todayISO()}">Rychlý cesťák</button></div><div class="cest-list">${cards}</div>`;
+}
+let printKind='dochazka';
+function renderPrint(){
+ const key=`${Y}-${pad(M+1)}`,o=Object.assign({advance:0,orderNo:'',companions:'',receipts:0},(state.travelOrders||{})[key]||{});
+ const title=MONTHS[M][0].toUpperCase()+MONTHS[M].slice(1)+' '+Y;
+ const seg=(id,label)=>`<button type="button" data-act="printKind" data-k="${id}" class="${printKind===id?'on':''}" aria-pressed="${printKind===id?'true':'false'}">${label}</button>`;
+ $('#print').innerHTML=`<div class="print-screen"><div class="pay-nav nav-plain"><button type="button" data-act="payPrev" aria-label="Předchozí měsíc">‹</button><h2>${title}</h2><button type="button" data-act="payNext" aria-label="Další měsíc">›</button></div>
+ <div class="ord-seg" role="tablist" aria-label="Co vytisknout" style="margin-top:14px">${seg('dochazka','Docházka')}${seg('cestak','Cesťák')}${seg('both','Obojí')}</div>
+ <button type="button" class="btn print-go" data-act="printGo">Tisk / PDF</button>
+ <p class="muted">Na iPhonu se otevře sdílení. Jinak se PDF stáhne.</p>
+ <h3 style="margin:18px 0 8px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:#124b92">Hlavička cesťáku</h3>
+ <div class="grid"><div class="f"><label>Číslo příkazu</label><input data-to="orderNo" value="${esc(o.orderNo)}"></div><div class="f"><label>Záloha (Kč)</label><input data-to="advance" inputmode="decimal" value="${esc(o.advance)}"></div><div class="f"><label>Spolucestující</label><input data-to="companions" value="${esc(o.companions)}"></div><div class="f"><label>Počet příloh / dokladů</label><input data-to="receipts" inputmode="numeric" value="${esc(o.receipts)}"></div></div>
+ <p class="muted">Tyhle údaje se tisknou na cestovní příkaz tohoto měsíce.</p></div>`;
 }
 function setOrderField(f,v){const key=`${Y}-${pad(M+1)}`;state.travelOrders=state.travelOrders||{};const o=state.travelOrders[key]||(state.travelOrders[key]={advance:0,orderNo:'',companions:'',receipts:0});o[f]=(f==='advance'||f==='receipts')?num(v):v;saveData();}
 
@@ -2637,12 +2648,14 @@ document.addEventListener('click',ev=>{
   if(act==='import')return $('#fileIn').click();
   if(act==='csv')return exportCSV();
   if(act==='saveSettings')return saveSettings();
-  if(act==='print')return (ordersTab==='dochazka'?dochazkaPrint:cestakPrint)(ev.target.closest('[data-act]'));
+  if(act==='print'||act==='printGo'){const btn=ev.target.closest('[data-act]');if(printKind==='cestak')return cestakPrint(btn);if(printKind==='both')return bothPrint(btn);return dochazkaPrint(btn)}
   if(act==='printBoth')return bothPrint(ev.target.closest('[data-act]'));
+  if(act==='printKind'){printKind=a.dataset.k==='cestak'?'cestak':a.dataset.k==='both'?'both':'dochazka';renderPrint();return}
+  if(act==='openPrint'){view='print';render();window.scrollTo(0,0);return}
   if(act==='ordTab'){ordersTab=a.dataset.tab==='dochazka'?'dochazka':'cestak';renderOrders();return}
   if(act==='payPrev'){go(-1);return}
   if(act==='payNext'){go(1);return}
-  if(act==='dochPdf'){dochazkaPrint(a);return}
+  if(act==='dochPdf'){view='print';render();window.scrollTo(0,0);return}
   if(act==='goDay'){if(view!=='calendar')return openDayDetail(a.dataset.date);const d=parseISO(a.dataset.date);Y=d.getFullYear();M=d.getMonth();sel=d.getDate();render();return}
   if(act==='impMerge')return doImport(false);
   if(act==='impReplace')return doImport(true);
@@ -2719,11 +2732,11 @@ document.addEventListener('input',ev=>{const el=ev.target;
   if(k==='jobHours'){fstate.pair='job';fstate.jobV=num(el.value)}else if(k==='baseHours'){fstate.pair='base';fstate.baseV=num(el.value)}else if(['startTime','endTime','lunchHours','totalHours'].includes(k)&&!fstate.pair)fstate.pair='total';
   if(k==='t.returnFrom')fstate.retFollow=false;if(k==='t.start'){fstate.startFollow=false;if(fstate.routeTouch)fstate.routeTouch.start=true}if(k==='t.returnArrival'){fstate.arrFollow=false;if(fstate.routeTouch)fstate.routeTouch.back=true}if(k==='t.km'&&fstate.routeTouch)fstate.routeTouch.km=true;if(k==='t.to')fstate.placeFollow=false;if(k==='place'&&fstate.placeFollow){const to=$('#f_t\\.to');if(to)to.value=el.value}refreshForm();if(['t.from','t.to','t.arrival','t.returnStart'].includes(k))scheduleFormRoute()}
 });
-document.addEventListener('change',ev=>{const el=ev.target;if(!el.dataset||!el.dataset.to)return;setOrderField(el.dataset.to,el.value);const y=window.scrollY;const next=document.activeElement;const key=next&&next.dataset&&next.dataset.to;const caret=next&&typeof next.selectionStart==='number'?next.selectionStart:null;renderOrders();renderBanner();window.scrollTo(0,y);if(key){const n=document.querySelector(`[data-to="${CSS.escape(key)}"]`);if(n){n.focus({preventScroll:true});if(caret!=null)try{n.setSelectionRange(caret,caret)}catch(e){}keepFieldVisible(n)}}});
+document.addEventListener('change',ev=>{const el=ev.target;if(!el.dataset||!el.dataset.to)return;setOrderField(el.dataset.to,el.value);const y=window.scrollY;const next=document.activeElement;const key=next&&next.dataset&&next.dataset.to;const caret=next&&typeof next.selectionStart==='number'?next.selectionStart:null;if(view==='print')renderPrint();else renderOrders();renderBanner();window.scrollTo(0,y);if(key){const n=document.querySelector(`[data-to="${CSS.escape(key)}"]`);if(n){n.focus({preventScroll:true});if(caret!=null)try{n.setSelectionRange(caret,caret)}catch(e){}keepFieldVisible(n)}}});
 $('#fileIn').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importFile(f)};
 $('#bakFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)restorePick(f)};
 $('#prev').onclick=()=>go(-1);$('#next').onclick=()=>go(1);
-$('#dochPdf').onclick=e=>dochazkaPrint(e.currentTarget);if(!window.APP_PWA)$('#dochPdf').hidden=true;
+$('#dochPdf').onclick=()=>{view='print';render();window.scrollTo(0,0)};
 $('#today').onclick=()=>{const t=new Date();Y=t.getFullYear();M=t.getMonth();sel=t.getDate();render()};
 $('#addBtn').onclick=()=>openQuick([iso(Y,M,sel)]);
 $('#eye').onclick=()=>{ui.hide=!ui.hide;saveUi();render()};

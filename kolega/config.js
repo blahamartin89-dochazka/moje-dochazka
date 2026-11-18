@@ -11,4 +11,4 @@ window.APP_PROFILE={
 };
 window.APP_CONFIG={SUPABASE_URL:'',SUPABASE_ANON_KEY:''};
 window.APP_PHOTO_CLOUD=false;
-window.APP_VERSION='2026-11-18.17-kolega';
+window.APP_VERSION='2026-11-18.18-kolega';
