@@ -7,8 +7,8 @@ window.APP_PROFILE={
   allowCloudKeys:true,
   homePreset:'',
   cranes:[],
-  defaultRates:{job:280,base:220,ot:0,weekend:0,holidayPct:100}
+  defaultRates:{job:null,base:null,ot:null,weekend:null,holidayPct:null}
 };
 window.APP_CONFIG={SUPABASE_URL:'',SUPABASE_ANON_KEY:''};
 window.APP_PHOTO_CLOUD=false;
-window.APP_VERSION='2026-11-18.19-kolega';
+window.APP_VERSION='2026-11-18.20-kolega';
