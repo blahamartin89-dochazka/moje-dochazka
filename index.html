@@ -125,6 +125,9 @@ body[data-view="calendar"] main{display:flex;flex-direction:column}
 body[data-view="calendar"] #monthcontrol{order:1;margin:0 0 8px}
 body[data-view="calendar"] #calendarView{order:2}
 body[data-view="calendar"] .intro{order:3;margin-top:12px}
+body[data-view="calendar"] .intro h1,body[data-view="calendar"] .intro p{display:none!important}
+body[data-view="calendar"] #badge[hidden]{display:none!important}
+body[data-view="calendar"] #badge:not([hidden]){display:inline-block;text-transform:none;letter-spacing:0;font-size:13px;font-weight:700}
 body[data-view="calendar"] #backupBanner{order:4}
 body[data-view="calendar"] #detail{order:5;margin-top:8px}
 body[data-view="calendar"] .footnote{order:6}
@@ -485,7 +488,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1"><input type="file" id="bakFile" accept=".json,.zip,application/json,application/zip" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-18.16";const APPF=window.APP_PROFILE||{};const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-18.17";const APPF=window.APP_PROFILE||{};const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -2073,10 +2076,11 @@ const dim=()=>new Date(Y,M+1,0).getDate();
 function go(delta){M+=delta;if(M<0){M=11;Y--}if(M>11){M=0;Y++}sel=Math.min(sel,dim());render()}
 
 /* ---------- render ---------- */
+function paintBadge(){const el=$('#badge');if(!el)return;if(view==='calendar'){const warn=window.__calSyncWarn||'';el.hidden=!warn;el.textContent=warn;return}el.hidden=false;el.textContent=`${state.entries.length} ${pl(state.entries.length,'záznam','záznamy','záznamů')} · ${hooks.cloudOn()?'synchronizováno s účtem':'uloženo v prohlížeči'}`}
 function render(){
  const s=summary(Y,M),p=P();
  $('#pname').textContent=p.name||'';$('#pcompany').textContent=[p.company,p.employeeNo&&('os. č. '+p.employeeNo)].filter(Boolean).join(' · ');
- $('#badge').textContent=`${state.entries.length} ${pl(state.entries.length,'záznam','záznamy','záznamů')} · ${hooks.cloudOn()?'synchronizováno s účtem':'uloženo v prohlížeči'}`;
+ paintBadge();
  $('#stats').innerHTML=`<div class="stat"><small>CELKEM OD FIRMY · ${MONTHS[M].toUpperCase()} ${Y}</small><strong>${cash(s.all)}</strong><em>Výdělek ${cash(s.work)} + diety a náhrady ${cash(s.all-s.work)}</em></div><div class="stat"><small>ODPRACOVÁNO</small><strong>${fmtH(s.h)} <span style="font-size:16px">h</span></strong><em>${s.days} ${pl(s.days,'pracovní den','pracovní dny','pracovních dnů')} · přesčas ${fmtH(s.ot)} h · víkend ${fmtH(s.wk)} h${s.hol?` · svátky ${fmtH(s.hol)} h / +${cash(s.holx)}`:''}${s.vac?` · dovolená ${fmtH(s.vac)} h`:''}</em></div><div class="stat"><small>PRŮMĚR ZA PRACOVNÍ DEN</small><strong style="font-size:24px">${cash(s.days?s.a.filter(e=>num(e.totalHours)>0).reduce((t,e)=>t+calc(e).work,0)/s.days:0)}</strong><em>Bez diet, náhrad a volna · diety ${cash(s.diet)}</em></div>${balCard()}`;
  $('#monthtitle').textContent=MONTHS[M][0].toUpperCase()+MONTHS[M].slice(1)+' '+Y;
  const bd=byDate(),gapSt=new Set(gapDates('stazka')),gapCe=new Set(gapDates('cestak'));let html='';const off=(new Date(Y,M,1).getDay()+6)%7,days=dim();
@@ -2883,9 +2887,14 @@ function resetLocal(backupKey){
 
 let startupChecked=false,sessionKnown=false,sb=null,user=null,syncing=false,again=false,syncState='',syncErr='',timer=null,applying=false;
 const isNet=e=>navigator.onLine===false||/fetch|network|load failed|offline|timeout/i.test(String(e&&(e.message||e)));
-function setStatus(s,err){syncState=s;syncErr=err?String(err.message||err):'';const el=$('#syncStatus');if(!el)return;
+function setStatus(s,err){syncState=s;syncErr=err?String(err.message||err):'';const el=$('#syncStatus');if(el){
  const T={ok:'☁ Uloženo',sync:'⟳ Synchronizuji…',offline:'⚠ Offline – uloženo v zařízení',error:'⚠ Chyba synchronizace',local:'○ Jen v zařízení · přihlásit'};
  el.textContent=T[s]||'';el.className='sync-pill '+s;el.title=syncErr||(meta.lastSync?'Naposledy synchronizováno '+new Date(meta.lastSync).toLocaleString('cs-CZ'):'');el.hidden=!s}
+ const dirty=!!(meta&&meta.dirty),offline=s==='offline'||navigator.onLine===false;
+ window.__calSyncWarn=s==='error'?'⚠ Synchronizace selhala':(offline&&dirty?'⚠ Offline – změny nejsou v účtu':'');
+ if(typeof paintBadge==='function')paintBadge()}
+window.addEventListener('offline',()=>{if(typeof meta!=='undefined'&&meta&&meta.dirty)window.__calSyncWarn='⚠ Offline – změny nejsou v účtu';if(typeof paintBadge==='function')paintBadge()});
+window.addEventListener('online',()=>{if(String(window.__calSyncWarn||'').indexOf('Offline')===0)window.__calSyncWarn='';if(typeof paintBadge==='function')paintBadge()});
 function schedule(ms){if(!user)return;clearTimeout(timer);timer=setTimeout(syncNow,ms)}
 async function syncNow(){
  if(!sb||!user)return;if(syncing){again=true;return}
