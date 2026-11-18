@@ -162,7 +162,8 @@ body[data-view="dnes"] #addBtn,body[data-view="dnes"] .intro p{display:none}
 .rd-foot .btn:last-child{flex:1;font-size:18px;padding:14px}
 .ov-hours .step-row{margin-top:6px}
 .ov-hours .step-row button{flex:1;padding:8px 4px;font-weight:700;font-size:12px}
-.ov-hours .step-row button[data-act="workNow"],.trip-time .step-row button[data-act="rdNow"]{font-weight:800}
+.ov-hours .step-row button[data-act="workNow"],.trip-time .step-row button[data-act="rdNow"]{flex:1.55;background:#124b92;color:#fff;font-weight:800;box-shadow:none;display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.ov-hours .step-row button[data-act="workNow"]::before,.trip-time .step-row button[data-act="rdNow"]::before{content:"";width:14px;height:14px;flex:0 0 14px;background:currentColor;-webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='8' fill='none' stroke='%23000' stroke-width='2.4'/><path d='M12 7.2V12.2L15.2 14' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/contain no-repeat;mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='8' fill='none' stroke='%23000' stroke-width='2.4'/><path d='M12 7.2V12.2L15.2 14' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/contain no-repeat}
 .ov-payrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 0}
 .ov-payrow .ov-pay{margin:0;flex:1;min-width:0}
 .ov-payrow .chk{margin:0;font-weight:750;color:#124b92;white-space:nowrap}
@@ -399,7 +400,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;window.APP_VERSION="2026-11-18.2";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;window.APP_VERSION="2026-11-18.3";/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1448,6 +1449,7 @@ function stampsFor(date){const s=stampBook&&stampBook[date];return s&&typeof s==
 function stampStep(){const n=+((typeof ui!=='undefined'&&ui.stampRound)||30);return n===15||n===60?n:30}
 function roundHM(mins,step){let r=Math.round(mins/step)*step;r=((r%1440)+1440)%1440;return pad(Math.floor(r/60))+':'+pad(r%60)}
 function stampNow(){const d=new Date();return roundHM(d.getHours()*60+d.getMinutes(),stampStep())}
+function workNowTime(which){const d=new Date(),m=d.getHours()*60+d.getMinutes();const r=(which==='out'?Math.ceil(m/30):Math.floor(m/30))*30;const v=((r%1440)+1440)%1440;return pad(Math.floor(v/60))+':'+pad(v%60)}
 function setStamp(date,key,value){const cur=Object.assign({},stampsFor(date));if(value)cur[key]=value;else delete cur[key];if(Object.keys(cur).length)stampBook[date]=cur;else delete stampBook[date];saveStamps();if(typeof view!=='undefined'&&view==='dnes'&&typeof renderDnes==='function')renderDnes()}
 function stampMins(t){if(!/^\d{2}:\d{2}$/.test(String(t||'')))return null;const[h,m]=t.split(':').map(Number);return h*60+m}
 function stampSpan(a,b){const x=stampMins(a),y=stampMins(b);if(x==null||y==null)return 0;let d=y-x;if(d<0)d+=1440;return d}
@@ -1748,7 +1750,7 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
  if(act==='craneCreate'){ev.stopPropagation();addCraneFromSettings();return}
  if(act==='craneUpdate'){ev.stopPropagation();updateCraneRow(a);return}
  if(act==='craneDelete'){ev.stopPropagation();deleteCraneRow(a.dataset.i);return}
- if(act==='rdNow'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;el.value=stampNow();syncTripClocks(el.closest('.trip-clock'));rdRefresh();return}
+ if(act==='rdNow'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;el.value=workNowTime(a.dataset.f==='rd_out'?'out':'in');syncTripClocks(el.closest('.trip-clock'));rdRefresh();return}
  if(act==='rdShift'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;const next=addMin(el.value||stampNow(),+a.dataset.m);if(!next)return;el.value=next;syncTripClocks(el.closest('.trip-clock'));rdRefresh();return}
  if(act==='rqSave'){ev.stopPropagation();return saveQuickCestak(a.dataset.date)}
  if(act==='rqShift'){ev.stopPropagation();const el=document.getElementById(a.dataset.f);if(!el)return;const next=addMin(el.value||stampNow(),+a.dataset.m);if(!next)return;el.value=next;syncTripClocks(el.closest('.trip-clock'));if(el.id==='rq_leave')rqTouch.leave=true;else if(el.id==='rq_home')rqTouch.home=true;else if(el.id==='rq_arr'||el.id==='rq_dep')applyRqRoute(rqRoute);return}
@@ -1756,7 +1758,7 @@ document.addEventListener('click',ev=>{const a=ev.target.closest('[data-act]');i
  if(act==='placeHide'){ev.stopPropagation();hidePlace(a.dataset.val);return}
  if(act==='placeEdit'){ev.stopPropagation();placeEdit=!placeEdit;refreshPlaceChips();return}
  if(act==='placeRestore'){ev.stopPropagation();hiddenPlaceKeys=[];saveHiddenPlaces();refreshPlaceChips();if(typeof toast==='function')toast('Skrytá místa jsou zase v nabídce','silent');return}
- if(act==='workNow'){ev.stopPropagation();setStamp(a.dataset.date,a.dataset.k,stampNow());return}
+ if(act==='workNow'){ev.stopPropagation();setStamp(a.dataset.date,a.dataset.k,workNowTime(a.dataset.k==='workOut'?'out':'in'));return}
  if(act==='workShift'){ev.stopPropagation();const date=a.dataset.date,key=a.dataset.k;const cur=stampsFor(date)[key];const es=byDate()[date]||[];const saved=(es.find(x=>key==='workIn'?x.startTime:x.endTime)||{});const base=cur||(key==='workIn'?saved.startTime:saved.endTime)||stampNow();const next=addMin(base,+a.dataset.m);if(!next)return;setStamp(date,key,next);return}
  if(act==='stamp'||act==='stampUndo'){ev.stopPropagation();const key=a.dataset.k,date=a.dataset.date;if(act==='stampUndo'){setStamp(date,key,'');return}
   const cur=stampsFor(date)[key];const inp=a.parentElement&&a.parentElement.querySelector('[data-stamp-edit]');
