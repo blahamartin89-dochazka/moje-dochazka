@@ -126,7 +126,7 @@ dialog.crop-dlg.crop-force{position:fixed;z-index:2147483000;width:100%;height:1
 .cest-top h2{margin:0;font-size:20px}
 .cest-top .btn{width:auto;min-height:40px;padding:8px 12px}
 .print-screen h2{margin:0;font-size:22px}
-.print-go{width:100%;margin:14px 0 6px;font-size:18px;font-weight:800;min-height:52px}
+.print-go{width:100%;margin:14px 0 6px;font-size:18px;font-weight:800;min-height:52px}.print-actions{display:flex;gap:8px;margin:14px 0 6px}.print-actions .btn{flex:1;margin:0;min-height:52px;font-size:17px;font-weight:800}.print-actions .print-go{flex:1.35}dialog.print-prev{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;border:0;padding:0;background:#0e1c33;color:#fff;display:flex;flex-direction:column}.print-prev-bar{display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;background:#124b92}.print-prev-bar h2{flex:1;margin:0;font-size:17px;text-align:center}.print-prev-bar .btn{min-height:40px;padding:8px 12px;font-weight:750}.print-prev-pages{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px 8px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;align-items:stretch}.print-prev-pages canvas{width:100%;height:auto;background:#fff;display:block;box-shadow:0 2px 12px #0006}.print-prev-wait{color:#d5e4f8;text-align:center;margin:24px 8px}
 #ordersView .panel,#printView .panel{padding-top:14px}
 
 /* v14 form hints */
@@ -510,7 +510,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1"><input type="file" id="bakFile" accept=".json,.zip,application/json,application/zip" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-19.11";const APPF=window.APP_PROFILE||{};window.KOLEGA_ACCESS=true;/* Zapnuto po supabase/kolega_access.sql, hooku a SMTP. */const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-19.12";const APPF=window.APP_PROFILE||{};window.KOLEGA_ACCESS=true;/* Zapnuto po supabase/kolega_access.sql, hooku a SMTP. */const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1393,7 +1393,7 @@ window.__stitek={photoCleanup,photoCutoff,photoCloudQueue,stCaption,photoCaption
 const _stRender=render;render=function(){_stRender.apply(this,arguments);hydrateThumbs();refreshShare()};
 
 /* ================= PDF formuláře: Pracovní výkaz (docházka) + Cestovní příkaz (podle papírových formulářů Alvian) ================= */
-function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[data-src="${src}"]`))return res();const s=document.createElement('script');s.src=src;s.dataset.src=src;s.onload=()=>res();s.onerror=()=>{s.remove();rej(new Error('Nelze načíst '+src))};document.head.appendChild(s)})}
+function loadScript(src){const url=(window.APP_ASSET_PREFIX||'')+src;return new Promise((res,rej)=>{if(document.querySelector(`script[data-src="${url}"]`))return res();const s=document.createElement('script');s.src=url;s.dataset.src=url;s.onload=()=>res();s.onerror=()=>{s.remove();rej(new Error('Nelze načíst '+src))};document.head.appendChild(s)})}
 async function pdfLibs(){for(const s of['vendor/jspdf.umd.min.js','vendor/pdf-assets.js'])await loadScript(s);if(!window.jspdf||!window.PDF_ASSETS)throw new Error('PDF knihovna chybí')}
 const asciiName=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
 function pdfFileName(kind){const p=P(),sur=String(p.name||'').trim().split(/\s+/).pop();return`${kind}-${Y}-${pad(M+1)}${sur?'-'+asciiName(sur):''}.pdf`}
@@ -1547,6 +1547,10 @@ async function bothPdf(){await pdfLibs();const doc=newDoc();drawDochazka(doc);
  doc.setProperties({title:`Docházka a cestovní příkaz – ${MONTHS[M]} ${Y}`,author:P().name||'',creator:'Moje docházka'});
  return new File([doc.output('blob')],pdfFileName('dochazka-cestak'),{type:'application/pdf'})}
 const cestakPrint=btn=>sharePdf(cestakPdf,btn),dochazkaPrint=btn=>sharePdf(dochazkaPdf,btn),bothPrint=btn=>sharePdf(bothPdf,btn);
+function printMaker(){return printKind==='cestak'?cestakPdf:printKind==='both'?bothPdf:dochazkaPdf}
+async function ensurePdfJs(){await pdfLibs();await loadScript('vendor/pdf.min.js');const lib=window.pdfjsLib;if(!lib)throw new Error('Náhled nejde načíst');lib.GlobalWorkerOptions.workerSrc=(window.APP_ASSET_PREFIX||'')+'vendor/pdf.worker.min.js';return lib}
+function printPrevDialog(){let d=$('#printPrev');if(d)return d;d=document.createElement('dialog');d.id='printPrev';d.className='print-prev';d.innerHTML='<div class="print-prev-bar"><button type="button" class="btn sec" data-act="printPrevClose">Zavřít</button><h2>Náhled</h2><button type="button" class="btn" data-act="printGo">Tisk / PDF</button></div><div class="print-prev-pages" id="printPrevPages"></div>';document.body.appendChild(d);return d}
+async function openPrintPreview(){const d=printPrevDialog(),pages=$('#printPrevPages');pages.innerHTML='<p class="print-prev-wait">Připravuji náhled…</p>';if(!d.open)d.showModal();try{const lib=await ensurePdfJs(),file=await printMaker()(),data=new Uint8Array(await file.arrayBuffer()),pdf=await lib.getDocument({data}).promise;pages.innerHTML='';const width=Math.max(280,(pages.clientWidth||window.innerWidth)-16),dpr=Math.min(2,window.devicePixelRatio||1);for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i),base=page.getViewport({scale:1}),vp=page.getViewport({scale:width/base.width}),canvas=document.createElement('canvas');canvas.width=Math.round(vp.width*dpr);canvas.height=Math.round(vp.height*dpr);canvas.style.width=Math.round(vp.width)+'px';canvas.style.height=Math.round(vp.height)+'px';const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);await page.render({canvasContext:ctx,viewport:vp}).promise;pages.appendChild(canvas)}}catch(e){console.warn(e);pages.innerHTML='<p class="print-prev-wait">Náhled se nepodařilo vytvořit.</p>'}}
 window.__cestak={cestakPdf,cestakPrint,cestakFileName,usePdf,dochazkaPdf,dochazkaPrint,bothPdf,bothPrint,dochazkaData,pdfFileName};
 /* ---------- Dnes (v16) ---------- */
 const DOW_ACC=['neděli','pondělí','úterý','středu','čtvrtek','pátek','sobotu'];
@@ -2319,7 +2323,7 @@ function renderPrint(){
  const seg=(id,label)=>`<button type="button" data-act="printKind" data-k="${id}" class="${printKind===id?'on':''}" aria-pressed="${printKind===id?'true':'false'}">${label}</button>`;
  $('#print').innerHTML=`<div class="print-screen"><div class="pay-nav nav-plain"><button type="button" data-act="payPrev" aria-label="Předchozí měsíc">‹</button><h2>${title}</h2><button type="button" data-act="payNext" aria-label="Další měsíc">›</button></div>
  <div class="ord-seg" role="tablist" aria-label="Co vytisknout" style="margin-top:14px">${seg('dochazka','Docházka')}${seg('cestak','Cesťák')}${seg('both','Obojí')}</div>
- <button type="button" class="btn print-go" data-act="printGo">Tisk / PDF</button>
+ <div class="print-actions"><button type="button" class="btn sec" data-act="printPreview">Náhled</button><button type="button" class="btn print-go" data-act="printGo">Tisk / PDF</button></div>
  <p class="muted">Na iPhonu se otevře sdílení. Jinak se PDF stáhne.</p>
  <h3 style="margin:18px 0 8px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:#124b92">Hlavička cesťáku</h3>
  <div class="grid"><div class="f"><label>Číslo příkazu</label><input data-to="orderNo" value="${esc(o.orderNo)}"></div><div class="f"><label>Záloha (Kč)</label><input data-to="advance" inputmode="decimal" value="${esc(o.advance)}"></div><div class="f"><label>Spolucestující</label><input data-to="companions" value="${esc(o.companions)}"></div><div class="f"><label>Počet příloh / dokladů</label><input data-to="receipts" inputmode="numeric" value="${esc(o.receipts)}"></div></div>
@@ -2734,6 +2738,8 @@ document.addEventListener('click',ev=>{
   if(act==='gateSend')return gateSend();
   if(act==='gateVerify')return gateVerify();
   if(act==='gateLogout')return gateLogout();
+  if(act==='printPreview'){openPrintPreview();return}
+  if(act==='printPrevClose'){const pv=$('#printPrev');if(pv&&pv.open)pv.close();return}
   if(act==='print'||act==='printGo'){const btn=ev.target.closest('[data-act]');if(printKind==='cestak')return cestakPrint(btn);if(printKind==='both')return bothPrint(btn);return dochazkaPrint(btn)}
   if(act==='printBoth')return bothPrint(ev.target.closest('[data-act]'));
   if(act==='printKind'){printKind=a.dataset.k==='cestak'?'cestak':a.dataset.k==='both'?'both':'dochazka';renderPrint();return}
