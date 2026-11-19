@@ -11,4 +11,4 @@ window.APP_PROFILE={
 };
 window.APP_CONFIG={SUPABASE_URL:'https://cioqtxhuimxypwaamrsk.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_UL0b2SyLdtYSfgn-z5TmZQ_qh2HigjM'};
 window.APP_PHOTO_CLOUD=false;
-window.APP_VERSION='2026-11-19.8-kolega';
+window.APP_VERSION='2026-11-19.9-kolega';
