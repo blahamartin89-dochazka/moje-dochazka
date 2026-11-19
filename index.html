@@ -510,7 +510,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1"><input type="file" id="bakFile" accept=".json,.zip,application/json,application/zip" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-19.3";const APPF=window.APP_PROFILE||{};window.KOLEGA_ACCESS=true;/* Zapnuto po supabase/kolega_access.sql, hooku a SMTP. */const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-19.4";const APPF=window.APP_PROFILE||{};window.KOLEGA_ACCESS=true;/* Zapnuto po supabase/kolega_access.sql, hooku a SMTP. */const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -2065,19 +2065,23 @@ function leaveAmounts(e){
  return{vacG,sickG,dpnG,vac:toNet(vacG,date),sick:toNet(sickG,date),dpn:toNet(dpnG,date),ratio,dpnDay,cssz,phv:phv(date),hourly:dpnHourlyGross(date),netish:ratio<1}
 }
 function weekMonday(date){const g=parseISO(date).getDay();return addDays(date,g===0?-6:1-g)}
-/* Hodiny do týdenních 40 h: odpracováno bez oběda (ten už není v totalHours), bez dojíždění dům–stavba a bez „Z toho dojíždění“ na zakázce. Depo je práce, počítá se. Dovolená, nemoc a svátek se nepočítají. */
+/* Hodiny do týdenních 40 h: totalHours minus dojíždění. Depo a základ, které nejsou dojíždění, se počítají. Oběd v totalHours už není. */
 function countableHours(e){
  if(!e)return 0;
  const total=num(e.totalHours);
  if(!(total>0))return 0;
- if(e.date&&holidayName(e.date))return 0;
  const com=Math.min(Math.max(0,num(e.commuteHours)),total);
- const base=Math.max(0,num(e.baseHours));
- const job=Math.max(0,num(e.jobHours));
- const zToho=Math.max(0,base-com);
- const depo=!(job>0)&&base>0;
- const excludeZ=depo?0:Math.min(zToho,Math.max(0,total-com));
- return r2(Math.max(0,total-com-excludeZ));
+ return r2(Math.max(0,total-com));
+}
+function otBonusRate(){
+ const saved=state&&state.rates||{};
+ if(Object.prototype.hasOwnProperty.call(saved,'otBonus'))return num(saved.otBonus);
+ return APPF.variant==='kolega'?0:(10+10);
+}
+function otBonusShown(){
+ const saved=state&&state.rates||{};
+ if(Object.prototype.hasOwnProperty.call(saved,'otBonus'))return num(saved.otBonus)?saved.otBonus:'';
+ return APPF.variant==='kolega'?'':String(10+10);
 }
 function entryOt(e){
  if(!e||!e.date||typeof state==='undefined'||!state||!state.entries)return 0;
@@ -2096,12 +2100,12 @@ function entryOt(e){
 function calc(e){
  const rt=R();
  const otH=entryOt(e);
- const job=num(e.jobHours)*num(rt.job),base=num(e.baseHours)*num(rt.base),ot=otH*num(rt.ot),wk=num(e.weekendHours)*num(rt.weekend);
+ const job=num(e.jobHours)*num(rt.job),base=num(e.baseHours)*num(rt.base),ot=otH*num(rt.ot),otSup=r2(otH*otBonusRate()),wk=num(e.weekendHours)*num(rt.weekend);
  const L=leaveAmounts(e),vac=L.vac,sick=L.sick,dpn=L.dpn;
  const d=dietInfo(e,rt),c=costs(e);
  const hol=holidayName(e.date),holPct=hol&&num(e.totalHours)>0?num(rt.holidayPct):0,holx=r2((job+base)*holPct/100);
- const work=r2(job+base+ot+wk+vac+sick+dpn+holx);
- return{job,base,ot,wk,vac,sick,dpn,vacG:L.vacG,sickG:L.sickG,dpnG:L.dpnG,leave:L,holx,holPct,diet:d.v,dietWhy:d.why,c,work,all:r2(work+d.v+c.sum),hol:holidayName(e.date)}
+ const work=r2(job+base+ot+otSup+wk+vac+sick+dpn+holx);
+ return{job,base,ot,otSup,otH,wk,vac,sick,dpn,vacG:L.vacG,sickG:L.sickG,dpnG:L.dpnG,leave:L,holx,holPct,diet:d.v,dietWhy:d.why,c,work,all:r2(work+d.v+c.sum),hol:holidayName(e.date)}
 }
 function dayType(e){if(num(e.totalHours)>0)return'Práce';if(num(e.vacationHours)>0)return'Dovolená';if(num(e.dpnHours)>0)return'Nemoc (DPN)';if(num(e.sickHours)>0)return'Sick day';if(num(e.doctorHours)>0)return'Lékař';return'Záznam'}
 const LEAVE_NOTES=new Set(['Depo','Dovolená','Nemoc / sick day','Nemoc','Sick day','Nemoc (DPN)']);
@@ -2194,6 +2198,7 @@ function details(){
   if(num(e.jobHours))row(`Zákazník ${fmtH(num(e.jobHours))} h${rateMul(rt.job)}`,cash(c.job));
   {const com=Math.min(num(e.commuteHours),num(e.baseHours)),al=r2(num(e.baseHours)-com);if(al)row(`Z toho dojíždění ${fmtH(al)} h${rateMul(rt.base)}`,cash(al*num(rt.base)));if(com)row(`Dojíždění ${fmtH(com)} h${rateMul(rt.base)}`,cash(com*num(rt.base)))}
   if(entryOt(e))row(`Příplatek přesčas ${fmtH(entryOt(e))} h${rateMul(rt.ot)}`,cash(c.ot));
+  if(entryOt(e))row(`Příplatek nad 40 h ${fmtH(entryOt(e))} h${rateMul(otBonusRate())}`,cash(c.otSup));
   if(num(e.weekendHours))row(`Příplatek víkend ${fmtH(num(e.weekendHours))} h${rateMul(rt.weekend)}`,cash(c.wk));
   if(c.holx)row(`Příplatek za svátek ${fmtH(c.holPct)} %`,cash(c.holx));
   if(num(e.vacationHours))row(`Dovolená ${fmtH(num(e.vacationHours))} h`,cash(c.vac));
@@ -2210,12 +2215,12 @@ function details(){
 function monthRange(){const ks=state.entries.map(e=>e.date?.slice(0,7)).filter(Boolean).concat(Object.keys(state.travelOrders||{})).sort();const t=new Date(),cur=`${t.getFullYear()}-${pad(t.getMonth()+1)}`;if(!ks.length)return[cur];let a=ks[0],b=ks[ks.length-1]>cur?ks[ks.length-1]:cur;const out=[];let[y,m]=a.split('-').map(Number);while(`${y}-${pad(m)}`<=b){out.push(`${y}-${pad(m)}`);m++;if(m>12){m=1;y++}}return out.slice(-24).reverse()}
 
 function monthPayParts(y,m){
- const a=monthEntries(y,m),rt=R(),out={jobH:0,alvH:0,comH:0,otH:0,wkH:0,vacH:0,sickH:0,dpnH:0,docH:0,jobK:0,alvK:0,comK:0,otK:0,wkK:0,vacK:0,sickK:0,dpnK:0,holK:0,dietK:0,costK:0,workK:0,allK:0,h:0,days:0};
+ const a=monthEntries(y,m),rt=R(),out={jobH:0,alvH:0,comH:0,otH:0,wkH:0,vacH:0,sickH:0,dpnH:0,docH:0,jobK:0,alvK:0,comK:0,otK:0,otSupK:0,wkK:0,vacK:0,sickK:0,dpnK:0,holK:0,dietK:0,costK:0,workK:0,allK:0,h:0,days:0};
  const wd=new Set();
  for(const e of a){const c=calc(e),com=Math.min(num(e.commuteHours),num(e.baseHours)),al=r2(num(e.baseHours)-com);
   out.jobH+=num(e.jobHours);out.alvH+=al;out.comH+=com;out.otH+=entryOt(e);out.wkH+=num(e.weekendHours);
   out.vacH+=num(e.vacationHours);out.sickH+=num(e.sickHours);out.dpnH+=num(e.dpnHours);out.docH+=num(e.doctorHours);out.h+=num(e.totalHours);
-  out.jobK+=c.job;out.alvK+=al*num(rt.base);out.comK+=com*num(rt.base);out.otK+=c.ot;out.wkK+=c.wk;out.vacK+=c.vac;out.sickK+=c.sick;out.dpnK+=c.dpn;out.holK+=c.holx;out.dietK+=c.diet;out.costK+=c.c.sum;out.workK+=c.work;out.allK+=c.all;
+  out.jobK+=c.job;out.alvK+=al*num(rt.base);out.comK+=com*num(rt.base);out.otK+=c.ot;out.otSupK+=c.otSup;out.wkK+=c.wk;out.vacK+=c.vac;out.sickK+=c.sick;out.dpnK+=c.dpn;out.holK+=c.holx;out.dietK+=c.diet;out.costK+=c.c.sum;out.workK+=c.work;out.allK+=c.all;
   if(num(e.totalHours)>0)wd.add(e.date)}
  out.days=wd.size;for(const k of Object.keys(out))if(typeof out[k]==='number')out[k]=r2(out[k]);return out}
 function lastNMonths(y,m,n){const out=[];for(let i=n-1;i>=0;i--){let mm=m-i,yy=y;while(mm<0){mm+=12;yy--}out.push({y:yy,m:mm})}return out}
@@ -2238,7 +2243,7 @@ function renderPay(){
  <div class="pay-cmp">${MONTHS[pm][0].toUpperCase()+MONTHS[pm].slice(1)} ${py}: <b>${cash(ps.allK)}</b> · rozdíl <b class="${diff>=0?'up':'dn'}">${diffTxt}</b></div>
  <div style="display:flex;gap:14px;align-items:center"><button type="button" class="linkbtn" data-act="eyeT" style="padding:8px 0 0">${ui.hide?'◉ Zobrazit částky':'◉ Skrýt částky'}</button><button type="button" class="linkbtn" data-act="openPrint" style="padding:8px 0 0">Tisk</button></div></div></div>
  ${payInsightsHTML(Y,M)}
- <div class="pay-box"><h3>Rozklad</h3>${row('Zákazník',s.jobH,rt.job,s.jobK)}${row('Alvian / Depo',s.alvH,rt.base,s.alvK)}${row('Dojíždění',s.comH,rt.base,s.comK)}${row('Příplatek přesčas',s.otH,rt.ot,s.otK)}${row('Příplatek víkend',s.wkH,rt.weekend,s.wkK)}${row('Příplatek svátek',0,null,s.holK)}${row('Dovolená',s.vacH,null,s.vacK)}${row('Sick day',s.sickH,null,s.sickK)}${row('Nemoc (DPN)',s.dpnH,null,s.dpnK)}${row('Stravné (diety)',0,null,s.dietK)}${row('Náhrady (jízdné, ubyt.)',0,null,s.costK)}
+ <div class="pay-box"><h3>Rozklad</h3>${row('Zákazník',s.jobH,rt.job,s.jobK)}${row('Alvian / Depo',s.alvH,rt.base,s.alvK)}${row('Dojíždění',s.comH,rt.base,s.comK)}${row('Příplatek přesčas',s.otH,rt.ot,s.otK)}${row('Příplatek nad 40 h',s.otH,otBonusRate(),s.otSupK)}${row('Příplatek víkend',s.wkH,rt.weekend,s.wkK)}${row('Příplatek svátek',0,null,s.holK)}${row('Dovolená',s.vacH,null,s.vacK)}${row('Sick day',s.sickH,null,s.sickK)}${row('Nemoc (DPN)',s.dpnH,null,s.dpnK)}${row('Stravné (diety)',0,null,s.dietK)}${row('Náhrady (jízdné, ubyt.)',0,null,s.costK)}
  <div class="pay-row total"><span>Celkem</span><b>${cash(s.allK)}</b></div>
  <p class="muted" style="margin:8px 0 0">${fmtH(s.h)} h práce · ${s.days} ${pl(s.days,'směna','směny','směn')} · přesčas ${fmtH(s.otH)} h</p></div>
  <div class="pay-box pay-bal"><h3>Zůstatky ${b.year}</h3><div class="pay-bal-grid"><div><small>Dovolená</small><b>${fmtH(b.vac)} h</b><i>${fmtH(b.old)} stará · ${fmtH(b.nw)} nová</i></div><div><small>Sick days</small><b>${b.sick} ${pl(b.sick,'den','dny','dní')}</b><i>zbývá z ${b.sickAnnual}</i></div></div></div>
@@ -2297,7 +2302,7 @@ function renderPrint(){
 function setOrderField(f,v){const key=`${Y}-${pad(M+1)}`;state.travelOrders=state.travelOrders||{};const o=state.travelOrders[key]||(state.travelOrders[key]={advance:0,orderNo:'',companions:'',receipts:0});o[f]=(f==='advance'||f==='receipts')?num(v):v;saveData();}
 
 /* ---------- nastavení ---------- */
-const RATE_F=[['job','Zákazník (Kč/h)'],['base','Alvian / Depo (Kč/h)'],['ot','Příplatek přesčas (Kč/h)'],['weekend','Příplatek víkend (Kč/h)'],['holidayPct','Příplatek svátek (%)'],['dietShort','Stravné 5–12 h'],['dietMid','Stravné 12–18 h'],['dietLong','Stravné nad 18 h']];
+const RATE_F=[['job','Zákazník (Kč/h)'],['base','Alvian / Depo (Kč/h)'],['ot','Příplatek přesčas (Kč/h)'],['otBonus','Nad 40 h (Kč/h)'],['weekend','Příplatek víkend (Kč/h)'],['holidayPct','Příplatek svátek (%)'],['dietShort','Stravné 5–12 h'],['dietMid','Stravné 12–18 h'],['dietLong','Stravné nad 18 h']];
 const PROF_F=[['name','Jméno','text'],['employeeNo','Osobní číslo','text'],['company','Firma','text'],['place','Pravidelné pracoviště','text'],['homeAddress','Bydliště','text'],['homePlace','Výchozí místo odjezdu / návratu (depo)','text'],['vacationAverageGross','Průměrný výdělek (Kč/h)','number'],['vacationBalanceHours','Zůstatek dovolené (h) – výchozí','number'],['vacationBalanceFrom','…ke dni','date'],['vacationAnnualHours','Dovolená ročně (h)','number'],['sickDaysBalance','Zůstatek sick days','number'],['sickDaysBalanceFrom','…ke dni','date'],['sickDaysAnnual','Sick days ročně','number']];
 const annualVac=p=>p.vacationAnnualHours===undefined||p.vacationAnnualHours===''?160:num(p.vacationAnnualHours);
 function balances(today){
@@ -2343,7 +2348,7 @@ function renderSettings(){
  const r=R(),p=P(),b=balances();const vd=r2(b.vac/8);
  const ownCloud=()=>{try{return JSON.parse(localStorage.getItem(lsp('cloud'))||'{}')||{}}catch(e){return{}}};const cloudPanel=APPF.allowCloudKeys?`<details class="panel adv"><summary>Pro pokročilé</summary><h2>Vlastní cloud</h2><p class="muted">Volitelné. Bez klíče je synchronizace i ukládání fotek do cloudu vypnuté. Po uložení klíče stránku obnov.</p><div class="grid"><div class="f wide"><label for="ownCloudUrl">Supabase URL</label><input id="ownCloudUrl" value="${esc(ownCloud().url||'')}" autocomplete="off" placeholder="https://….supabase.co"></div><div class="f wide"><label for="ownCloudKey">Anon klíč</label><input id="ownCloudKey" value="${esc(ownCloud().key||'')}" autocomplete="off"></div></div></details>`:'';$('#settings').innerHTML=`<div class="settings-grid"><div class="panel"><div class="detail-label">DOVOLENÁ</div><div class="bal">${fmtH(b.vac)} h</div><p class="muted">Stará ${fmtH(b.old)} h · nová ${fmtH(b.nw)} h · letos ${fmtH(b.usedOld+b.usedNew)} h${b.planned?`, z toho plán ${fmtH(b.planned)} h`:''}. Od 1. 1. +${fmtH(b.ann)} h.</p></div>
  <div class="panel"><div class="detail-label">SICK DAYS ${todayISO().slice(0,4)}</div><div class="bal">${b.sick} ${pl(b.sick,'den','dny','dní')}</div><p class="muted">Vyčerpáno ${b.usedS} ${pl(b.usedS,'den','dny','dní')}.</p></div>
- <div id="setupBlock"><div class="panel"><h2>Sazby</h2><div class="grid" style="margin-top:12px">${RATE_F.map(([k,l])=>`<div class="f"><label>${l}</label><input data-rate="${k}" inputmode="decimal" placeholder="${APPF.variant==='kolega'?'':(k.startsWith('diet')?'':k==='holidayPct'?'%':'Kč/h')}" value="${['job','base','ot','weekend'].includes(k)&&!num(r[k])?'':esc(r[k])}"></div>`).join('')}</div><p class="muted">Dojíždění = sazba Alvian a není přesčas.</p></div>
+ <div id="setupBlock"><div class="panel"><h2>Sazby</h2><div class="grid" style="margin-top:12px">${RATE_F.map(([k,l])=>`<div class="f"><label>${l}</label><input data-rate="${k}" inputmode="decimal" placeholder="${APPF.variant==='kolega'?'':(k.startsWith('diet')?'':k==='holidayPct'?'%':'Kč/h')}" value="${k==='otBonus'?esc(otBonusShown()):(['job','base','ot','weekend'].includes(k)&&!num(r[k])?'':esc(r[k]))}"></div>`).join('')}</div><p class="muted">Dojíždění = sazba Alvian a není přesčas.</p></div>
  <div class="panel"><h2>Profil</h2><div class="grid" style="margin-top:12px">${PROF_F.map(([k,l,t])=>`<div class="f ${t==='text'&&k!=='employeeNo'?'wide':''}"><label>${l}</label><input ${k==='name'?'id="profName"':''} data-prof="${k}" data-type="${t}" ${t==='date'?'type="date"':t==='number'?'inputmode="decimal"':''} value="${esc(k==='vacationAnnualHours'?annualVac(p):(p[k]??''))}"></div>`).join('')}</div></div></div>
  <div class="panel" style="grid-column:1/-1"><h2>Rychlé přidání</h2><div class="grid" style="margin-top:12px"><div class="f"><label>Depo od</label><input type="time" data-tpl="depo.start" value="${esc(tpl.depo.start)}"></div><div class="f"><label>Depo do</label><input type="time" data-tpl="depo.end" value="${esc(tpl.depo.end)}"></div><div class="f"><label>Depo pauza (h) · 0 = bez oběda</label><input inputmode="decimal" data-tpl="depo.lunch" value="${esc(tpl.depo.lunch)}"></div><div class="f"><label>Depo poznámka</label><input data-tpl="depo.note" value="${esc(tpl.depo.note)}"></div><div class="f"><label>Sazba Depo = základ (Kč/h)</label><input inputmode="decimal" data-tpl="rate" placeholder="${APPF.variant==='kolega'?'':'Kč/h'}" value="${num(r.base)?esc(r.base):''}"></div><div class="f"><label>Dovolená h/den</label><input inputmode="decimal" data-tpl="vacHours" value="${esc(tpl.vacHours)}"></div><div class="f"><label>Nemoc h/den</label><input inputmode="decimal" data-tpl="sickHours" value="${esc(tpl.sickHours)}"></div><div class="f"><label for="stampRound">Zaokrouhlení razítek</label><select id="stampRound" data-ui="stampRound"><option value="15" ${stampStep()===15?'selected':''}>15 min</option><option value="30" ${stampStep()===30?'selected':''}>30 min</option><option value="60" ${stampStep()===60?'selected':''}>60 min</option></select></div></div><p class="muted">Šablony jsou v tomto zařízení. Razítko den samo neuloží.</p></div>
  ${accessPanelHTML()}${typeof renderSlipsPanel==='function'?renderSlipsPanel():''}${hooks.account?hooks.account():''}${craneSettingsHTML()}<div class="panel" style="grid-column:1/-1"><h2>Zvuky</h2>

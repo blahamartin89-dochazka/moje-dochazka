@@ -7,8 +7,8 @@ window.APP_PROFILE={
   allowCloudKeys:true,
   homePreset:'',
   cranes:[],
-  defaultRates:{job:null,base:null,ot:null,weekend:null,holidayPct:null}
+  defaultRates:{job:null,base:null,ot:null,weekend:null,holidayPct:null,otBonus:null}
 };
 window.APP_CONFIG={SUPABASE_URL:'https://cioqtxhuimxypwaamrsk.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_UL0b2SyLdtYSfgn-z5TmZQ_qh2HigjM'};
 window.APP_PHOTO_CLOUD=false;
-window.APP_VERSION='2026-11-19.3-kolega';
+window.APP_VERSION='2026-11-19.4-kolega';
