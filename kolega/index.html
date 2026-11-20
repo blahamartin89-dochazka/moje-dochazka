@@ -510,7 +510,7 @@ header{background:#124b92}.brand-logo{display:block;height:36px;width:auto}.bran
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1"><input type="file" id="bakFile" accept=".json,.zip,application/json,application/zip" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-19.15";const APPF=window.APP_PROFILE||{};window.KOLEGA_ACCESS=true;/* Zapnuto po supabase/kolega_access.sql, hooku a SMTP. */const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-20.1";const APPF=window.APP_PROFILE||{};window.KOLEGA_ACCESS=true;/* Zapnuto po supabase/kolega_access.sql, hooku a SMTP. */const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -1511,11 +1511,14 @@ function drawVyuct(doc,trips){FS.k=1.2;FS.c=INK;const B=BLUE,X=[10.2,25.5,70.2,8
   pT(doc,'Odjezd:',X[1]+.5,y+LH/2,{sz:5.6});pT(doc,'Příjezd:',X[1]+.5,y+LH*1.5,{sz:5.6});
   if(!e)continue;const t=e.travel||{},c=calc(e);
   pT(doc,dmyy(e.date),(X[0]+X[1])/2,y+LH,{sz:5.8,st:'bold',al:'center'});
-  const from=ret?t.returnFrom:t.from,dep=ret?t.returnStart:t.start,to=ret?t.returnTo:t.to,arr=ret?t.returnArrival:t.arrival;
-  pT(doc,from||'',X[1]+10.2,y+LH/2,{sz:5.8});pT(doc,dep||'',(X[2]+X[3])/2,y+LH/2,{sz:5.8,al:'center'});pT(doc,to||'',X[1]+10.2,y+LH*1.5,{sz:5.8});pT(doc,arr||'',(X[2]+X[3])/2,y+LH*1.5,{sz:5.8,al:'center'});
-  pT(doc,t.transport||'',(X[3]+X[4])/2,y+LH/2,{sz:5.8,al:'center'});
+  const outFrom=String(t.from||'').trim(),outTo=String(t.to||'').trim();
+  const from=ret?(String(t.returnFrom||'').trim()||outTo):outFrom;
+  const toPlace=ret?(String(t.returnTo||'').trim()||outFrom):outTo;
+  const dep=ret?t.returnStart:t.start,arr=ret?t.returnArrival:t.arrival;
+  pT(doc,from,X[1]+10.2,y+LH/2,{sz:5.8});pT(doc,dep||'',(X[2]+X[3])/2,y+LH/2,{sz:5.8,al:'center'});pT(doc,toPlace,X[1]+10.2,y+LH*1.5,{sz:5.8});pT(doc,arr||'',(X[2]+X[3])/2,y+LH*1.5,{sz:5.8,al:'center'});
+  pT(doc,String(t.transport||'').trim()||'AUS',(X[3]+X[4])/2,y+LH/2,{sz:5.8,al:'center'});
   if(ret){const ym=y+LH*1.5,cc=(k,v)=>pT(doc,v,(X[k]+X[k+1])/2,ym,{sz:5.8,al:'center'});const s=c.diet+c.c.sum;
-   if(num(t.km)){cc(4,nf(t.km))}cc(7,nz(c.c.fare+c.c.km));cc(8,nz(c.diet));cc(9,nz(c.c.lodging));cc(10,nz(c.c.other));cc(11,nz(s));
+   cc(7,nz(c.c.fare+c.c.km));cc(8,nz(c.diet));cc(9,nz(c.c.lodging));cc(10,nz(c.c.other));cc(11,nz(s));
    tot.f+=c.c.fare+c.c.km;tot.d+=c.diet;tot.l+=c.c.lodging;tot.o+=c.c.other;tot.s+=s}}
  // součty
  const ty=[219.4,227.3,235.0,242.3];pL(doc,115.9,ty[3],200.4,ty[3],.45);[115.9,200.4].forEach(x=>pL(doc,x,219.2,x,ty[3],.45));pL(doc,115.9,ty[1],200.4,ty[1],.3);pL(doc,115.9,ty[2],200.4,ty[2],.3);
@@ -1867,11 +1870,7 @@ function renderDnes(){
  const links=`<div class="btnrow"><button class="btn sec small" data-act="dCal" data-date="${k}">Detail dne</button><button class="btn sec small" data-act="add" data-date="${k}">+ Další záznam</button></div>`;
  if(shown.length){card+=links}
  else if(es.length){card+=`<button class="tplb sec big" data-act="edit" data-id="${es[0].id}">✏️ Upravit dnešek</button>${tiles}${links}`}
- else{const cp=tplCopySrc(k),jb=tplJobSrc(k);
-  card+=tiles+`<p class="dn-sub">Jak chceš zapsat dnešek?</p>`
-   +(cp?tplBtn('copy','🔁','Jako včera',tplPreview(cp),k,1):'')
-   +(jb?tplBtn('job','🏗️','Poslední zakázka',tplPreview(jb,1),k,1):'')
-   +`<button class="tplb sec big" data-act="tpl" data-k="manual" data-date="${k}">✏️ Zapsat dnešek ručně</button>`}
+ else{card+=`<button class="tplb big" data-act="quickDay" data-date="${k}">Rychlá docházka</button>`+tiles}
  card+=daySaveBtn(k,es);
  card+='</div>';
  const ty=+today.slice(0,4),tm=+today.slice(5,7)-1,s=summary(ty,tm),pm=tm?tm-1:11,py=tm?ty:ty-1,ps=summary(py,pm),pct=ps.all?Math.min(100,s.all/ps.all*100):0;
@@ -1883,7 +1882,8 @@ function makeManual(date){const t=tpl.depo,total=depoHours();
  return{id:newId(),date,startTime:t.start||'07:00',endTime:t.end||'15:30',lunchHours:num(t.lunch),totalHours:total,customer:'',place:'',note:'',jobHours:total,baseHours:0,commuteHours:0,overtime:r2(Math.max(0,total-8)),weekendHours:isWeekend(date)?total:0,vacationHours:0,sickHours:0,doctorHours:0,tripHours:0,noTravelOrder:true,travel:blankTravel(),machine:''}}
 function openTpl(kind,date){
  if(kind==='vac'||kind==='sick'||kind==='dpn')return quickAdd(kind,[date]);
- if(kind==='new')return openForm(null,date);
+ if(kind==='manual'||kind==='depo'||kind==='copy'||kind==='job')return openQuickDay(date);
+ if(kind==='new')return openQuickDay(date);
  const src=kind==='manual'?makeManual(date):kind==='depo'?makeDepo(date):kind==='copy'?tplCopySrc(date):tplJobSrc(date);if(!src)return openForm(null,date);
  const label={depo:'🏭 Depo',copy:'🔁 Jako včera',job:'🏗️ Poslední zakázka',manual:'✏️ Ruční zápis'}[kind];
  qs={date,kind,label,src:clone(src),start:src.startTime||'07:00',end:src.endTime||'15:30',lunch:num(src.lunchHours),commute:num(src.commuteHours),place:kind==='manual'?'':(src.place||src.travel?.to||''),customer:kind==='manual'?'':custOf(src),machine:kind==='manual'?'':(src.machine||'')};
@@ -1907,7 +1907,8 @@ function qBuild(){const s=qs.src,e=clone(s);e.id=newId();e.date=qs.date;delete e
  e.startTime=qs.start;e.endTime=qs.end;e.lunchHours=num(qs.lunch);const span=spanH(qs.start,qs.end)??0,total=Math.max(0,r2(span-e.lunchHours));
  const isJob=num(s.jobHours)>0,com=Math.min(num(qs.commute),total),extra=Math.max(0,r2(num(s.baseHours)-num(s.commuteHours)));
  const base=isJob?Math.min(total,r2(com+extra)):total;
- Object.assign(e,{totalHours:total,commuteHours:r2(com),baseHours:r2(base),jobHours:r2(total-base),overtime:r2(Math.max(0,total-8-com)),weekendHours:isWeekend(qs.date)?total:0,vacationHours:0,sickHours:0,doctorHours:0});
+ Object.assign(e,{totalHours:total,commuteHours:r2(com),baseHours:r2(base),jobHours:r2(total-base),overtime:0,weekendHours:isWeekend(qs.date)?total:0,vacationHours:0,sickHours:0,doctorHours:0});
+ e.overtime=entryOt(e);
  if('dpnHours' in s)e.dpnHours=0; else delete e.dpnHours;
  /* Jako včera a Poslední zakázka přenesou vyplněný cesťák. Depo, ruční zápis a den bez cesťáku ho nezaloží. */
  if((qs.kind==='copy'||qs.kind==='job')&&travelClaim(s)){e.travel=clone(s.travel||blankTravel());e.tripHours=num(s.tripHours);e.noTravelOrder=false}
@@ -2061,7 +2062,7 @@ const P=()=>state.profile||{};
 function autoCalc(e){
  const span=spanH(e.startTime,e.endTime);
  const total=span===null?0:Math.max(0,r2(span-num(e.lunchHours)));
- return {total,overtime:r2(Math.max(0,total-8-num(e.commuteHours))),weekend:e.date&&isWeekend(e.date)?total:0,
+ return {total,overtime:entryOt(Object.assign({},e,{totalHours:total})),weekend:e.date&&isWeekend(e.date)?total:0,
   trip:r2(spanH(e.travel?.start,e.travel?.returnArrival)??0)};
 }
 function mealsCount(t){const f=t?.freeMeals;return f===true?1:Math.max(0,Math.min(3,num(f)))}
@@ -2449,8 +2450,7 @@ function makeJob(v){
  const claim=!!(from||to||ret);
  const travel=blankTravel();
  if(claim)Object.assign(travel,{from,to,returnTo:ret});
- return{id:newId(),date:v.date,startTime:v.start,endTime:v.end,lunchHours:num(v.lunch),totalHours:total,note:v.note||'',customer:(v.customer||v.note||'').trim(),place:canonPlace(v.place),jobHours:r2(total-com),baseHours:r2(com),overtime:r2(Math.max(0,total-8-com)),commuteHours:r2(com),weekendHours:isWeekend(v.date)?total:0,noTravelOrder:!claim,tripHours:0,vacationHours:0,doctorHours:0,sickHours:0,travel}
-}
+ const e={id:newId(),date:v.date,startTime:v.start,endTime:v.end,lunchHours:num(v.lunch),totalHours:total,note:v.note||'',customer:storedCustomer({customer:v.customer,machine:''})||'',place:canonPlace(v.place),jobHours:r2(total-com),baseHours:r2(com),overtime:0,commuteHours:r2(com),weekendHours:isWeekend(v.date)?total:0,noTravelOrder:!claim,tripHours:0,vacationHours:0,doctorHours:0,sickHours:0,travel};e.overtime=entryOt(e);return e}
 function quickAdd(kind,dates){
  const mk=d=>kind==='depo'?makeDepo(d):makeLeave(d,kind);let added=0,skipped=[];
  if(dates.length===1){const d=dates[0];if(state.entries.some(x=>x.date===d)&&!confirm(`${fmtDate(d)} už má záznam. Přidat další?`))return;state.entries.push(mk(d));added=1}
@@ -2468,7 +2468,8 @@ function quickButtons(dates,opt){
  return grid+`<div class="btnrow">${one?`<button class="btn sec small" data-act="full" data-date="${dates[0]}">✎ Vlastní (plný formulář)</button><button class="btn sec small" data-act="multiStart" data-date="${dates[0]}">☑ Vybrat více dní</button>`:''}</div>`;
 }
 function openQuick(dates){
- const t=dates.length===1?parseISO(dates[0]).toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'long'}):`${dates.length} ${pl(dates.length,'vybraný den','vybrané dny','vybraných dní')}`;
+ if(dates&&dates.length===1)return openQuickDay(dates[0]);
+ const t=`${dates.length} ${pl(dates.length,'vybraný den','vybrané dny','vybraných dní')}`;
  $('#dlg').innerHTML=`<div class="dlg-head"><h2>Přidat · ${t}</h2><button type="button" data-act="close" aria-label="Zavřít">✕</button></div><div class="dlg-body">${quickButtons(dates)}${dates.length>1?'<p class="muted">Dny, které už mají záznam, se přeskočí.</p>':''}</div>`;
  if(!$('#dlg').open)$('#dlg').showModal();
 }
@@ -2709,11 +2710,11 @@ document.addEventListener('click',ev=>{
   if(act==='photoMenu'||act==='entryMenu'){ev.stopPropagation();const menu=a.parentElement&&a.parentElement.querySelector(':scope > .dd-menu');document.querySelectorAll('.dd-menu').forEach(m=>{if(m!==menu)m.hidden=true});if(menu)menu.hidden=!menu.hidden;return}
   if(act==='add')return openQuick([a.dataset.date]);
   if(act==='full'){if($('#dlg').open)$('#dlg').close();return openForm(null,a.dataset.date)}
-  if(act==='qDepo')return quickAdd('depo',a.dataset.dates.split(','));
+  if(act==='qDepo'){const ds=String(a.dataset.dates||'').split(',').filter(Boolean);if(ds.length<=1)return openQuickDay(ds[0]||iso(Y,M,sel));return quickAdd('depo',ds)}
   if(act==='qVac')return quickAdd('vac',a.dataset.dates.split(','));
   if(act==='qSick')return quickAdd('sick',a.dataset.dates.split(','));
   if(act==='qDpn')return quickAdd('dpn',a.dataset.dates.split(','));
-  if(act==='qJob')return openJobQuick(a.dataset.dates);
+  if(act==='qJob'){const ds=String(a.dataset.dates||'').split(',').filter(Boolean);return openQuickDay(ds[0]||iso(Y,M,sel))}
   if(act==='jobSave')return saveJob();
   if(act==='jobFull'){const e=makeJob(jobVals());$('#dlg').close();return openForm(null,e.date,e)}
   if(act==='multiStart'){if($('#dlg').open)$('#dlg').close();multi=new Set([a.dataset.date]);view='calendar';render();return}
@@ -2764,7 +2765,7 @@ document.addEventListener('click',ev=>{
  const v=typing?null:viewControl(ev.target);
  const m=typing?null:ev.target.closest('[data-month]');
  if(d&&multi&&d.closest('#calendar')){const k=iso(Y,M,+d.dataset.day);multi.has(k)?multi.delete(k):multi.add(k);sel=+d.dataset.day;render();return}
- if(d){sel=+d.dataset.day;render();if(view==='calendar'&&innerWidth<=700)$('#detail').scrollIntoView({behavior:'smooth',block:'start'});return}
+ if(d){sel=+d.dataset.day;const k=iso(Y,M,sel);const es=byDate()[k]||[];const empty=!es.some(e=>num(e.totalHours)>0||num(e.vacationHours)>0||num(e.sickHours)>0||num(e.dpnHours)>0||num(e.doctorHours)>0);render();if(view==='calendar'&&empty)return openQuickDay(k);if(view==='calendar'&&innerWidth<=700)$('#detail').scrollIntoView({behavior:'smooth',block:'start'});return}
  if(v){const next=v.dataset.view;if(next!==view){view=next;render();window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0}return}
  if(m){Y=+m.dataset.month.slice(0,4);M=+m.dataset.month.slice(5)-1;const es=monthEntries(Y,M);sel=es.length?+es[0].date.slice(8):1;view='calendar';render();window.scrollTo({top:0,behavior:'smooth'})}
 });
@@ -2836,7 +2837,7 @@ $('#bakFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)rest
 $('#prev').onclick=()=>go(-1);$('#next').onclick=()=>go(1);
 $('#dochPdf').onclick=()=>{view='print';render();window.scrollTo(0,0)};
 $('#today').onclick=()=>{const t=new Date();Y=t.getFullYear();M=t.getMonth();sel=t.getDate();render()};
-$('#addBtn').onclick=()=>openQuick([iso(Y,M,sel)]);
+$('#addBtn').onclick=()=>openQuickDay(iso(Y,M,sel));
 $('#eye').onclick=()=>{ui.hide=!ui.hide;saveUi();render()};
 $('#mode').onchange=e=>{ui.mode=e.target.value;saveUi();render()};
 document.addEventListener('change',ev=>{const el=ev.target;if(!el||!el.dataset)return;if(el.dataset.ui==='stampRound'){ui.stampRound=[15,30,60].includes(+el.value)?+el.value:30;saveUi();if(view==='dnes')render();return}if(el.dataset.rate||el.dataset.prof||el.dataset.tpl){rememberSettingsField(el);scheduleSettingsSave();return}if(!el.dataset.sound)return;readSoundControls();writeSoundToProfile();saveUi();saveData();});
