@@ -416,7 +416,7 @@ button.dd-note{display:block;width:100%;text-align:left;background:none;border:0
 .dd-photo{position:relative;display:flex;align-items:flex-start;gap:8px;margin:0 0 8px}
 .dd-photo img{width:72px;height:72px;object-fit:cover;border-radius:10px;background:#e8eef6}
 .dd-dot{border:0;background:#e8eef6;color:#14233b;border-radius:999px;width:36px;height:36px;font-weight:800;font-size:18px}
-.dd-menu{position:absolute;right:0;top:42px;background:#fff;border:1px solid #e4ebf5;border-radius:12px;box-shadow:0 8px 24px #0b254a22;z-index:6;display:flex;flex-direction:column;min-width:220px;overflow:hidden}
+.dd-tools{position:relative}.dd-menu{position:absolute;right:0;top:42px;background:#fff;border:1px solid #e4ebf5;border-radius:12px;box-shadow:0 8px 24px #0b254a22;z-index:6;display:flex;flex-direction:column;min-width:220px;max-width:calc(100vw - 16px);overflow:hidden}.dd-menu.dd-fixed{position:fixed;right:auto;z-index:40}
 .dd-menu[hidden]{display:none}
 .dd-menu button{background:#fff;border:0;border-bottom:1px solid #eef2f7;text-align:left;padding:12px 14px;font:inherit}
 .dd-menu button:last-child{border:0}
@@ -534,7 +534,7 @@ body,button,a,label,span,b,p,h1,h2,h3,li{-webkit-user-select:none;user-select:no
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1"><input type="file" id="bakFile" accept=".json,.zip,application/json,application/zip" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" tabindex="-1">
 
 <script type="application/json" id="seedData">{"version": 3, "entries": [], "rates": {"job": 0, "base": 0, "ot": 0, "weekend": 0, "dietShort": 155, "dietMid": 236, "dietLong": 370}, "profile": {}, "travelOrders": {}, "payslips": []}</script>
-<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-28.2";const APPF=window.APP_PROFILE||{};window.KOLEGA_ACCESS=true;/* Zapnuto po supabase/kolega_access.sql, hooku a SMTP. */const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
+<script>window.APP_PWA=true;if(!window.APP_VERSION)window.APP_VERSION="2026-11-28.3";const APPF=window.APP_PROFILE||{};window.KOLEGA_ACCESS=true;/* Zapnuto po supabase/kolega_access.sql, hooku a SMTP. */const lsp=k=>(APPF.storagePrefix||'mojeDochazka')+(k?'.'+k:'');/* Procedural UI sounds + optional ambient music (Web Audio, no external files). */
 (function(){
  const OLD_DEF_VOL=.45, DEF={soundFx:true,soundMusic:false,soundVol:.7};
  let ctx=null,master=null,comp=null,musicGain=null,musicTimer=null,musicOn=false,chordI=0;
@@ -2763,11 +2763,18 @@ function doImport(replace){const d=pendingImport;pendingImport=null;if(!d)return
  $('#dlg').close();initialMonth();render()}
 
 /* ---------- události ---------- */
+let dotScrollers=[];
+function unbindDotScroll(){dotScrollers.forEach(([el,fn])=>el.removeEventListener('scroll',fn));dotScrollers=[]}
+function closeDotMenus(){unbindDotScroll();document.querySelectorAll('.dd-menu').forEach(m=>{m.hidden=true})}
+function bindDotScroll(btn){unbindDotScroll();const fn=()=>closeDotMenus();let n=btn.parentElement;while(n){const s=getComputedStyle(n);if(/(auto|scroll|overlay)/.test(s.overflowY)){n.addEventListener('scroll',fn,{passive:true});dotScrollers.push([n,fn])}n=n.parentElement}window.addEventListener('scroll',fn,{passive:true});dotScrollers.push([window,fn])}
+function placeDotMenu(btn,menu){menu.hidden=false;menu.classList.add('dd-fixed');menu.style.right='auto';menu.style.top='0px';menu.style.left='0px';const origin=menu.getBoundingClientRect();const r=btn.getBoundingClientRect();const mw=menu.offsetWidth,mh=menu.offsetHeight,gap=6,pad=16,vw=window.innerWidth,vh=window.innerHeight;let visTop=r.bottom+gap;if(visTop+mh>vh-pad)visTop=r.top-gap-mh;if(visTop<pad)visTop=pad;if(visTop+mh>vh-pad)visTop=Math.max(pad,vh-pad-mh);let visLeft=r.right-mw;if(visLeft<pad)visLeft=pad;if(visLeft+mw>vw-pad)visLeft=Math.max(pad,vw-pad-mw);menu.style.top=(visTop-origin.top)+'px';menu.style.left=(visLeft-origin.left)+'px';bindDotScroll(btn)}
+function toggleDotMenu(btn){const menu=btn.parentElement&&btn.parentElement.querySelector(':scope > .dd-menu');if(!menu)return;const was=menu.hidden;closeDotMenus();if(!was)return;placeDotMenu(btn,menu)}
+document.addEventListener('scroll',ev=>{if(ev.target&&ev.target.closest&&ev.target.closest('.dd-menu'))return;if(document.querySelector('.dd-menu:not([hidden])'))closeDotMenus()},{capture:true,passive:true});
 document.addEventListener('click',ev=>{
  const a=ev.target.closest('[data-act]');
- if(!ev.target.closest('.dd-menu,.dd-dot'))document.querySelectorAll('.dd-menu').forEach(m=>m.hidden=true);
+ if(!ev.target.closest('.dd-menu,.dd-dot'))closeDotMenus();
  if(a){const act=a.dataset.act;
-  if(act==='photoMenu'||act==='entryMenu'){ev.stopPropagation();const menu=a.parentElement&&a.parentElement.querySelector(':scope > .dd-menu');document.querySelectorAll('.dd-menu').forEach(m=>{if(m!==menu)m.hidden=true});if(menu)menu.hidden=!menu.hidden;return}
+  if(act==='photoMenu'||act==='entryMenu'){ev.stopPropagation();toggleDotMenu(a);return}
   if(act==='add')return openQuick([a.dataset.date]);
   if(act==='full'){if($('#dlg').open)$('#dlg').close();return openForm(null,a.dataset.date)}
   if(act==='qDepo'){const ds=String(a.dataset.dates||'').split(',').filter(Boolean);if(ds.length<=1)return openQuickDay(ds[0]||iso(Y,M,sel));return quickAdd('depo',ds)}
